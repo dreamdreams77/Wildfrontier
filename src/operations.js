@@ -92,7 +92,8 @@ export function createOperations(sanct,options={}){
   const def=BUILD_ITEMS[type];if(!def)return {ok:false,message:'Unknown item.'};
   if(!inZone(x,z))return {ok:false,message:'Build inside the safari grounds.'};
   for(const o of state.items){const od=BUILD_ITEMS[o.type];if(Math.hypot(o.x-x,o.z-z)<(def.r+od.r)*.75)return {ok:false,message:'Too close to another structure.'}}
-  if(!sanct.spend(def.cost))return {ok:false,message:'Not enough funds ('+def.cost+' needed).'};
+  const cost=Math.round(def.cost*(sanct.mods.costMul||1));
+  if(!sanct.spend(cost))return {ok:false,message:'Not enough funds ('+cost+' needed).'};
   const item={id:'b'+(++state.itemSerial),type,x:Math.round(x*10)/10,z:Math.round(z*10)/10,rot};
   state.items.push(item);
   return {ok:true,message:def.label+' built.',item};

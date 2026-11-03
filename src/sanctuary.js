@@ -256,7 +256,7 @@ function useEnrichment(id,type){
   if(welfareOf(a)<70)return {ok:false,message:a.name+' must be in good welfare (70+) before a transfer.'};
   const i=sim.animals.indexOf(a);sim.animals.splice(i,1);
   if(sim.selected&&sim.selected()===a&&sim.animals.length)sim.select(sim.animals[0].id);
-  state.transfers++;state.credits+=6;state.reputation+=6;state.funds+=120;
+  state.transfers++;state.credits+=6;state.reputation+=6;state.funds+=120+(mods.transferBonus||0);
   say(a.name+' ('+sp.common+') was transferred to a partner reserve as part of the species recovery plan. Credits +6, partner grant +120.');
   return {ok:true,message:a.name+' left for a partner reserve. Credits +6, grant +120.',removedId:a.id};
  }

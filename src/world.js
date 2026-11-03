@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { makeCreature } from './art/creature.js';
+import { makeOak } from './art/vegetation.js';
 import { makeHuman, LOOKS } from './art/human.js';
 import { buildWorldArt } from './art/world-art.js';
 import { makeBuildModel, setNight } from './art/structures.js';
@@ -9,6 +10,8 @@ import { setTextureScale } from './art/paint.js';
 import { setPhysical, mats } from './art/materials.js';
 import { createStaffLayer, createCrowd } from './npcs.js';
 import { createBrain, profileOf, CALLS } from './ai.js';
+import { damp as dampM, approachSpeed, turnToward, avoid } from './motion.js';
+const CAM_OBSTACLES=[{x:-21,z:5,r:5.2,h:4.6},{x:-21,z:-7,r:5.2,h:4.8},{x:-19,z:10,r:3,h:3.8},{x:-12,z:7,r:4.2,h:3.8}];
 
 // Where each woodland resident starts (safari residents and later arrivals carry their own habitatPosition).
 const START={'fawn-01':[-1,1],'rabbit-01':[4,5],'rabbit-02':[-7,7],'fox-01':[-15,-2],'owl-01':[-3,-5.5],'squirrel-01':[-4,-3],'bird-01':[7,-7],'raccoon-01':[11,7],'beaver-01':[9,1],'skunk-01':[-17,4],'turtle-01':[5,12],'cardinal-01':[14,-4],'otter-01':[6,2.8],'bobcat-01':[-17,-5],'wolf-01':[-13,-7],'wolf-02':[-11,-8],'crane-01':[8,3],'crane-02':[10,4],'duck-01':[8,2.8],'opossum-01':[-8,6]};
@@ -45,19 +48,22 @@ export function createWorld(container){
  let dynamicPoints={water:[],shelter:[],food:[],enrich:[]};
  const hooks={stats:null,onEnrich:null,onNeed:null,onCall:null};
  const wx={rain:false,storm:false};let phaseNow='Dawn',nightNow=false;
- const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let target=new THREE.Vector3(ranger.position.x,0,ranger.position.z),yaw=.72,pitch=.48,distance=19,selected=null;
- function cameraUpdate(){const horizontal=Math.cos(pitch)*distance;camera.position.set(target.x+Math.sin(yaw)*horizontal,target.y+Math.sin(pitch)*distance+2,target.z+Math.cos(yaw)*horizontal);camera.lookAt(target)}
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let target=new THREE.Vector3(ranger.position.x,0,ranger.position.z),yaw=.72,pitch=.48,distance=19,distGoal=19,following=true,selected=null;
+ let cine=null;
+ function playCinematic(frames,duration,onDone){const P=new THREE.CatmullRomCurve3(frames.map(f=>new THREE.Vector3(...f.pos)),false,'catmullrom',.4),Lk=new THREE.CatmullRomCurve3(frames.map(f=>new THREE.Vector3(...f.look)),false,'catmullrom',.4);cine={P,Lk,duration,t:0,onDone}}
+ function stopCinematic(){if(!cine)return;const d=cine.onDone;cine=null;cameraUpdate();d&&d()}
+ function cameraUpdate(){if(cine)return;const horizontal=Math.cos(pitch)*distance;camera.position.set(target.x+Math.sin(yaw)*horizontal,target.y+Math.sin(pitch)*distance+2,target.z+Math.cos(yaw)*horizontal);const cp=avoid({x:camera.position.x,y:camera.position.y,z:camera.position.z},CAM_OBSTACLES,.9);camera.position.set(cp.x,cp.y,cp.z);camera.lookAt(target)}
  cameraUpdate();
  let rw=0,rh=0;function resize(){const w=Math.round(innerWidth),h=Math.round(innerHeight);if(w===rw&&h===rh)return;rw=w;rh=h;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);if(post)post.setSize(w,h,renderer.getPixelRatio())}addEventListener('resize',resize);resize();
  const el=renderer.domElement;el.style.touchAction='none';const pointers=new Map();let tapStart=null,pinchBase=0,pinchDist0=distance;
  const pinchSpan=()=>{const [a,b]=[...pointers.values()];return Math.hypot(a.x-b.x,a.y-b.y)};
- el.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{el.setPointerCapture(e.pointerId)}catch{}if(pointers.size===1)tapStart={x:e.clientX,y:e.clientY,t:performance.now(),moved:false};else{tapStart=null;pinchBase=pinchSpan();pinchDist0=distance}});
- el.addEventListener('pointermove',e=>{const prev=pointers.get(e.pointerId);if(!prev)return;const cur={x:e.clientX,y:e.clientY};if(pointers.size>=2){pointers.set(e.pointerId,cur);if(pinchBase>0){distance=THREE.MathUtils.clamp(pinchDist0*pinchBase/Math.max(20,pinchSpan()),9,40);cameraUpdate()}return}
+ el.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{el.setPointerCapture(e.pointerId)}catch{}if(pointers.size===1)tapStart={x:e.clientX,y:e.clientY,t:performance.now(),moved:false};else{tapStart=null;pinchBase=pinchSpan();pinchDist0=distGoal}});
+ el.addEventListener('pointermove',e=>{const prev=pointers.get(e.pointerId);if(!prev)return;const cur={x:e.clientX,y:e.clientY};if(pointers.size>=2){pointers.set(e.pointerId,cur);if(pinchBase>0){distGoal=THREE.MathUtils.clamp(pinchDist0*pinchBase/Math.max(20,pinchSpan()),7,44)}return}
   if(tapStart&&Math.abs(cur.x-tapStart.x)+Math.abs(cur.y-tapStart.y)>10)tapStart.moved=true;if(e.pointerType==='mouse'&&!(e.buttons&1)){pointers.set(e.pointerId,cur);return}
   yaw-=(cur.x-prev.x)*.006;pitch=THREE.MathUtils.clamp(pitch+(cur.y-prev.y)*.005,.12,.85);pointers.set(e.pointerId,cur);cameraUpdate()});
  const endPointer=(e,cancelled)=>{const was=tapStart;pointers.delete(e.pointerId);if(pointers.size<2)pinchBase=0;if(pointers.size===0)tapStart=null;if(!cancelled&&was&&!was.moved&&performance.now()-was.t<600){if(photoMode)return;if(buildMode){const bid=pickBuild(e.clientX,e.clientY);if(bid)window.dispatchEvent(new CustomEvent('wildfrontier:builditem',{detail:{id:bid}}));else{const g=pickGround(e.clientX,e.clientY);if(g)window.dispatchEvent(new CustomEvent('wildfrontier:ground',{detail:{x:g.x,z:g.z}}))}return}const a=pick(e.clientX,e.clientY);if(a)window.dispatchEvent(new CustomEvent('wildfrontier:select',{detail:a.userData}))}};
  el.addEventListener('pointerup',e=>endPointer(e,false));el.addEventListener('pointercancel',e=>endPointer(e,true));el.addEventListener('contextmenu',e=>e.preventDefault());
- el.addEventListener('wheel',e=>{distance=THREE.MathUtils.clamp(distance+e.deltaY*.012,9,40);cameraUpdate()},{passive:true});
+ el.addEventListener('wheel',e=>{distGoal=THREE.MathUtils.clamp(distGoal+e.deltaY*.012,7,44)},{passive:true});
  function pick(clientX,clientY){pointer.x=clientX/innerWidth*2-1;pointer.y=-(clientY/innerHeight)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(animals,true);if(!hits.length)return null;let obj=hits[0].object;while(obj.parent&&!obj.userData.kind)obj=obj.parent;selected=obj;return obj}
  // ---- Build mode, photography and crowd helpers ----
  let buildMode=false,photoMode=false;const buildGroup=new THREE.Group();scene.add(buildGroup);const buildItems=new Map();
@@ -70,8 +76,8 @@ export function createWorld(container){
  function updateBuildItem(it){const m=buildItems.get(it.id);if(m){placeBuild(m,it);if(ring.visible&&ring.userData.id===it.id)ring.position.set(it.x,.12,it.z)}}
  function removeBuildItem(id){const m=buildItems.get(id);if(!m)return false;buildGroup.remove(m);buildItems.delete(id);if(ring.userData.id===id)ring.visible=false;return true}
  function selectBuildItem(it,radius=1.6){if(!it){ring.visible=false;ring.userData.id=null;return}ring.userData.id=it.id;ring.scale.setScalar(radius);ring.position.set(it.x,.12,it.z);ring.visible=true}
- function setBuildMode(on){buildMode=!!on;if(!on)ring.visible=false}
- function setPhotoMode(on){photoMode=!!on;if(!on){camera.zoom=1;camera.updateProjectionMatrix()}}
+ function setBuildMode(on){buildMode=!!on;if(!on)ring.visible=false;else distGoal=Math.max(distGoal,26)}
+ function setPhotoMode(on){photoMode=!!on;if(on)distGoal=Math.min(distGoal,15);if(!on){camera.zoom=1;camera.updateProjectionMatrix()}}
  function setZoom(z){camera.zoom=THREE.MathUtils.clamp(z,1,4);camera.updateProjectionMatrix()}
  function photoSubjects(){const out=[];const v=new THREE.Vector3();for(const a of animals){v.copy(a.position);v.y+=.7;const d=camera.position.distanceTo(v);v.project(camera);if(v.z>1||Math.abs(v.x)>1.05||Math.abs(v.y)>1.05)continue;out.push({id:a.userData.id,kind:a.userData.kind,nx:v.x,ny:v.y,dist:d/camera.zoom,moving:a.userData.wanderTarget?a.userData.wanderTarget.distanceTo(a.position)>.15:false,sleeping:!!a.userData.sleeping,animation:a.userData.animation})}return out}
  function capture(frame){renderFrame();const src=renderer.domElement,W=src.width,H=src.height;const fw=W*frame.w,fh=fw*(10/16);const c=document.createElement('canvas');c.width=360;c.height=225;const x=c.getContext('2d');x.drawImage(src,(W-fw)/2,(H-fh)/2,fw,fh,0,0,360,225);try{return c.toDataURL('image/jpeg',.72)}catch{return null}}
@@ -97,19 +103,30 @@ export function createWorld(container){
  function setMarkers(list){const key=JSON.stringify(list.map(m=>[m.id,m.type,Math.round(m.x),Math.round(m.z),m.found?1:0]));if(key===markerKey)return;markerKey=key;while(markerGroup.children.length){const c=markerGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
   for(const m of list){const g=new THREE.Group();g.position.set(m.x,0,m.z);
    if(m.type==='search'){const ring=new THREE.Mesh(new THREE.RingGeometry(m.radius-.18,m.radius,48),new THREE.MeshBasicMaterial({color:'#ffd35a',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.1;g.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,16,10,1,true),new THREE.MeshBasicMaterial({color:'#ffd35a',transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));beam.position.y=8;g.add(beam)}
+   else if(m.type==='spot'){const col={footprints:'#8ac0ff',hide:'#b8e08a',water:'#6ad0e0',plant:'#9ae06a',litter:'#e0a0ff'}[m.spot]||'#fff';const ring=new THREE.Mesh(new THREE.RingGeometry(.85,1.05,28),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.11;g.add(ring);const pip=new THREE.Mesh(new THREE.OctahedronGeometry(.22),new THREE.MeshBasicMaterial({color:col}));pip.position.y=1.25;g.add(pip)}
    else{const dot=new THREE.Mesh(new THREE.CircleGeometry(.55,20),new THREE.MeshBasicMaterial({color:m.found?'#8aa07a':'#ff9a5a',transparent:true,opacity:m.found?.35:.85,depthWrite:false}));dot.rotation.x=-Math.PI/2;dot.position.y=.12;g.add(dot);if(!m.found){const pip=new THREE.Mesh(new THREE.ConeGeometry(.16,.5,8),new THREE.MeshBasicMaterial({color:'#ff9a5a'}));pip.position.y=1.1;pip.rotation.x=Math.PI;g.add(pip)}}
    markerGroup.add(g)}}
+ const plantGroup=new THREE.Group();scene.add(plantGroup);const plantMap=new Map();
+ function setPlantings(list){for(const p of list){let o=plantMap.get(p.id);if(!o){o=makeOak(p.id.length*7+Math.round(p.x),{scale:.3,detail:.4});o.position.set(p.x,0,p.z);plantGroup.add(o);plantMap.set(p.id,o)}o.scale.setScalar(.25+p.growth*1.0)}}
  function removeAnimal(id){const i=animals.findIndex(a=>a.userData.id===id);if(i<0)return false;const [a]=animals.splice(i,1);scene.remove(a);return true}
 
  const _v=new THREE.Vector3(),_d=new THREE.Vector3();const damp=(c,tg,r,dt)=>c+(tg-c)*(1-Math.exp(-r*dt));
  function turnTo(obj,heading,rate,dt){obj.rotation.y+=Math.atan2(Math.sin(heading-obj.rotation.y),Math.cos(heading-obj.rotation.y))*Math.min(1,dt*rate)}
  function updateRanger(dt,keys){
-  const speed=dt*4.2;let moving=false;
+  let moving=false;const rv=ranger.userData.vel||(ranger.userData.vel=new THREE.Vector3());
   if(ranger.userData.rescueTarget){const toward=ranger.userData.rescueTarget.clone().sub(ranger.position);toward.y=0;if(toward.length()>.8){toward.normalize();ranger.position.addScaledVector(toward,dt*2.2);ranger.rotation.y=Math.atan2(toward.x,toward.z);moving=true}else{ranger.userData.rescueTarget=null;ranger.userData.carrying=true}}
   let dx=0,dz=0;if(keys.forward)dz-=1;if(keys.back)dz+=1;if(keys.left)dx-=1;if(keys.right)dx+=1;
-  if(dx||dz){const v=new THREE.Vector3(dx,0,dz).normalize().applyAxisAngle(new THREE.Vector3(0,1,0),yaw);target.addScaledVector(v,speed);ranger.position.addScaledVector(v,speed);
-   ranger.position.x=THREE.MathUtils.clamp(ranger.position.x,-25,43);ranger.position.z=THREE.MathUtils.clamp(ranger.position.z,-20,22);turnTo(ranger,Math.atan2(v.x,v.z),8,dt);moving=true;cameraUpdate()}
-  ranger.userData.rig.update(dt,{moving,carrying:!!ranger.userData.carrying,speedScale:1});
+  const want=new THREE.Vector3();if(dx||dz){want.set(dx,0,dz).normalize().applyAxisAngle(new THREE.Vector3(0,1,0),yaw)}
+  // acceleration-limited velocity: eases into a walk, brakes to a stop, and never slides
+  const sp0=rv.length(),spT=(dx||dz)?4.2:0;const sp1=approachSpeed(sp0,spT,16,22,dt);
+  if(dx||dz){rv.lerp(want.multiplyScalar(Math.max(sp1,.01)),1-Math.exp(-14*dt));if(rv.length()>.01)rv.setLength(sp1)}else if(sp0>0){rv.multiplyScalar(sp0>0?sp1/sp0:0)}
+  const spd=rv.length();
+  if(spd>.05){ranger.position.addScaledVector(rv,dt);ranger.position.x=THREE.MathUtils.clamp(ranger.position.x,-25,43);ranger.position.z=THREE.MathUtils.clamp(ranger.position.z,-20,22);ranger.rotation.y=turnToward(ranger.rotation.y,Math.atan2(rv.x,rv.z),10,dt);moving=true;following=true}
+  // damped follow camera: glides after the ranger instead of locking to them
+  if(following){target.x=dampM(target.x,ranger.position.x,5,dt);target.z=dampM(target.z,ranger.position.z,5,dt)}
+  if(Math.abs(distGoal-distance)>.01){distance=dampM(distance,distGoal,7,dt)}
+  if(spd>.05||Math.abs(distGoal-distance)>.01||following)cameraUpdate();
+  ranger.userData.rig.update(dt,{moving:moving&&spd>.3||moving&&ranger.userData.rescueTarget,carrying:!!ranger.userData.carrying,speedScale:Math.max(.4,spd/4.2)});
  }
  const AGENT={id:'',kind:'',x:0,z:0,home:null,traits:null,trust:0,stress:30,hunger:30,thirst:30,energy:70,boredom:30,social:60,sleeping:false,young:false,mind:null};
  let snapshot=[],rangerMoving=false;
@@ -214,11 +231,12 @@ export function createWorld(container){
   const dt=Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;
   update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env);
   const f=governor.tick();if(f)perf.fps=Math.round(f);
+  if(cine){cine.t+=dt;const k=Math.min(1,cine.t/cine.duration);const e=k*k*(3-2*k);camera.position.copy(cine.P.getPoint(e));camera.lookAt(cine.Lk.getPoint(e));if(k>=1)stopCinematic()}
   renderFrame();requestAnimationFrame(animate);
  }
  animate();
- return {scene,camera,renderer,animals,ranger,addAnimal,removeAnimal,addBuildItem,updateBuildItem,removeBuildItem,selectBuildItem,setBuildMode,setPhotoMode,setZoom,photoSubjects,capture,syncStaff,setVisitors,nearResearchCentre,focusResearchCentre(){target.set(-21,0,-7);cameraUpdate()},nearClinic(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,5))<6.5},focus(x,z){target.set(x,0,z);cameraUpdate()},setAnimalStage,setAnimalState,setAnimalAction,setEnvironment,
+ return {scene,camera,renderer,animals,ranger,addAnimal,removeAnimal,addBuildItem,updateBuildItem,removeBuildItem,selectBuildItem,setBuildMode,setPhotoMode,setZoom,photoSubjects,capture,syncStaff,setVisitors,nearResearchCentre,focusResearchCentre(){following=false;target.set(-21,0,-7);cameraUpdate()},nearClinic(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,5))<6.5},focus(x,z){following=false;target.set(x,0,z);cameraUpdate()},setAnimalStage,setAnimalState,setAnimalAction,setEnvironment,
   setConservationProject(name){if(name==='nestBoxes')art.nestBoxes.visible=true;if(name==='riparian')art.willow.visible=true;if(name==='cameraTraps')art.cameraTraps.visible=true;if(name==='wetlandExpansion')art.wetland.visible=true;if(name==='meadowCorridor')art.meadow.visible=true;if(name==='highlandReserve')art.highland.visible=true},
-  setMarkers,revealAnimal,hideAnimal,setAIPoints(p){dynamicPoints={water:p.water||[],shelter:p.shelter||[],food:p.food||[],enrich:p.enrich||[]};cachedPoints=pointsFor()},setAIHooks(h){Object.assign(hooks,h)},minds:()=>animals.map(a=>({id:a.userData.id,kind:a.userData.kind,behaviour:a.userData.mind&&a.userData.mind.behaviour,fear:a.userData.mind&&a.userData.mind.fear})),
+  getYaw:()=>yaw,playCinematic,stopCinematic,setPlantings,setMarkers,revealAnimal,hideAnimal,setAIPoints(p){dynamicPoints={water:p.water||[],shelter:p.shelter||[],food:p.food||[],enrich:p.enrich||[]};cachedPoints=pointsFor()},setAIHooks(h){Object.assign(hooks,h)},minds:()=>animals.map(a=>({id:a.userData.id,kind:a.userData.kind,behaviour:a.userData.mind&&a.userData.mind.behaviour,fear:a.userData.mind&&a.userData.mind.fear})),
   setConservationProgress,pick,perf,get tier(){return governor.tier},setQuality(n){governor.set(n);try{localStorage.setItem('wildfrontier.quality',n)}catch{}},art,renderFrame};
 }

@@ -108,3 +108,12 @@ The goal is a tactile miniature world: soft forms, imperfect silhouettes, warm d
 - Passive pine-corridor camera traps unlock a delayed evidence-review assignment after three simulated hours, rewarding patient, non-invasive wildlife monitoring.
 - A prepared meadow can be surveyed for native bees, butterflies and hoverflies; the transect increases pollinator activity, biodiversity and the reserve research score.
 - Long simulation steps now process every crossed weather, season and ecosystem interval rather than silently dropping elapsed cycles.
+
+## Milestone 5: exploration, opening, movement and sound
+
+- **Regions and field activities** (`src/activities.js`): regions unlock by reputation; field spots offer tracks quizzes, planting, water testing and research notes. Research unlocks perks (scope at 20, bulk purchasing at 45, lab at 80, network at 130) and 12 milestones. Everything is saved in the `ext` block.
+- **Movement and camera** (`src/motion.js`): acceleration-limited ranger motion and a damped follow camera with obstacle avoidance.
+- **Procedural sound** (`src/audio.js`): WebAudio ambience (wind, rain, water, day/night), footsteps, animal calls and event cues with distance gain and panning. Starts on the first user gesture.
+- **Opening and tutorial** (`src/intro.js`): a four-card cinematic flyover on first launch (skip anytime; `?intro` replays it, `?nointro` skips it), then an eight-step tutorial driven by real game state (moving, looking, selecting, feeding, building, photos, missions, activities).
+
+Not verified: real phone hardware, audible audio output, or High-tier post-processing. Regions are labels, unlocks and activities rather than new 3D terrain.

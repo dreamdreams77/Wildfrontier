@@ -9,6 +9,9 @@ import { mountBuildUI } from './build-ui.js';
 import { mountExploreUI } from './explore-ui.js';
 import { createPortraits } from './art/portraits.js';
 import { createRescue } from './rescue.js';
+import { createAudio } from './audio.js';
+import { createActivities, ACTIVITY_LABEL } from './activities.js';
+import { mountIntro, mountTutorial, shouldPlayIntro } from './intro.js';
 import { createDirector } from './director.js';
 import { mountMissionsUI } from './missions-ui.js';
 import { ensureProfile, bondLabel, temperamentLabel } from './ai.js';
@@ -22,6 +25,7 @@ const ops=createOperations(sanct);
 const journal=createJournal(SPECIES);
 const rescue=createRescue(sim,sanct);
 const director=createDirector(sim,sanct,ops,journal,rescue);
+const activities=createActivities(sim,sanct,journal,rescue,{nearbyKinds:(x,z,r)=>world.animals.filter(a=>!a.userData.hidden&&Math.hypot(a.position.x-x,a.position.z-z)<r).map(a=>a.userData.kind)});
 const JOURNAL_KEY='wildfrontier.journal.v1';
 try{const raw=localStorage.getItem(SAVE_KEY);if(raw)sanct.restore(JSON.parse(raw))}catch{}
 try{const raw=localStorage.getItem(JOURNAL_KEY);if(raw)journal.restore(JSON.parse(raw))}catch{}
@@ -29,14 +33,17 @@ function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(sanct.serialize
 function saveJournal(){const data=journal.serialize();try{localStorage.setItem(JOURNAL_KEY,JSON.stringify(data))}catch{for(const e of Object.values(data.entries))for(const p of e.photos)p.img=null;try{localStorage.setItem(JOURNAL_KEY,JSON.stringify(data))}catch{}}}
 addEventListener('pagehide',()=>{save();saveJournal()});document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
 const world=createWorld($('world'));
-const portraits=createPortraits(world.renderer);window.__wild={world,sim,sanct,ops,journal,portraits,rescue,director};
+const audio=createAudio();
+for(const ev of ['pointerdown','keydown'])addEventListener(ev,()=>audio.resume(),{once:true,passive:true});
+document.addEventListener('click',e=>{if(e.target.closest('[data-p=shot]'))audio.sfx('shutter');else if(e.target.closest('button'))audio.sfx('click')},true);
+const portraits=createPortraits(world.renderer);window.__wild={world,sim,sanct,ops,journal,portraits,rescue,director,activities,audio};
 sim.animals.forEach(a=>ensureProfile(a));
 const simById=id=>sim.animals.find(a=>a.id===id);
 world.setAIHooks({
  stats:id=>{const a=simById(id);if(!a)return null;ensureProfile(a);return {traits:a.traits,trust:a.trust||0,stress:a.stress,hunger:100-a.nutrition,thirst:100-a.hydration,energy:a.energy,boredom:a.boredom,social:a.social}},
  onNeed:(id,kind,dt)=>{const a=simById(id);if(!a)return;if(kind==='drink'){a.hydration=Math.min(100,a.hydration+(a.managed?1.5:5)*dt)}else if(kind==='eat'&&!a.managed&&a.stage==='wild'){a.nutrition=Math.min(100,a.nutrition+1.6*dt)}},
  onEnrich:(id,type)=>{const r=sanct.useEnrichment(id,type);if(r.ok)save()},
- onCall:()=>{}
+ onCall:(kind,type,pos,name)=>audio.call(kind,type,pos,name,{x:world.ranger.position.x,z:world.ranger.position.z},world.getYaw())
 });
 function refreshAIPoints(){const items=ops.state.items;world.setAIPoints({water:items.filter(i=>i.type==='pond'||i.type==='wallow').map(i=>({x:i.x,z:i.z})),shelter:items.filter(i=>i.type==='shelter').map(i=>({x:i.x,z:i.z})),food:items.filter(i=>i.type==='feeder').map(i=>({x:i.x,z:i.z})),enrich:items.filter(i=>ENRICH_TYPES.includes(i.type)).map(i=>({id:i.id,type:i.type,x:i.x,z:i.z}))})}
 refreshAIPoints();setInterval(refreshAIPoints,1500);ops.state.items.forEach(i=>world.addBuildItem(i));
@@ -76,7 +83,7 @@ function performManaged(action){const a=sim.selected();let r;
  if(action.startsWith('sfeed:'))r=sanct.feed(a.id,action.slice(6));else if(action==='senrich')r=sanct.enrich(a.id);else if(action==='streat')r=sanct.treat(a.id);else{sanctUI.open('residents');return}
  toast(r.message);renderAnimal(a);renderHud();save()}
 const rpos=()=>({x:world.ranger.position.x,z:world.ranger.position.z});
-function syncRescueWorld(){world.setMarkers(rescue.markers());for(const a of sim.animals){const w=world.animals.find(x=>x.userData.id===a.id);if(!w)continue;if(a.hidden&&!w.userData.hidden)world.hideAnimal(a.id,a.habitatPosition);else if(!a.hidden&&w.userData.hidden)world.revealAnimal(a.id)}for(const w of world.animals.slice())if(!sim.animals.some(a=>a.id===w.userData.id))world.removeAnimal(w.userData.id)}
+function syncRescueWorld(){world.setMarkers([...rescue.markers(),...activities.markers()]);world.setPlantings(activities.summary().planted);for(const a of sim.animals){const w=world.animals.find(x=>x.userData.id===a.id);if(!w)continue;if(a.hidden&&!w.userData.hidden)world.hideAnimal(a.id,a.habitatPosition);else if(!a.hidden&&w.userData.hidden)world.revealAnimal(a.id)}for(const w of world.animals.slice())if(!sim.animals.some(a=>a.id===w.userData.id))world.removeAnimal(w.userData.id)}
 const rescueActions={
  assess(cid){const r=rescue.assess(cid,rpos());toast(r.message);if(r.ok){const c=rescue.caseOf(cid);sim.select(c.animalIds[0]);sim.act('assess')}syncRescueWorld();renderHud();return r},
  handle(cid,aid,ap){const r=rescue.handle(cid,aid,rpos(),ap);toast(r.message);if(r.ok){sim.select(aid);const x=simById(aid);if(x.stage==='sighted')sim.act('assess');sim.act('stabilize');world.setAnimalStage(aid,simById(aid).stage)}syncRescueWorld();renderHud();save();return r},
@@ -99,19 +106,46 @@ $('taskRiparian').addEventListener('click',()=>{const r=sim.restoreRiparian();to
 $('taskNests').addEventListener('click',()=>{const r=sim.installNestBoxes();toast(r.message);if(r.ok){world.setConservationProject('nestBoxes');$('taskNests').classList.add('complete');$('taskNests').querySelector('.task-check').textContent='✓'}renderHud()});
 $('taskCameraTraps').addEventListener('click',()=>{const r=sim.installCameraTraps();toast(r.message);if(r.ok){world.setConservationProject('cameraTraps');$('taskCameraTraps').classList.add('complete');$('taskCameraTraps').querySelector('.task-check').textContent='✓'}renderHud()});$('taskPollinators').addEventListener('click',()=>{const r=sim.conductPollinatorSurvey();toast(r.message);if(r.ok){$('taskPollinators').classList.add('complete');$('taskPollinators').querySelector('.task-check').textContent='✓'}renderHud()});$('taskFeedSchedule').addEventListener('click',()=>{const a=sim.selected();const time=window.prompt('Daily feeding time for '+a.name+' (24-hour HH:MM):',sim.feedingSchedule[a.id]||'08:00');if(time===null)return;toast(sim.scheduleFeed(a.id,time).message);renderHud()});$('taskBreeding').addEventListener('click',()=>{toast(sim.startBreedingProgram().message);renderHud()});
 $('mapBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();exploreUI.exitPhoto();exploreUI.openMap()});
-$('soundBtn').addEventListener('click',()=>toast('Soundscape controls are planned for the next field update.'));
+$('soundBtn').textContent=audio.muted?'🔇':'♫';$('soundBtn').addEventListener('click',()=>{audio.resume();audio.setMuted(!audio.muted);$('soundBtn').textContent=audio.muted?'🔇':'♫';toast(audio.muted?'Sound off':'Sound on')});
 const kindEmoji={deer:'🦌',rabbit:'🐇',fox:'🦊',owl:'🦉',squirrel:'🐿️',bird:'🐦',raccoon:'🦝',beaver:'🦫',skunk:'🦨',turtle:'🐢',cardinal:'🐦',woodDuck:'🦆',opossum:'🐾',riverOtter:'🦦',bobcat:'🐈',redWolf:'🐺',whoopingCrane:'🪽',greatBlueHeron:'🪽'};
 function focusAnimal(id){const w=world.animals.find(x=>x.userData.id===id);if(w)world.focus(w.position.x,w.position.z)}
 function openRecord(id){const a=sim.select(id);renderAnimal(a)}
 function renderRoster(){const el=document.querySelector('.species-roster');if(!el)return;const html=sim.animals.filter(a=>a.stage!=='released').map(a=>'<button data-focus="'+a.id+'" title="'+(a.species||'').replace(/"/g,'')+'">'+(a.managed?SPECIES[a.kind].emoji:kindEmoji[a.kind]||'🐾')+' '+a.name+'</button>').join('');if(el.dataset.sig!==html){el.dataset.sig=html;el.innerHTML=html}}
 document.querySelector('.species-roster')?.addEventListener('click',e=>{const b=e.target.closest('[data-focus]');if(!b)return;focusAnimal(b.dataset.focus);renderAnimal(sim.select(b.dataset.focus))});
 function renderHud(){renderRoster();if(researchPanel)renderResearchPanel();sim.animals.forEach(a=>{if(!world.animals.some(w=>w.userData.id===a.id))world.addAnimal(a)});const h=sim.habitat;$('healthScore').textContent=Math.round(h.health)+'%';$('waterScore').textContent=Math.round(h.water)+'%';$('coverScore').textContent=Math.round(h.cover)+'%';$('foodScore').textContent=Math.round(h.food)+'%';$('weatherIcon').textContent=sim.weather.icon;$('weatherName').textContent=sim.weather.name.toUpperCase();$('dayNumber').textContent=String(sim.day).padStart(2,'0');$('dayPhase').textContent=sim.phase.toUpperCase();world.setEnvironment(sim.phase,sim.weather.name,sim.season);sim.animals.forEach(a=>world.setAnimalState(a.id,a));world.setConservationProgress(sim.restoration);const family=sim.familyTree.slice(-4);let ecology=$('ecologyResearch');if(!ecology){ecology=document.createElement('section');ecology.id='ecologyResearch';ecology.className='field-note';document.querySelector('.left-rail').appendChild(ecology)}const centre=sim.getResearchCentre();ecology.innerHTML='<b>FAMILY & RESEARCH</b><p>'+ (family.length?family.map(f=>f.name+' · '+f.stage+' · parents '+f.parents.join(' & ')).join('<br>'):'No births recorded yet · spring nursery monitoring active')+'</p><p>Population balance '+sim.populationBalance+'% · '+sim.migrationStatus+'</p><p>'+(centre.unlocked?'Research centre unlocked':'Research centre '+centre.score+'/60 research points')+'</p><small>'+centre.projects.map(p=>p.name+': '+p.status).join(' · ')+'</small>';$('progressText').textContent=sim.restoration.toLocaleString()+' / 3,000';$('progressBar').style.width=(sim.restoration/3000*100)+'%';$('dayTime').textContent=sim.time;$('seasonName').textContent=sim.season.toUpperCase();$('animalCount').textContent=sim.animals.filter(a=>a.stage!=='released').length;$('missionList').innerHTML=sim.missions.map(m=>'<button class="mission '+m.status+'" data-mission="'+m.id+'"><span class="mission-mark">'+(m.status==='complete'?'✓':m.status==='active'?'●':'○')+'</span><span><b>'+m.title+'</b><small>'+m.detail+'</small></span></button>').join('');$('missionList').querySelectorAll('[data-mission]').forEach(b=>b.addEventListener('click',()=>{const m=sim.missions.find(x=>x.id===b.dataset.mission);const r=sim.startMission(m.id);const a=sim.select(m.animalId);const spots={'fawn-01':[-1,1],'fox-01':[-15,-2],'owl-01':[-3,-5.5],'otter-01':[6,2.8],'bobcat-01':[-17,-5]};world.focus(...(spots[a.id]||[0,0]));renderAnimal(a);toast(r.message);renderHud()}));$('journalList').innerHTML=sim.log.slice(0,4).map(x=>'<li><time>'+x.time+'</time><span>'+x.text+'</span></li>').join('')}
-let speed=4,acc=0,lastHud=0,lastExplore=0,prev=performance.now(),lastSave=performance.now();
+
+// ---- contextual field activities ----
+let promptSpot=null;const promptEl=$('actionPrompt');
+const ACT_ICON={footprints:'🔍',hide:'🔭',water:'🧪',plant:'🌱',litter:'🧹'};
+function doActivity(){
+ const sp=promptSpot;if(!sp)return;tctx.activity=true;const r=activities.interact(sp);
+ if(r.quiz){const q=r.quiz;const box=document.createElement('section');box.className='sanctuary-panel quiz-panel';box.innerHTML='<header><div><small>FIELD GUIDE · TRACKS</small><h2>Whose tracks are these?</h2></div></header><div class="s-body"><p class="s-muted">You find '+q.clue+'.</p><div class="s-foot">'+q.options.map(o=>'<button data-k="'+o.kind+'">'+o.label.toUpperCase()+'</button>').join('')+'</div></div>';document.body.appendChild(box);box.addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;const a=activities.answerTracks(q.spotId,b.dataset.k);toast(a.message);audio.sfx(a.correct?'success':'fail');box.remove();save();saveJournal();syncRescueWorld()})}
+ else{toast(r.message);audio.sfx(r.ok?'success':'fail');if(r.ok){save();saveJournal();syncRescueWorld()}}
+ renderHud();
+}
+promptEl.addEventListener('click',doActivity);
+addEventListener('keydown',e=>{if(e.code==='KeyE'&&promptSpot&&!promptEl.hidden)doActivity()});
+function updatePrompt(){const sp=activities.nearest(rpos());promptSpot=sp;if(sp){promptEl.hidden=false;promptEl.textContent=ACT_ICON[sp.type]+' '+ACTIVITY_LABEL[sp.type].toUpperCase()+' (E)'}else promptEl.hidden=true}
+
+
+// ---- opening and guided first steps ----
+const tctx={moved:0,looked:false,selected:false,activity:false,missions:false,fed:0,built:0,photos:0};
+let lastRP={x:world.ranger.position.x,z:world.ranger.position.z};
+addEventListener('wildfrontier:select',()=>{tctx.selected=true});
+for(const ev of ['pointermove'])$('world').addEventListener(ev,e=>{if(e.buttons)tctx.looked=true},{passive:true});
+$('world').addEventListener('wheel',()=>{tctx.looked=true},{passive:true});
+const tutorial=mountTutorial({getCtx:()=>{tctx.fed=sim.animals.reduce((n,a)=>n+(a.feedings||0),0);tctx.built=ops.state.items.length;tctx.photos=journal.state.photos;return tctx}});
+$('missionBtn').addEventListener('click',()=>{tctx.missions=true});
+const _doAct=doActivity;
+let playIntro=false;try{playIntro=shouldPlayIntro({webdriver:!!navigator.webdriver,seen:localStorage.getItem('wildfrontier.intro.v1')==='1',search:location.search})}catch{}
+if(playIntro){mountIntro({world,audio,onDone:()=>{world.focus(world.ranger.position.x,world.ranger.position.z)}})}
+
+let speed=4,acc=0,lastHud=0,lastExplore=0,lastAudio=0,lastCases=0,lastRescued=0,lastLost=0,prev=performance.now(),lastSave=performance.now();
 const afterBuild=()=>{renderHud();save()};
 const buildUI=mountBuildUI({sanct,ops,world,toast,portraits,afterChange:afterBuild});
 const exploreUI=mountExploreUI({sim,sanct,journal,world,toast,portraits,afterChange:afterBuild,saveJournal});exploreUI.setItemsSource(()=>ops.state.items);
 addEventListener('wildfrontier:ground',e=>buildUI.onGround(e.detail));addEventListener('wildfrontier:builditem',e=>buildUI.onItem(e.detail.id));
-const missionsUI=mountMissionsUI({rescue,director,sanct,world,toast,actions:rescueActions,afterChange:afterBuild,focusAnimal,openRecord,openShop:()=>sanctUI.open('supplies')});
+const missionsUI=mountMissionsUI({rescue,director,activities,sanct,world,toast,actions:rescueActions,afterChange:afterBuild,focusAnimal,openRecord,openShop:()=>sanctUI.open('supplies')});
 exploreUI.setMarkersSource(()=>rescue.markers());
 $('missionBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();exploreUI.close();exploreUI.exitPhoto();missionsUI.open()});
 $('buildBtn').addEventListener('click',()=>{sanctUI.close();exploreUI.close();missionsUI.close();exploreUI.exitPhoto();buildUI.open()});
@@ -123,8 +157,9 @@ const speedButtons=[...document.querySelectorAll('#speedCtl button')];
 speedButtons.forEach(b=>b.addEventListener('click',()=>{speed=Number(b.dataset.speed);speedButtons.forEach(x=>x.classList.toggle('on',x===b));toast(speed===0?'Time paused':'Time speed '+({4:'×1',15:'×4',45:'×12'}[speed]||speed))}));
 function frame(now){const dt=Math.min(.25,(now-prev)/1000);prev=now;acc+=dt*speed;
  if(speed>0)ops.update(dt*Math.min(3,speed/4));world.syncStaff(ops.state.staff,dt);
- if(now-lastExplore>1000){lastExplore=now;for(const ev of rescue.visit(rpos())){if(ev.type==='found')toast('🐾 You found the animal. Assess it before approaching.')}syncRescueWorld();const nb=missionsUI.badge();const bd=$('missionBadge');bd.hidden=!nb;bd.textContent=nb;for(const l of journal.exploreAt(world.ranger.position.x,world.ranger.position.z)){toast('📍 Discovered: '+l.label);sanct.say('Discovered '+l.label+'.');if(l.safari)sanct.state.reputation+=1;saveJournal();save()}}
- if(acc>=3&&now-lastHud>=700){const m=Math.floor(acc);acc-=m;lastHud=now;sim.tick(m);sanct.tick(m);rescue.tick();director.scan();renderHud();world.setVisitors(ops.state.visitors.onSite);if(!panel.classList.contains('hidden'))renderAnimal(sim.selected());sanctUI.refresh();missionsUI.refresh()}
+ if(now-lastAudio>250){lastAudio=now;updatePrompt();{const rp2=world.ranger.position;tctx.moved+=Math.hypot(rp2.x-lastRP.x,rp2.z-lastRP.z);lastRP={x:rp2.x,z:rp2.z}}const rv=world.ranger.userData.vel;const spd=rv?rv.length():0;let nw=0;const rp=world.ranger.position;for(const w of [{x:7,z:rp.z*.96},{x:31,z:7},{x:38,z:-10},{x:25.5,z:8.2}]){const d=Math.hypot(w.x-rp.x,w.z-rp.z);nw=Math.max(nw,1-d/9)}audio.update({env:{phase:sim.phase,rain:sim.weather.name==='Light rain',wind:sim.weather.name==='Breezy'?1.8:.7,nearWater:Math.max(0,nw),season:sim.season},walking:spd>.5,walkSpeed:spd/4.2});const cc=rescue.summary().cases.length,st=rescue.summary().stats;if(cc>lastCases)audio.sfx('radio');if(st.rescued>lastRescued)audio.sfx('success');if(st.lost>lastLost)audio.sfx('fail');lastCases=cc;lastRescued=st.rescued;lastLost=st.lost}
+ if(now-lastExplore>1000){lastExplore=now;tutorial.render();for(const ev of rescue.visit(rpos(),activities.hasPerk('scope')?3.4:2.2)){if(ev.type==='found')toast('🐾 You found the animal. Assess it before approaching.')}syncRescueWorld();const nb=missionsUI.badge();const bd=$('missionBadge');bd.hidden=!nb;bd.textContent=nb;for(const l of journal.exploreAt(world.ranger.position.x,world.ranger.position.z)){toast('📍 Discovered: '+l.label);sanct.say('Discovered '+l.label+'.');if(l.safari)sanct.state.reputation+=1;saveJournal();save()}}
+ if(acc>=3&&now-lastHud>=700){const m=Math.floor(acc);acc-=m;lastHud=now;sim.tick(m);sanct.tick(m);rescue.tick();director.scan();for(const m of activities.scan()){toast('🏆 Milestone: '+m.label);audio.sfx('success')}renderHud();world.setVisitors(ops.state.visitors.onSite);if(!panel.classList.contains('hidden'))renderAnimal(sim.selected());sanctUI.refresh();missionsUI.refresh()}
  if(now-lastSave>10000){lastSave=now;save()}
  requestAnimationFrame(frame)}
 sim.animals.forEach(a=>{world.setAnimalStage(a.id,a.stage);world.setAnimalState(a.id,a)});world.setEnvironment(sim.phase,sim.weather.name);renderAnimal(sim.selected());renderHud();if(innerWidth<=760)panel.classList.add('hidden');document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();document.body.classList.toggle('rail-open')});requestAnimationFrame(frame);

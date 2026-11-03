@@ -106,7 +106,7 @@ export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJo
   const img=world.capture({w:r.width/innerWidth});
   const res=journal.recordPhoto({kind:best.kind,score:best.score,label:best.label,img,day:sanct.state.day});
   toast(res.message);
-  if(res.ok){sanct.earn(res.rewards.funds);sanct.state.credits+=res.rewards.credits;sanct.state.reputation+=res.rewards.reputation;if(res.firstPhoto)sanct.say('Journal updated: first photograph of '+journal.info(best.kind).common.toLowerCase()+'.');
+  if(res.ok){sanct.earn(Math.round(res.rewards.funds*(sanct.mods.photoMul||1)));sanct.state.credits+=res.rewards.credits;sanct.state.reputation+=res.rewards.reputation;if(res.firstPhoto)sanct.say('Journal updated: first photograph of '+journal.info(best.kind).common.toLowerCase()+'.');
    const box=photoHud.querySelector('.photo-result');box.innerHTML=(img?'<img alt="Photo" src="'+img+'">':'')+'<span>'+esc(res.message)+'</span>';box.classList.add('show');clearTimeout(shoot.t);shoot.t=setTimeout(()=>box.classList.remove('show'),3200);
    saveJournal();afterChange()}
  }

@@ -71,11 +71,11 @@ export function createRescue(sim,sanct,{rng=Math.random}={}){
   c.clues=[0,1,2].map(i=>({x:start.x+(target.x-start.x)*(i+1)/4,z:start.z+(target.z-start.z)*(i+1)/4,found:false,kind:['tracks','blood drops','fur'][i]}));
   c.phase='tracking';return {ok:true,message:'Search area marked on your map. Follow the trail.',case:c};
  }
- function visit(ranger){
+ function visit(ranger,radius=2.2){
   const events=[];
   for(const c of state.cases){
    if(c.phase!=='tracking')continue;
-   for(const cl of c.clues)if(!cl.found&&dist(cl,ranger)<2.2){cl.found=true;events.push({type:'clue',case:c,clue:cl});note('🔎 '+c.title+': found '+cl.kind+' leading further in.')}
+   for(const cl of c.clues)if(!cl.found&&dist(cl,ranger)<radius){cl.found=true;events.push({type:'clue',case:c,clue:cl});note('🔎 '+c.title+': found '+cl.kind+' leading further in.')}
    const a=byId(c.animalIds[0]);const near=a&&dist({x:a.habitatPosition[0],z:a.habitatPosition[1]},ranger)<4.5;
    if(c.clues.every(x=>x.found)||near){c.phase='found';for(const id of c.animalIds){const an=byId(id);if(an)an.hidden=false}events.push({type:'found',case:c});note('🐾 '+c.title+': animal located. Assess its condition before approaching.')}
   }
