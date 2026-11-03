@@ -76,3 +76,19 @@
 /* Keep the full expedition board reachable on desktop instead of letting it run below the viewport. */
 .left-rail{max-height:calc(100vh - 124px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#81936a55 transparent}
 .left-rail::-webkit-scrollbar{width:4px}.left-rail::-webkit-scrollbar-thumb{background:#81936a66;border-radius:8px}
+/* Make UI overlay responsive on mobile screens */
+@media (max-width: 768px) {
+    /* Prevent UI cards from taking over the entire screen */
+    .ui-overlay, .dashboard, .hud-panel, div[class*="overlay"], div[class*="panel"] {
+        max-width: 90vw !important;
+        max-height: 40vh !important;
+        overflow-y: auto !important;
+        opacity: 0.85; /* Makes background 3D scene visible */
+        font-size: 0.8rem !important;
+    }
+
+    /* Option to collapse/hide panels on tap so you can see the 3D graphics */
+    body {
+        touch-action: manipulation;
+    }
+}
