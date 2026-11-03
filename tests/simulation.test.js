@@ -144,3 +144,14 @@ test('ecosystem population survey evolves with habitat conditions',()=>{
  assert.ok(sim.populationBalance>=0&&sim.populationBalance<=100);
  assert.match(sim.migrationStatus,/birds|visitors/i);
 });
+
+test('riparian restoration improves wetland quality and connectivity once',()=>{
+ const sim=createSimulation();const wetland=sim.habitat.wetland,connectivity=sim.habitat.connectivity;
+ assert.equal(sim.restoreRiparian().ok,true);assert.ok(sim.habitat.wetland>wetland);assert.ok(sim.habitat.connectivity>connectivity);
+ assert.equal(sim.riparianRestored,true);assert.equal(sim.restoreRiparian().ok,false);
+});
+test('nest box installation improves breeding habitat once',()=>{
+ const sim=createSimulation();const cover=sim.habitat.cover,pairs=sim.populations.breedingPairs;
+ assert.equal(sim.installNestBoxes().ok,true);assert.ok(sim.habitat.cover>cover);assert.equal(sim.populations.breedingPairs,pairs+1);
+ assert.equal(sim.nestBoxesInstalled,true);assert.equal(sim.installNestBoxes().ok,false);
+});
