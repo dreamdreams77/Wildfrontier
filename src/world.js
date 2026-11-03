@@ -155,7 +155,7 @@ export function createWorld(container){
    // near-instant reaction when something frightening gets close
    const close=rangerMoving&&Math.hypot(a.position.x-ranger.position.x,a.position.z-ranger.position.z)<prof.fleeAt*.6;
    if(u.thinkIn<=0||mind.timer<=0||(close&&mind.behaviour!=='flee'&&!resting)){
-    AGENT.id=u.id;AGENT.kind=kind;AGENT.x=a.position.x;AGENT.z=a.position.z;AGENT.home=u.home;AGENT.traits=stats.traits||AGENT.traits;AGENT.trust=stats.trust??0;AGENT.stress=stats.stress??30;AGENT.hunger=stats.hunger??30;AGENT.thirst=stats.thirst??30;AGENT.energy=stats.energy??70;AGENT.boredom=stats.boredom??30;AGENT.social=stats.social??60;AGENT.sleeping=false;AGENT.mind=mind;
+    AGENT.id=u.id;AGENT.kind=kind;AGENT.x=a.position.x;AGENT.z=a.position.z;AGENT.home=u.home;AGENT.traits=stats.traits||AGENT.traits;AGENT.trust=stats.trust??0;AGENT.stress=stats.stress??30;AGENT.hunger=stats.hunger??30;AGENT.thirst=stats.thirst??30;u.sick=stats.sick||0;AGENT.energy=Math.min(stats.energy??70,70-45*u.sick);AGENT.boredom=stats.boredom??30;AGENT.social=stats.social??60;AGENT.sleeping=false;AGENT.mind=mind;
     if(!AGENT.traits)AGENT.traits={bold:.5,social:.5,curious:.5,calm:.5};
     const prev=mind.behaviour;
     const dec=brain.think(AGENT,{phase:phaseNow,night:nightNow,rain:wx.rain,storm:wx.storm,ranger:{x:ranger.position.x,z:ranger.position.z,moving:rangerMoving},visitors:crowd.people.map(p=>p.f.position),others:snapshot,points:cachedPoints,radius:u.radius},.5);
@@ -165,7 +165,7 @@ export function createWorld(container){
    const tgt=mind.target;let desired=0,dd=0;
    if(tgt){_d.set(tgt.x-a.position.x,0,tgt.z-a.position.z);dd=_d.length()}
    const arrived=!tgt||dd<.4;
-   if(!arrived&&mind.behaviour!=='rest'){desired=u.speed*(mind.speed||1)*(mind.behaviour==='flee'?1:1)}
+   if(!arrived&&mind.behaviour!=='rest'){desired=u.speed*(mind.speed||1)*(1-.45*(u.sick||0))}
    u.vel=damp(u.vel||0,arrived?0:desired,mind.behaviour==='flee'?7:3.2,dt);   // accelerate and brake smoothly
    if(u.vel>.02&&tgt&&dd>.05){_d.normalize();a.position.addScaledVector(_d,u.vel*dt);turnTo(a,Math.atan2(_d.x,_d.z),mind.behaviour==='flee'?9:4.5,dt)}
    moving=u.vel>.06;

@@ -121,9 +121,9 @@ export function createSanctuary(sim,options={}){
  }
 
  // Extension points used by operations (staff, habitat, visitors).
- const hooks=[];const mods={habitatScore:()=>100,visitorStress:()=>0};
- const spend=n=>{if(state.funds<n)return false;state.funds-=n;return true};
- const earn=n=>{state.funds+=n};
+ const hooks=[];const mods={habitatScore:()=>100,visitorStress:()=>0,onMoney:null};
+ const spend=(n,cat='other')=>{if(state.funds<n)return false;state.funds-=n;mods.onMoney&&mods.onMoney(-n,cat);return true};
+ const earn=(n,cat='other')=>{state.funds+=n;mods.onMoney&&mods.onMoney(n,cat)};
  const extend=h=>{hooks.push(h);return h};
  const residents=()=>sim.animals.filter(a=>a.managed&&SPECIES[a.kind]);
  const byId=id=>sim.animals.find(a=>a.id===id);
@@ -136,7 +136,7 @@ export function createSanctuary(sim,options={}){
   if(!(food in FOODS)&&food!=='medicine'&&!(food in EQUIPMENT))return {ok:false,message:'Unknown supply.'};
   qty=Math.max(1,Math.floor(qty));const unit=food==='medicine'?MEDICINE_PRICE:food in EQUIPMENT?EQUIPMENT[food].price:FOODS[food].price;const price=unit*qty;
   if(state.funds<price)return {ok:false,message:'Not enough funds: '+price+' needed.'};
-  state.funds-=price;state.stock[food]=(state.stock[food]||0)+qty;
+  spend(price,'supplies');state.stock[food]=(state.stock[food]||0)+qty;
   return {ok:true,message:'Bought '+qty+' × '+(food==='medicine'?'veterinary supplies':food in EQUIPMENT?EQUIPMENT[food].label.toLowerCase():FOODS[food].label.toLowerCase())+' for '+price+'.'};
  }
 
@@ -167,7 +167,7 @@ export function createSanctuary(sim,options={}){
 
  function refillWater(){
   const cost=20;if(state.funds<cost)return {ok:false,message:'Not enough funds to run the pumps ('+cost+').'};
-  state.funds-=cost;state.waterLevel=100;return {ok:true,message:'Waterholes and the soda lake refilled with clean water.'};
+  spend(cost,'supplies');state.waterLevel=100;return {ok:true,message:'Waterholes and the soda lake refilled with clean water.'};
  }
  function treat(id){
   const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Select a sanctuary resident.'};
@@ -256,7 +256,7 @@ function useEnrichment(id,type){
   if(welfareOf(a)<70)return {ok:false,message:a.name+' must be in good welfare (70+) before a transfer.'};
   const i=sim.animals.indexOf(a);sim.animals.splice(i,1);
   if(sim.selected&&sim.selected()===a&&sim.animals.length)sim.select(sim.animals[0].id);
-  state.transfers++;state.credits+=6;state.reputation+=6;state.funds+=120+(mods.transferBonus||0);
+  state.transfers++;state.credits+=6;state.reputation+=6;earn(120+(mods.transferBonus||0),'transfers');
   say(a.name+' ('+sp.common+') was transferred to a partner reserve as part of the species recovery plan. Credits +6, partner grant +120.');
   return {ok:true,message:a.name+' left for a partner reserve. Credits +6, grant +120.',removedId:a.id};
  }
@@ -277,7 +277,7 @@ function useEnrichment(id,type){
  function dailyReport(){
   const list=residents();const avg=list.length?Math.round(list.reduce((n,a)=>n+welfareOf(a),0)/list.length):0;
   const grant=Math.round(45+state.reputation*1.6+(avg>=75?40:0));
-  state.funds+=grant;
+  earn(grant,'grants');
   if(avg>=75)state.reputation+=1;
   const neglected=list.filter(a=>a.health<25);
   if(neglected.length){state.reputation=Math.max(0,state.reputation-3);say('Warning: '+neglected.map(a=>a.name).join(', ')+' in poor health. Reputation suffers until they receive care.')}

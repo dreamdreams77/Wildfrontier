@@ -4,6 +4,7 @@ import { createSimulation } from './simulation.js';
 import { createSanctuary, SPECIES, FOODS, stageOf, welfareOf } from './sanctuary.js';
 import { mountSanctuaryUI } from './sanctuary-ui.js';
 import { createOperations } from './operations.js';
+import { createManagement } from './management.js';
 import { createJournal } from './journal.js';
 import { mountBuildUI } from './build-ui.js';
 import { mountExploreUI } from './explore-ui.js';
@@ -22,6 +23,7 @@ const sim=createSimulation();
 const SAVE_KEY='wildfrontier.sanctuary.v1';
 const sanct=createSanctuary(sim);
 const ops=createOperations(sanct);
+const mgmt=createManagement(sanct,ops);
 const journal=createJournal(SPECIES);
 const rescue=createRescue(sim,sanct);
 const director=createDirector(sim,sanct,ops,journal,rescue);
@@ -36,11 +38,11 @@ const world=createWorld($('world'));
 const audio=createAudio();
 for(const ev of ['pointerdown','keydown'])addEventListener(ev,()=>audio.resume(),{once:true,passive:true});
 document.addEventListener('click',e=>{if(e.target.closest('[data-p=shot]'))audio.sfx('shutter');else if(e.target.closest('button'))audio.sfx('click')},true);
-const portraits=createPortraits(world.renderer);window.__wild={world,sim,sanct,ops,journal,portraits,rescue,director,activities,audio};
+const portraits=createPortraits(world.renderer);window.__wild={world,sim,sanct,ops,journal,portraits,rescue,director,activities,audio,mgmt};
 sim.animals.forEach(a=>ensureProfile(a));
 const simById=id=>sim.animals.find(a=>a.id===id);
 world.setAIHooks({
- stats:id=>{const a=simById(id);if(!a)return null;ensureProfile(a);return {traits:a.traits,trust:a.trust||0,stress:a.stress,hunger:100-a.nutrition,thirst:100-a.hydration,energy:a.energy,boredom:a.boredom,social:a.social}},
+ stats:id=>{const a=simById(id);if(!a)return null;ensureProfile(a);return {traits:a.traits,trust:a.trust||0,stress:a.stress,hunger:100-a.nutrition,thirst:100-a.hydration,energy:a.energy,boredom:a.boredom,social:a.social,sick:(mgmt.caseOf(id)?.sev||0)/100}},
  onNeed:(id,kind,dt)=>{const a=simById(id);if(!a)return;if(kind==='drink'){a.hydration=Math.min(100,a.hydration+(a.managed?1.5:5)*dt)}else if(kind==='eat'&&!a.managed&&a.stage==='wild'){a.nutrition=Math.min(100,a.nutrition+1.6*dt)}},
  onEnrich:(id,type)=>{const r=sanct.useEnrichment(id,type);if(r.ok)save()},
  onCall:(kind,type,pos,name)=>audio.call(kind,type,pos,name,{x:world.ranger.position.x,z:world.ranger.position.z},world.getYaw())
@@ -151,7 +153,7 @@ $('missionBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();ex
 $('buildBtn').addEventListener('click',()=>{sanctUI.close();exploreUI.close();missionsUI.close();exploreUI.exitPhoto();buildUI.open()});
 $('journalBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();exploreUI.exitPhoto();exploreUI.openJournal()});
 $('photoBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();exploreUI.togglePhoto()});
-const sanctUI=mountSanctuaryUI({sim,sanct,ops,world,toast,portraits,focusAnimal,openRecord,openBuild:()=>buildUI.open(),afterChange:()=>{renderHud();const a=sim.selected();if(!panel.classList.contains('hidden'))renderAnimal(a);save()}});
+const sanctUI=mountSanctuaryUI({sim,sanct,ops,mgmt,world,toast,portraits,focusAnimal,openRecord,openBuild:()=>buildUI.open(),afterChange:()=>{renderHud();const a=sim.selected();if(!panel.classList.contains('hidden'))renderAnimal(a);save()}});
 $('sanctBtn').addEventListener('click',()=>sanctUI.open('overview'));
 const speedButtons=[...document.querySelectorAll('#speedCtl button')];
 speedButtons.forEach(b=>b.addEventListener('click',()=>{speed=Number(b.dataset.speed);speedButtons.forEach(x=>x.classList.toggle('on',x===b));toast(speed===0?'Time paused':'Time speed '+({4:'×1',15:'×4',45:'×12'}[speed]||speed))}));
