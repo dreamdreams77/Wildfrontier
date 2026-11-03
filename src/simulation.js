@@ -40,7 +40,7 @@ export function createSimulation(){
   }
   if(night){habitat.disturbance=clamp(habitat.disturbance-.018*delta);habitat.water=clamp(habitat.water+weather().water*.04*delta)}
   const rabbits=animals.filter(a=>a.kind==='rabbit'&&a.stage==='wild');if(rabbits.length>1)for(const rabbit of rabbits)rabbit.social=clamp(rabbit.social+(habitat.disturbance<45?.006:-.012)*delta);
-  habitat.food=clamp(habitat.food+(seasons[seasonIndex]==='Spring'?.006:seasons[seasonIndex]==='Winter'?.-0.008:0)*delta);
+  habitat.food=clamp(habitat.food+(seasons[seasonIndex]==='Spring' ? 0.006 : seasons[seasonIndex]==='Winter' ? -0.008 : 0)*delta);
   if(habitat.cover<25)habitat.biodiversity=clamp(habitat.biodiversity-.004*delta);else habitat.biodiversity=clamp(habitat.biodiversity+.001*delta);
   recalc();if(day>previousDay)add('A new morning begins at North Woodland · Day '+day+'.');
  }
