@@ -88,3 +88,35 @@ test('animal selection remains stable for unknown IDs',()=>{
  assert.equal(sim.select('rabbit-02').id,'rabbit-02');
  assert.equal(sim.select('missing').id,'rabbit-02');
 });
+
+test('the reserve roster includes six distinct wildlife species',()=>{
+ const sim=createSimulation();
+ assert.equal(sim.animals.length,7);
+ assert.deepEqual([...new Set(sim.animals.map(a=>a.kind))].sort(),['bird','deer','fox','owl','rabbit','squirrel']);
+ assert.ok(sim.animals.some(a=>a.name==='Ember'&&a.kind==='fox'));
+ assert.ok(sim.animals.some(a=>a.name==='Moss'&&a.kind==='owl'));
+});
+test('survey assignments require a recorded observation',()=>{
+ const sim=createSimulation();
+ assert.equal(sim.startMission('fox').ok,true);
+ sim.select('fox-01');
+ assert.equal(sim.completeMission('fox').ok,false);
+ assert.equal(sim.act('observe').ok,true);
+ assert.equal(sim.completeMission('fox').ok,true);
+ assert.equal(sim.missions.find(m=>m.id==='fox').status,'complete');
+});
+test('the injured fawn assignment only completes after a successful release',()=>{
+ const sim=createSimulation();
+ assert.equal(sim.completeMission('fawn').ok,false);
+ sim.act('assess');sim.act('stabilize');sim.act('transport');
+ sim.act('feed');sim.act('water');sim.act('quiet');sim.tick(800);sim.tick(300);sim.act('feed');sim.act('water');
+ assert.equal(sim.act('release').ok,true);
+ assert.equal(sim.completeMission('fawn').ok,true);
+});
+test('seasonal ecology advances after five simulated days',()=>{
+ const sim=createSimulation();
+ assert.equal(sim.season,'Spring');
+ sim.tick(7200);
+ assert.equal(sim.season,'Summer');
+ assert.ok(sim.habitat.health>=0&&sim.habitat.health<=100);
+});
