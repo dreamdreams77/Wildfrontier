@@ -240,3 +240,20 @@ test('genetics registry requires managed programme and never approves endangered
  assert.equal(sim.runResearchProject('genetics').ok,true);
  assert.equal(sim.breedingProgram.geneticReview,true);
 });
+
+
+test('migration telemetry brings a visible seasonal flock into the reserve and opens a field survey',()=>{
+ const sim=createSimulation();
+ sim.installCameraTraps();sim.tick(180);sim.completeMission('camera');
+ sim.enrichHabitat();sim.conductPollinatorSurvey();
+ for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(id)}
+ const before=sim.animals.length;
+ assert.equal(sim.runResearchProject('migration').ok,true);
+ const visitors=sim.animals.filter(a=>a.seasonalVisitor);
+ assert.equal(visitors.length,3);assert.equal(sim.animals.length,before+3);
+ assert.ok(visitors.every(a=>a.kind==='bird'&&a.stage==='wild'));
+ assert.equal(sim.missions.find(m=>m.id==='migration-flock').status,'available');
+ assert.equal(sim.startMission('migration-flock').ok,true);
+ sim.select('migrant-01');assert.equal(sim.act('observe').ok,true);
+ assert.equal(sim.completeMission('migration-flock').ok,true);
+});
