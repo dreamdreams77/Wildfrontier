@@ -48,7 +48,7 @@ export function createSimulation(){
  function select(id){if(animals.some(a=>a.id===id))selectedId=id;return selected()}
  function act(action){
   const a=selected();if(!a)return {ok:false,message:'No animal selected.'};
-  if(action==='observe'){a.trust=clamp(a.trust+2);if(a.stage==='wild')a.stress=clamp(a.stress-1);add('Quiet observation recorded: '+a.name+'.');return {ok:true,message:'Observation logged. You kept a respectful distance.'}}
+  if(action==='observe'){a.observed=true;a.trust=clamp(a.trust+2);if(a.stage==='wild')a.stress=clamp(a.stress-1);add('Quiet observation recorded: '+a.name+'.');return {ok:true,message:'Observation logged. You kept a respectful distance.'}}
   if(action==='track'){add('Track markers placed along '+a.location.toLowerCase()+'.');restoration=Math.min(3000,restoration+20);return {ok:true,message:'Track markers placed. Movement will be easier to monitor.'}}
   if(action==='assess'){if(a.stage!=='sighted')return {ok:false,message:'This animal does not need an initial field assessment.'};a.stage='assessed';a.condition='Assessed · transport recommended';a.health=clamp(a.health+3);a.stress=clamp(a.stress+4);add('Ranger assessment completed for '+a.name+'. Leg injury confirmed.');return {ok:true,message:'Assessment complete. A leg injury is confirmed; prepare a quiet transport.'}}
   if(action==='stabilize'){if(a.stage!=='assessed')return {ok:false,message:'A ranger assessment must come first.'};a.health=clamp(a.health+14);a.stress=clamp(a.stress-9);a.condition='Stabilized · ready for transport';a.stage='stabilized';add(a.name+' received field stabilization.');return {ok:true,message:'Field stabilization complete. Keep the carrier covered and quiet.'}}
