@@ -4,7 +4,7 @@ A wildlife rescue and conservation simulation with a handcrafted, claymation-ins
 
 ## Current playable slice
 - Full-viewport 3D woodland with sculpted terrain, creek, layered foliage, ranger hut and a walkable-looking recovery yard
-- Twelve named wildlife residents across eleven species: white-tailed deer, cottontails, red fox, barred owl, gray squirrel, Carolina wren, raccoon, beaver, striped skunk, eastern box turtle and northern cardinal
+- Sixteen named wildlife residents across thirteen species: white-tailed deer, cottontails, red fox, barred owl, gray squirrel, Carolina wren, raccoon, beaver, striped skunk, eastern box turtle and northern cardinal
 - Custom modeled woodland creatures with autonomous wandering, hopping, idle poses, sleep states and social proximity
 - Controllable ranger avatar with keyboard movement and a follow camera
 - Walk-in sanctuary and treatment wing with separated care bays, alongside the quiet recovery yard
@@ -17,7 +17,7 @@ A wildlife rescue and conservation simulation with a handcrafted, claymation-ins
 - Seasonal migration status and spring breeding feedback respond to forage, cover, wetland health and disturbance
 - Expanded habitat landmarks: berry thicket, creek boardwalk, sedge margin and pollinator meadow
 - More articulated mammal gaits and proximity-driven social movement
-- Active riparian restoration and nest-box projects visibly change the reserve and improve habitat metrics
+- Active riparian restoration and nest-box projects visibly change the reserve and improve habitat metrics\n- Critically endangered red wolves and endangered whooping cranes join the managed conservation roster\n- Per-animal daily feeding schedules use species-appropriate rations; direct feeding of free-ranging wildlife remains prohibited\n- Managed endangered-species breeding programme checks habitat readiness and distinct genetic lines, with specialist oversight required\n- Restoration progress visibly matures willow plantings and nest installations\n- Whooping cranes animate through flight cycles and beavers show waterline swimming and body roll
 - Orbit camera, zoom, WASD / arrow-key movement, and clickable animal records
 - Individual animal profiles: health, hydration, nutrition, stress, energy, social comfort, personality and daily routine
 - Ranger-led rescue progression: sighting → assessment → stabilization → transport → rehabilitation → release evaluation
