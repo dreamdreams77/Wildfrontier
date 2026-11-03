@@ -173,3 +173,41 @@ test('pollinator survey requires habitat preparation and improves biodiversity',
 test('large simulation steps process every crossed weather and ecology interval',()=>{const sim=createSimulation();const before=sim.populations.smallHerbivores;sim.tick(1080);assert.equal(sim.weather.name,'Light rain');assert.notEqual(sim.populations.smallHerbivores,before)});
 test('multiple season boundaries are not discarded by a large time step',()=>{const sim=createSimulation();sim.tick(1440*10);assert.equal(sim.season,'Autumn')});
 test('feeding and rest field actions create welfare changes for recovering wildlife',()=>{const sim=createSimulation();sim.select('fawn-01');const a=sim.selected();a.stage='rehabilitating';a.nutrition=40;a.energy=30;a.stress=50;assert.equal(sim.act('feed').ok,true);assert.ok(a.nutrition>40);assert.equal(sim.act('quiet').ok,true);assert.equal(a.sleeping,true);assert.ok(a.stress<50)});
+
+
+test('spring breeding records cottontail offspring and preserves parent lineage',()=>{
+ const sim=createSimulation();
+ const before=sim.animals.length;
+ sim.tick(1440*3);
+ assert.ok(sim.animals.length>before);
+ assert.ok(sim.familyTree.length>=2);
+ const record=sim.familyTree[0];
+ assert.equal(record.species,'Eastern cottontail');
+ assert.deepEqual(record.parents,['Clover','Pip']);
+ const young=sim.animals.find(a=>a.id===record.id);
+ assert.equal(young.juvenile,true);
+ assert.equal(young.stage,'wild');
+ assert.equal(young.ageDays,3);
+});
+
+test('juveniles mature into independent young wildlife and retain their family record',()=>{
+ const sim=createSimulation();
+ sim.tick(1440*3);
+ const young=sim.animals.find(a=>a.juvenile);
+ assert.ok(young);
+ sim.tick(1440*18);
+ assert.equal(young.juvenile,false);
+ assert.equal(young.condition,'Wild resident · independent juvenile');
+ assert.equal(sim.familyTree.find(f=>f.id===young.id).stage,'Independent juvenile');
+});
+
+test('research centre unlocks only after sufficient field evidence is archived',()=>{
+ const sim=createSimulation();
+ assert.equal(sim.getResearchCentre().unlocked,false);
+ sim.installCameraTraps();sim.tick(180);sim.completeMission('camera');
+ sim.enrichHabitat();sim.conductPollinatorSurvey();
+ for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(id)}
+ assert.equal(sim.getResearchCentre().unlocked,true);
+ assert.equal(sim.researchCentreUnlocked,true);
+ assert.ok(sim.getResearchCentre().projects.some(p=>p.name==='Migration telemetry'&&p.status==='Available'));
+});
