@@ -136,11 +136,11 @@ export function createWorld(container){
   const night=phase==='Night',dusk=phase==='Dusk',dawn=phase==='Dawn';env.night=night;env.glow=night||dusk;env.season=season;env.rain=weather==='Light rain';env.wind=weather==='Breezy'?1.8:weather==='Light rain'?1.25:.7;
   const S=SEASON[season]||SEASON.Spring;mats.leaf().color.set(S.leaf);mats.leafDry().color.set(S.leaf);
   art.grass.material.color.set(S.grass);art.savannaGrass.material.color.set(season==='Winter'?'#e0d8c0':'#ffffff');
-  sun.intensity=night?.35:dusk?1.5:dawn?2.2:season==='Winter'?2.5:3.1;
+  sun.intensity=night?.9:dusk?1.5:dawn?2.2:season==='Winter'?2.5:3.1;
   sun.color.set(night?'#8ea6c8':dusk?'#f0a068':dawn?'#ffc890':season==='Winter'?'#d7e2ed':'#ffe5bd');
   const ang=night?[0,28,6]:dusk?[34,8,10]:dawn?[-34,8,10]:[-8,22,12];sun.position.set(ang[0]+14,ang[1],ang[2]);
-  hemi.intensity=night?.7:dusk?1.4:2.0;hemi.color.set(night?'#7f93bb':dusk?'#f0c8a0':'#f3f1dc');hemi.groundColor.set(night?'#2a3340':'#5f6f48');
-  fill.intensity=night?.7:.55;fill.color.set(night?'#6a86c8':'#a8c4ff');
+  hemi.intensity=night?1.5:dusk?1.4:2.0;hemi.color.set(night?'#7f93bb':dusk?'#f0c8a0':'#f3f1dc');hemi.groundColor.set(night?'#3a4a60':'#5f6f48');
+  fill.intensity=night?1.0:.55;fill.color.set(night?'#6a86c8':'#a8c4ff');
   const sky=night?'#2f3f55':dusk?'#c9a58c':dawn?'#d9b9a0':weather==='Light rain'?'#879a9a':S.sky;
   scene.fog.color.set(sky);scene.background.set(sky);scene.fog.density=weather==='Light rain'?.017:night?.012:.011;
   const U=art.sky.uniforms;U.horizon.value.set(sky);U.top.value.set(night?'#0b1424':dusk?'#5d6aa0':dawn?'#7a96c8':weather==='Light rain'?'#7c8c98':'#5f94cf');U.sunDir.value.set(sun.position.x-14,sun.position.y,sun.position.z).normalize();U.sunColor.value.copy(sun.color);U.night.value=night?1:0;

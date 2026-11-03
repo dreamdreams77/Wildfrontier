@@ -56,6 +56,22 @@ Every asset above was replaced rather than restyled:
 * **Interface art**: animal portraits, journal cards, species lists and build-palette icons are now renders of the real 3D
   models.
 
+## Measured result (Medium tier, headless Chromium, software GL)
+
+| Measure | Before | After |
+| --- | --- | --- |
+| Meshes in scene | 4,216 | 526 |
+| Skinned meshes / bones | 0 / 0 | 37 / 795 |
+| Instanced meshes | 0 | 4 (grass, flowers, distant trees) |
+| Textured materials | 0 | 71 |
+| Textures in memory | 1 | 96 |
+| Draw calls per frame | 1,492 | 293 |
+| Triangles in scene | 989,863 | 714,835 |
+| Triangles rendered in a frame (incl. shadow pass) | 394,053 | 480,179 |
+
+Rendered triangles went **up**: the models are far more detailed. Draw calls, which are the usual mobile bottleneck, went
+down by about 80%. Low tier cuts grass, foliage, shadow resolution and pixel ratio further.
+
 ## Honest limits
 
 * The models are generated procedurally in code (lofted, skinned, painted) rather than sculpted in a DCC tool. They are
