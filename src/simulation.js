@@ -24,10 +24,10 @@ export function createSimulation(){
   for(const a of animals){
    if(a.stage==='released')continue;
    if(a.stage==='rehabilitating'){
-    a.health=clamp(a.health+.035*delta);a.stress=clamp(a.stress+(a.sleeping?-.19:-.035)*delta);a.energy=clamp(a.energy+(a.sleeping?.24:-.08)*delta);a.nutrition=clamp(a.nutrition-.012*delta);a.hydration=clamp(a.hydration-.016*delta);
+    a.health=clamp(a.health+.035*delta);a.stress=clamp(a.stress+(a.sleeping?-.19:-.035)*delta);a.energy=clamp(a.energy+(a.sleeping ? .24 : -.08)*delta);a.nutrition=clamp(a.nutrition-.012*delta);a.hydration=clamp(a.hydration-.016*delta);
     if(a.stress>72)a.sleeping=false;else if(night&&a.stress<50)a.sleeping=true;else if(!night&&a.energy>35)a.sleeping=false;
    }else{
-    a.hydration=clamp(a.hydration-(.012+weather().water*.08)*delta);a.nutrition=clamp(a.nutrition-.009*delta);a.energy=clamp(a.energy+(night?.08:-.055)*delta);
+    a.hydration=clamp(a.hydration-(.012+weather().water*.08)*delta);a.nutrition=clamp(a.nutrition-.009*delta);a.energy=clamp(a.energy+(night ? .08 : -.055)*delta);
     a.stress=clamp(a.stress+(habitat.disturbance>45?.035:weather().stress-.025)*delta);
     if(night){a.sleeping=a.energy>30;a.mood='Resting'}else{a.sleeping=false;a.mood=a.stress>55?'Alert':a.energy<25?'Tired':'Curious'}
     if(a.stress>78)a.health=clamp(a.health-.012*delta);
