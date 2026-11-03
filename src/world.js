@@ -29,7 +29,7 @@ export function createWorld(container){
  // Fern-like clusters, flowers, and tufts.
  for(let i=0;i<75;i++){const x=Math.sin(i*13.1)*18,z=Math.cos(i*5.7)*17;const tuft=new THREE.Group();tuft.position.set(x,.03,z);scene.add(tuft);for(let j=0;j<3;j++){const leaf=blob(tuft,j%2?palette.moss:palette.leaf2,[(j-1)*.11,.12,0],[.07,.2,.045]);leaf.rotation.z=(j-1)*.45}if(i%5===0)blob(tuft,palette.flower,[.08,.23,.04],[.045,.045,.045])}
  // Small field station in the distance.
- const hut=new THREE.Group();hut.position.set(-13,0,10);scene.add(hut);const wall=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.1,2.8),mat('#9b8b6b'));wall.position.y=1.05;wall.castShadow=true;hut.add(wall);const roof=new THREE.Mesh(new THREE.ConeGeometry(2.5,1.3,4),mat('#514d3c'));roof.position.y=2.65;roof.rotation.y=Math.PI/4;roof.castShadow=true;hut.add(roof);const door=new THREE.Mesh(new THREE.BoxGeometry(.7,1.3,.08),mat('#4c4939'));door.position.set(0,.65,1.45);hut.add(door);
+ const hut=new THREE.Group();hut.position.set(-19,0,10);scene.add(hut);const wall=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.1,2.8),mat('#9b8b6b'));wall.position.y=1.05;wall.castShadow=true;hut.add(wall);const roof=new THREE.Mesh(new THREE.ConeGeometry(2.5,1.3,4),mat('#514d3c'));roof.position.y=2.65;roof.rotation.y=Math.PI/4;roof.castShadow=true;hut.add(roof);const door=new THREE.Mesh(new THREE.BoxGeometry(.7,1.3,.08),mat('#4c4939'));door.position.set(0,.65,1.45);hut.add(door);
 
  // Open-sided wildlife recovery yard: two quiet pens, shade canopy, hay beds and a service path.
  const recovery=new THREE.Group();recovery.position.set(-12,0,7);scene.add(recovery);
