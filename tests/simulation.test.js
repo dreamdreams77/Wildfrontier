@@ -21,7 +21,7 @@ test('release is blocked until health, stress, nutrition, hydration and energy p
  assert.equal(sim.act('release').ok,false);
  sim.act('feed');sim.act('water');sim.act('quiet');
  sim.tick(800);sim.tick(300);
- sim.act('feed');sim.act('water');
+ sim.act('feed');sim.act('water');sim.act('examine');sim.act('woundCare');sim.act('rehab');sim.act('rehab');
  const animal=sim.selected();
  assert.ok(animal.health>=85);
  assert.ok(animal.stress<=28);
