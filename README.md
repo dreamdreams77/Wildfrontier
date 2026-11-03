@@ -65,6 +65,13 @@ Wild Frontier is a hand-painted 3D world. Nothing in the scene is a flat sprite 
 - **Quality tiers**: Low, Medium and High are chosen from the device, or with `?quality=low|medium|high`. A governor steps down automatically if frames are slow. See `docs/VISUAL_AUDIT.md` for what changed and the measured numbers.
 - Dev tools: `showcase.html` (run `npm run dev`, open `/Wildfrontier/showcase.html?grid=1`) previews every species and person; `tools/visual-audit.cjs` audits the live scene; `tools/smoke-creatures.mjs` builds and animates every model in Node.
 
+## Animal minds and enrichment
+- **Needs-driven AI** (`src/ai.js`): every animal decides what to do from its hunger, thirst, energy, boredom, fear, social need, personality and trust. Priorities are real: fear beats hunger, rain sends sensitive species to shelter, thirst sends animals to water, and bored captives use enrichment or pace.
+- **Species profiles** for all 26 species: activity pattern, social structure, how easily startled, flee distance, predator/prey relationships. Prey flee predators, herds warn each other (contagion), herd animals regroup, nocturnal animals rest by day.
+- **Individuals**: stable per-animal temperament (bold/shy, sociable, inquisitive, calm) and a bond with people. Trusting, curious animals walk up to keepers; shy ones bolt. Animals keep a short history.
+- **Movement**: smooth acceleration and braking, running when fleeing, drinking, foraging, grooming, scratching and play-bow animations in the rig, plus individual size variation.
+- **Enrichment**: climbing frame, digging pit, puzzle feeder, scratching post and scent station, with species-specific suitability. Boredom is a welfare stat that builds, causes stress and is relieved when animals actually use the objects. Water features count as swimming enrichment for swimmers.
+
 ## Run locally
 ```bash
 npm install

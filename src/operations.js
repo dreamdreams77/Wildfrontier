@@ -1,6 +1,8 @@
 // Sanctuary operations: visible staff with tasks and shifts, buildable habitat with per-species needs,
 // and visitors/education. Pure logic (no rendering); it plugs into the sanctuary through its extension hooks.
 
+import { ENRICHMENT } from './enrichment.js';
+
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
 const DAY=1440;
 
@@ -32,6 +34,7 @@ export const BUILD_ITEMS={
  platform:{label:'Viewing platform',icon:'🔭',cost:260,r:1.9,tags:['viewing'],appeal:3,capacity:12,blurb:'Lets more visitors watch animals from a safe distance.'},
  path:{label:'Boardwalk',icon:'🪵',cost:30,r:.9,tags:['path'],appeal:.5,blurb:'Guides visitors along a set route.'},
  flowers:{label:'Wildflower bed',icon:'🌼',cost:40,r:1.1,tags:['decor'],appeal:1,blurb:'Pretty, but animals do not need it.'},
+ ...Object.fromEntries(Object.entries(ENRICHMENT).map(([k,e])=>[k,{label:e.label,icon:e.icon,cost:e.cost,r:e.r,tags:['enrich',k],blurb:e.blurb}])),
  education:{label:'Education centre',icon:'🏫',cost:500,r:2.5,tags:['education'],appeal:4,capacity:20,blurb:'Exhibits and classes: more visitors, more awareness.'},
 };
 

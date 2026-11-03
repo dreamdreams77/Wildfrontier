@@ -2,6 +2,9 @@
 // Pure logic (no rendering) so it can be unit-tested. It adds its residents to the shared simulation animal list,
 // so selection, the field record panel and the world all treat them like every other animal.
 
+import { ensureProfile } from './ai.js';
+import { enrichmentFit, BOREDOM_RELIEF, STRESS_RELIEF } from './enrichment.js';
+
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
 const DAY=1440;
 
@@ -82,12 +85,13 @@ export function scaleOf(a){
  return clamp(.36+.64*(age/sp.matureDays),.36,1,);
 }
 export function welfareOf(a){
- return Math.round(clamp((a.health*1.5+a.nutrition+a.hydration+(100-a.stress)*1.2+(a.social??60)*.5)/5.2));
+ return Math.round(clamp((a.health*1.5+a.nutrition+a.hydration+(100-a.stress)*1.2+(a.social??60)*.5+(100-(a.boredom??30))*.4)/5.6));
 }
 
+export function addHistory(a,day,text){ensureProfile(a);a.history.push({day,text});if(a.history.length>14)a.history.shift()}
 function residentRecord(kind,name,sex,line,x,z,extra={}){
  const sp=SPECIES[kind];
- return {
+ const rec={
   id:extra.id||kind+'-'+name.toLowerCase(),kind,name,sex,managed:true,breedingEligible:true,
   species:sp.common+' · '+sp.status,latinName:sp.latin,heritage:sp.heritage,region:sp.region,
   condition:'Managed sanctuary resident',location:'Safari · '+sp.habitat.replace(/([A-Z])/g,' $1').toLowerCase().replace(/^./,c=>c.toUpperCase()),
@@ -97,6 +101,7 @@ function residentRecord(kind,name,sex,line,x,z,extra={}){
   geneticLine:line,lineage:[line],parents:null,ageDays:sp.matureDays+8+(name.length%9),young:false,
   habitatPosition:[x,z],...extra,
  };
+ ensureProfile(rec);if(!rec.history.length)rec.history.push({day:3,text:extra.young?'Born at the sanctuary.':'Joined the sanctuary collection.'});return rec;
 }
 
 export function createSanctuary(sim,options={}){
@@ -167,16 +172,24 @@ export function createSanctuary(sim,options={}){
   const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Select a sanctuary resident.'};
   if(a.health>=92)return {ok:false,message:a.name+' is in good health; no treatment needed.'};
   if(state.stock.medicine<1)return {ok:false,message:'Out of veterinary supplies.'};
-  state.stock.medicine--;a.health=clamp(a.health+18);a.stress=clamp(a.stress+4);a.injury=a.health>=80?'No visible injury.':a.injury;
+  state.stock.medicine--;addHistory(a,state.day,'Veterinary treatment.');a.health=clamp(a.health+18);a.stress=clamp(a.stress+4);a.injury=a.health>=80?'No visible injury.':a.injury;
   return {ok:true,message:'Veterinary check complete: '+a.name+' is responding well.'};
  }
  function enrich(id){
   const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Select a sanctuary resident.'};
   if(a.enrichedDay===state.day)return {ok:false,message:a.name+' has already had enrichment today.'};
-  a.enrichedDay=state.day;a.stress=clamp(a.stress-14);a.social=clamp((a.social??60)+8);a.energy=clamp(a.energy-6);a.trust=clamp(a.trust+3);a.mood='Playful';
+  a.enrichedDay=state.day;a.boredom=clamp((a.boredom??30)-22);a.stress=clamp(a.stress-14);a.social=clamp((a.social??60)+8);a.energy=clamp(a.energy-6);a.trust=clamp(a.trust+3);a.mood='Playful';
   return {ok:true,message:'Enrichment session with '+a.name+': scent trails, puzzle feeders and play.'};
  }
 
+function useEnrichment(id,type){
+  const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Only sanctuary residents use enrichment.'};
+  ensureProfile(a);const fit=enrichmentFit(a.kind,type);if(fit<=0)return {ok:false,message:a.name+' has no use for that.',fit:0};
+  const fresh=state.minutes-(a.lastUsed||-1e9)>90;const k=fit*(fresh?1:.4);
+  a.boredom=clamp((a.boredom??30)-BOREDOM_RELIEF*k);a.stress=clamp(a.stress-STRESS_RELIEF*k);a.social=clamp((a.social??60)+2*k);a.trust=clamp(a.trust+.3*k);a.energy=clamp(a.energy-3*k);a.lastUsed=state.minutes;a.mood=fit>=1?'Playful':'Content';a.enrichUses=(a.enrichUses||0)+1;
+  if(a.enrichUses%12===1)addHistory(a,state.day,'Favourite pastime: '+(type==='pond'||type==='wallow'?'bathing':type)+'.');
+  return {ok:true,message:a.name+' used the '+type+(fit>=1?' with obvious enjoyment.':'.'),fit};
+ }
  // ---- Breeding programme -------------------------------------------------------------------------------------
  const lineageOf=a=>a.lineage||[a.geneticLine];
  function pairStatus(maleId,femaleId){
@@ -226,7 +239,7 @@ export function createSanctuary(sim,options={}){
    const lineage=[...new Set([...lineageOf(dam),...preg.sireLine])];
    const baby={...residentRecord(dam.kind,name,sex,lineage.join('×'),dam.habitatPosition[0]+(i-.5)*.8,dam.habitatPosition[1]+.8,{id,young:true,ageDays:0,scale:.36,lineage,parents:[dam.name,preg.sireName],
     health:94,hydration:82,nutrition:78,stress:10,trust:30,breedingEligible:false,condition:'Newborn · bonding with '+dam.name,notes:'Born at the sanctuary to '+dam.name+' and '+preg.sireName+'. Needs close monitoring and plenty of milk and food.',personality:'Newborn; learning from '+dam.name,mood:'Sleepy'}),};
-   baby.ageDays=0;sim.animals.push(baby);babies.push(baby);
+   baby.ageDays=0;baby.traits={bold:Math.min(1,Math.max(0,((dam.traits?.bold??.5)+(sire?.traits?.bold??.5))/2+(rng()-.5)*.2)),social:Math.min(1,Math.max(0,((dam.traits?.social??.5)+(sire?.traits?.social??.5))/2+(rng()-.5)*.2)),curious:Math.min(1,Math.max(0,((dam.traits?.curious??.5)+(sire?.traits?.curious??.5))/2+(rng()-.5)*.2)),calm:.5};baby.history=[{day:state.day,text:'Born to '+dam.name+' and '+preg.sireName+'.'}];sim.animals.push(baby);babies.push(baby);
    state.familyTree.push({id,name,kind:dam.kind,species:sp.common,sex,parents:[dam.name,preg.sireName],born:'Day '+state.day,lineage});
   }
   state.births+=babies.length;state.credits+=babies.length*3;state.reputation+=babies.length*4;
@@ -291,8 +304,9 @@ export function createSanctuary(sim,options={}){
     if(a.hydration<15)a.health=clamp(a.health-.016*d);
     if(a.nutrition>=45&&a.hydration>=45&&a.stress<55&&a.health<100)a.health=clamp(a.health+.006*d);
     if(a.nutrition<30)a.stress=clamp(a.stress+.02*d);
+    ensureProfile(a);a.boredom=clamp((a.boredom??30)+(.011+a.traits.curious*.008)*d);if(a.boredom>75)a.stress=clamp(a.stress+.016*d);
     a.social=clamp((a.social??60)+((counts[a.kind]||0)>1?.002:-.01)*d);
-    a.mood=a.pregnant?'Expecting':a.nutrition<30?'Hungry':a.stress>60?'Stressed':a.mood==='Delighted'||a.mood==='Playful'?a.mood:'Content';
+    a.mood=a.pregnant?'Expecting':a.nutrition<30?'Hungry':a.stress>60?'Stressed':a.boredom>75?'Bored':a.mood==='Delighted'||a.mood==='Playful'?a.mood:'Content';
     if(a.pregnant&&state.minutes>=a.pregnant.dueMinute){giveBirth(a)}
    }
    for(const h of hooks)h.tick&&h.tick(d);
@@ -326,5 +340,5 @@ export function createSanctuary(sim,options={}){
   return true;
  }
 
- return {state,mods,extend,spend,earn,say,sim,SPECIES,FOODS,residents,feed,feedAllHungry,buyFood,refillWater,treat,enrich,pairStatus,startBreeding,transferOut,importFounder,tick,summary,serialize,restore,welfareOf,stageOf,scaleOf,preferredFood};
+ return {state,mods,extend,spend,earn,say,sim,useEnrichment,addHistory:(id,text)=>{const a=byId(id);if(a)addHistory(a,state.day,text)},SPECIES,FOODS,residents,feed,feedAllHungry,buyFood,refillWater,treat,enrich,pairStatus,startBreeding,transferOut,importFounder,tick,summary,serialize,restore,welfareOf,stageOf,scaleOf,preferredFood};
 }

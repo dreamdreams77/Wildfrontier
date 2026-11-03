@@ -39,7 +39,7 @@ export function mountSanctuaryUI({sim,sanct,ops,world,toast,afterChange,focusAni
   const list=sanct.residents().slice().sort((a,b)=>a.kind.localeCompare(b.kind)||a.name.localeCompare(b.name));
   return '<div class="s-list">'+list.map(a=>{const sp=SPECIES[a.kind],w=welfareOf(a);const food=sanct.preferredFood(a);
    return '<article class="s-res"><div class="s-res-head"><button data-act="open" data-id="'+a.id+'" class="s-link">'+face(a.kind,sp.emoji)+' <b>'+esc(a.name)+'</b></button><small>'+esc(sp.common)+' · '+stageOf(a)+(a.pregnant?' · expecting':'')+'</small><span class="s-w '+welfareClass(w)+'">'+w+'%</span></div>'
-    +'<div class="s-meters"><label>Food'+bar(a.nutrition,a.nutrition<35?'low':'')+'</label><label>Water'+bar(a.hydration,a.hydration<35?'low':'')+'</label><label>Health'+bar(a.health,a.health<50?'low':'')+'</label><label>Calm'+bar(100-a.stress,a.stress>60?'low':'')+'</label></div>'
+    +'<div class="s-meters"><label>Food'+bar(a.nutrition,a.nutrition<35?'low':'')+'</label><label>Water'+bar(a.hydration,a.hydration<35?'low':'')+'</label><label>Health'+bar(a.health,a.health<50?'low':'')+'</label><label>Calm'+bar(100-a.stress,a.stress>60?'low':'')+'</label><label>Interest'+bar(100-(a.boredom??30),(a.boredom??30)>70?'low':'')+'</label></div>'
     +'<div class="s-acts"><button data-act="feed" data-id="'+a.id+'" data-food="'+food+'">'+FOODS[food].icon+' FEED</button><button data-act="enrich" data-id="'+a.id+'">PLAY</button><button data-act="treat" data-id="'+a.id+'">VET</button></div></article>'}).join('')+'</div>';
  }
 

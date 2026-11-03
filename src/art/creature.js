@@ -310,7 +310,7 @@ function makeController(root,spec,info){
    state:st,height:info.height,
    update(dt,ctx={}){
     st.t+=dt;const moving=ctx.moving?1:0;
-    st.move=damp(st.move,moving,6,dt);st.graze=damp(st.graze,ctx.anim==='forage'||ctx.anim==='feed'?1:0,4,dt);st.sleep=damp(st.sleep,ctx.sleeping?1:0,2.2,dt);st.alert=damp(st.alert,ctx.alert?1:0,5,dt);st.swim=damp(st.swim,ctx.swim?1:0,5,dt);
+    st.move=damp(st.move,moving,6,dt);st.graze=damp(st.graze,ctx.anim==='forage'||ctx.anim==='feed'||ctx.anim==='drink'?1:0,4,dt);st.groom=damp(st.groom||0,ctx.anim==='groom'?1:0,4,dt);st.scratch=damp(st.scratch||0,ctx.anim==='scratch'?1:0,5,dt);st.play=damp(st.play||0,ctx.anim==='play'?1:0,4,dt);st.sleep=damp(st.sleep,ctx.sleeping?1:0,2.2,dt);st.alert=damp(st.alert,ctx.alert||ctx.fear>.45?1:0,5,dt);st.swim=damp(st.swim,ctx.swim?1:0,5,dt);
     const m=st.move,sl=st.sleep,aw=1-sl;
     st.phase+=dt*(g.freq||4)*(ctx.speedScale??1)*(.35+m*.65)*(m>.05?1:0);
     const ph=st.phase,T=st.t;
@@ -323,13 +323,16 @@ function makeController(root,spec,info){
      // idle shifting weight so standing animals never freeze
      ur+=Math.sin(T*.5+i*1.7)*.012*(1-m);
      if(sl>0.01){const fold=L.front?[-1.15,2.1]:[-.8,1.75];ur=ur*(1-sl)+fold[0]*sl;lr=lr*(1-sl)+fold[1]*sl}
+     if(st.scratch>.02&&L.id==='HL'){const sc=st.scratch;ur=ur*(1-sc)+(-.9)*sc;lr=lr*(1-sc)+(1.6+Math.sin(T*22)*.35)*sc}
+     if(st.play>.02&&!L.front){ur+=Math.sin(T*7)*.12*st.play}
      L.up.rotation.x=ur;L.lo.rotation.x=lr;L.ft.rotation.x=-(ur+lr)*.65;
     }
     // body motion
     const bob=(g.bob||.015)*info.length*Math.abs(Math.sin(ph*(isBound?1:2)))*m*aw;
     rootBone.position.y=baseY+bob-drop*sl-st.swim*spec.bh*spec.k*.5;
     hips.rotation.y=Math.sin(ph)*.06*m*aw;chest.rotation.y=-Math.sin(ph)*.05*m*aw;
-    chest.rotation.z=Math.sin(ph)*.02*m;rootBone.rotation.z=Math.sin(T*.4)*.004+sl*.1;
+    chest.rotation.z=Math.sin(ph)*.02*m+st.scratch*.1;rootBone.rotation.z=Math.sin(T*.4)*.004+sl*.1+st.groom*.08;
+    rootBone.position.y+=Math.abs(Math.sin(T*6))*.1*info.length*st.play*aw;chest.rotation.x=.25*st.play+(isBound?0:0);hips.rotation.x=-.18*st.play;
     if(isBound){rootBone.rotation.x=Math.sin(ph)*.18*m;hips.rotation.x=-Math.sin(ph)*.1*m}
     const breath=Math.sin(T*(1.7+sl*-.7))*.014*(1+sl*.8);chest.scale.set(1+breath*.6,1+breath,1+breath*.3);
     // neck + head: look around, graze, sleep, alert
@@ -338,7 +341,7 @@ function makeController(root,spec,info){
     n1.rotation.x=.55*g1*(spec.neck.up>1.5?.45:1)+.5*sl-.2*al+Math.sin(ph*2)*.03*m*aw;
     n2.rotation.x=.38*g1*(spec.neck.up>1.5?.45:1)+.35*sl-.12*al-Math.sin(ph*2)*.04*m*aw;
     head.rotation.x=.3*g1+.18*sl+chew+tilt*.5;
-    n1.rotation.y=look*.55+sl*.7;n2.rotation.y=look*.45+sl*.2;head.rotation.y=look*.3;
+    n1.rotation.y=look*.55+sl*.7+st.groom*.9;n2.rotation.y=look*.45+sl*.2+st.groom*.5;head.rotation.y=look*.3+st.groom*.2;head.rotation.x+=st.groom*.35+st.scratch*.15;
     // tail: lag chain
     for(let i=0;i<tails.length;i++){const lag=i*.6;const sw=Math.sin(T*(1.6+i*.3)-lag)*(.22+i*.1)*(spec.tail.type==='short'?.3:1);tails[i].rotation.y=sw*(1-sl*.6)+Math.sin(ph-lag)*.1*m;tails[i].rotation.x=-.12*al*(i+1)+Math.sin(T*.9+i)*.04+sl*.15}
     for(let i=0;i<ears.length;i++){const side=i?1:-1;const tw=Math.max(0,Math.sin(T*.7+i*2.1+Math.sin(T*.13)*3)-.93)*14;ears[i].rotation.x=-.28*al-sl*.25+tw*.35;ears[i].rotation.z=side*(.05+tw*.2+sl*.3)}
@@ -357,7 +360,7 @@ function makeController(root,spec,info){
   return {
    state:st,height:info.height,
    update(dt,ctx={}){
-    st.t+=dt;const T=st.t;st.move=damp(st.move,ctx.moving?1:0,6,dt);st.sleep=damp(st.sleep,ctx.sleeping?1:0,2,dt);st.fly=damp(st.fly,ctx.flying?1:0,6,dt);st.graze=damp(st.graze,ctx.anim==='forage'||ctx.anim==='feed'?1:0,4,dt);st.alert=damp(st.alert,ctx.alert?1:0,5,dt);st.swim=damp(st.swim,ctx.swim?1:0,5,dt);
+    st.t+=dt;const T=st.t;st.move=damp(st.move,ctx.moving?1:0,6,dt);st.sleep=damp(st.sleep,ctx.sleeping?1:0,2,dt);st.fly=damp(st.fly,ctx.flying?1:0,6,dt);st.graze=damp(st.graze,ctx.anim==='forage'||ctx.anim==='feed'||ctx.anim==='drink'?1:0,4,dt);st.groom=damp(st.groom||0,ctx.anim==='groom'||ctx.anim==='scratch'?1:0,4,dt);st.alert=damp(st.alert,ctx.alert||ctx.fear>.45?1:0,5,dt);st.swim=damp(st.swim,ctx.swim?1:0,5,dt);
     const m=st.move,sl=st.sleep,fl=st.fly;
     st.phase+=dt*(g.freq||4)*(.35+m*.65)*(m>.05?1:0);const ph=st.phase;
     for(let i=0;i<2;i++){const L=legs[i];const p=ph+i*Math.PI,s=Math.sin(p),c=Math.max(0,Math.cos(p));
@@ -372,7 +375,7 @@ function makeController(root,spec,info){
     for(const w of wings){const fold=1-fl;w.s.rotation.z=w.side*(flap*1.1+Math.sin(T*1.1)*.012*fold+(ctx.alert?.12:0));w.s.rotation.y=-w.side*fl*.25;w.w.rotation.z=w.side*(flap*.9*fl+.0)}
     const lead=wader?Math.sin(ph*2)*.12*m:Math.sin(ph*2)*.2*m;
     for(let i=0;i<necks.length;i++){const f=(i+1)/necks.length;necks[i].rotation.x=lead*(i%2?1:-1)*.5+st.graze*.5*f*(wader?.9:.6)+sl*.9*f-st.alert*.08*f;necks[i].rotation.y=Math.sin(T*.5+i*.4)*.12*(1-m)*(1-sl)+sl*.5*f}
-    head.rotation.x=st.graze*.4+sl*.3+Math.sin(T*1.3)*.03;head.rotation.y=Math.sin(T*.7)*.25*(1-m)*(1-sl);
+    head.rotation.x=st.graze*.4+sl*.3+Math.sin(T*1.3)*.03+st.groom*(.5+Math.sin(T*9)*.08);head.rotation.y=Math.sin(T*.7)*.25*(1-m)*(1-sl)+st.groom*1.1;
     if(tail)tail.rotation.x=Math.sin(T*1.8)*.05+(g.cock?-.6:0)+fl*-.2;
     chest.scale.setScalar(1+Math.sin(T*2.4)*.012);
     st.nextBlink-=dt;if(st.nextBlink<=0){st.blink=.12;st.nextBlink=2+Math.random()*4}st.blink=Math.max(0,st.blink-dt);const bs=(st.blink>0||sl>.5)?.1:1;for(const e of eyes)e.scale.y=damp(e.scale.y,bs,40,dt);

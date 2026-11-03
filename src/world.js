@@ -8,6 +8,7 @@ import { createPost } from './art/post.js';
 import { setTextureScale } from './art/paint.js';
 import { setPhysical, mats } from './art/materials.js';
 import { createStaffLayer, createCrowd } from './npcs.js';
+import { createBrain, profileOf, CALLS } from './ai.js';
 
 // Where each woodland resident starts (safari residents and later arrivals carry their own habitatPosition).
 const START={'fawn-01':[-1,1],'rabbit-01':[4,5],'rabbit-02':[-7,7],'fox-01':[-15,-2],'owl-01':[-3,-5.5],'squirrel-01':[-4,-3],'bird-01':[7,-7],'raccoon-01':[11,7],'beaver-01':[9,1],'skunk-01':[-17,4],'turtle-01':[5,12],'cardinal-01':[14,-4],'otter-01':[6,2.8],'bobcat-01':[-17,-5],'wolf-01':[-13,-7],'wolf-02':[-11,-8],'crane-01':[8,3],'crane-02':[10,4],'duck-01':[8,2.8],'opossum-01':[-8,6]};
@@ -37,6 +38,13 @@ export function createWorld(container){
  const ranger=makeHuman(LOOKS.ranger);ranger.position.set(-5,0,11);ranger.userData.isRanger=true;scene.add(ranger);
  const animals=[];
  const clock=new THREE.Clock();let walk=0;
+ const brain=createBrain();
+ // points of interest animals navigate to (static scenery plus whatever the player has built)
+ const creekPts=[];for(let t=-18;t<=18;t+=3)creekPts.push({x:7+t*.276,z:t*.96});
+ const staticPoints={water:[...creekPts,{x:31,z:7},{x:25.5,z:8.2},{x:38,z:-10},{x:36.5,z:-9},{x:37,z:10}],shelter:[{x:-12,z:7},{x:-19,z:11},{x:-3,z:-4},{x:30,z:-11},{x:28,z:3}],food:[{x:9,z:4}],enrich:[],cover:[{x:-3,z:-5},{x:-10,z:1},{x:12,z:-8},{x:28,z:3},{x:33,z:-3}]};
+ let dynamicPoints={water:[],shelter:[],food:[],enrich:[]};
+ const hooks={stats:null,onEnrich:null,onNeed:null,onCall:null};
+ const wx={rain:false,storm:false};let phaseNow='Dawn',nightNow=false;
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let target=new THREE.Vector3(ranger.position.x,0,ranger.position.z),yaw=.72,pitch=.48,distance=19,selected=null;
  function cameraUpdate(){const horizontal=Math.cos(pitch)*distance;camera.position.set(target.x+Math.sin(yaw)*horizontal,target.y+Math.sin(pitch)*distance+2,target.z+Math.cos(yaw)*horizontal);camera.lookAt(target)}
  cameraUpdate();
@@ -79,11 +87,12 @@ export function createWorld(container){
   x.position.set(spawn[0],0,spawn[1]);scene.add(x);
   const u=x.userData;u.id=data.id;u.name=data.name;u.kind=kind;u.home=new THREE.Vector3(spawn[0],0,spawn[1]);u.wanderTarget=new THREE.Vector3(spawn[0],0,spawn[1]);
   u.aiTimer=2+Math.random()*2;u.forageTimer=2+Math.random()*4;u.animation='idle';u.animationTime=0;u.description='A wild '+kind+' is moving through its natural habitat. Observe quietly from a respectful distance.';u.condition='HEALTHY';u.location=WHERE[kind]||(data.location?String(data.location).toUpperCase():'RESERVE');
-  x.scale.setScalar(data.scale||(data.juvenile?.62:1));u.juvenile=!!data.juvenile;animals.push(x);return true;
+  const vh=(()=>{let h=2166136261;for(const c of String(data.id)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0)/4294967296})();const vary=.95+vh*.1;u.radius=data.managed?Math.max(3.4,profileOf(kind).radius):profileOf(kind).radius;u.vel=0;u.baseScale=vary;
+  x.scale.setScalar((data.scale||(data.juvenile?.62:1))*vary);u.juvenile=!!data.juvenile;animals.push(x);return true;
  }
  function removeAnimal(id){const i=animals.findIndex(a=>a.userData.id===id);if(i<0)return false;const [a]=animals.splice(i,1);scene.remove(a);return true}
 
- const _v=new THREE.Vector3(),_d=new THREE.Vector3();
+ const _v=new THREE.Vector3(),_d=new THREE.Vector3();const damp=(c,tg,r,dt)=>c+(tg-c)*(1-Math.exp(-r*dt));
  function turnTo(obj,heading,rate,dt){obj.rotation.y+=Math.atan2(Math.sin(heading-obj.rotation.y),Math.cos(heading-obj.rotation.y))*Math.min(1,dt*rate)}
  function updateRanger(dt,keys){
   const speed=dt*4.2;let moving=false;
@@ -93,36 +102,63 @@ export function createWorld(container){
    ranger.position.x=THREE.MathUtils.clamp(ranger.position.x,-25,43);ranger.position.z=THREE.MathUtils.clamp(ranger.position.z,-20,22);turnTo(ranger,Math.atan2(v.x,v.z),8,dt);moving=true;cameraUpdate()}
   ranger.userData.rig.update(dt,{moving,carrying:!!ranger.userData.carrying,speedScale:1});
  }
+ const AGENT={id:'',kind:'',x:0,z:0,home:null,traits:null,trust:0,stress:30,hunger:30,thirst:30,energy:70,boredom:30,social:60,sleeping:false,young:false,mind:null};
+ let snapshot=[],rangerMoving=false;
+ function snapshotOthers(){snapshot=animals.map(o=>({id:o.userData.id,kind:o.userData.kind,x:o.position.x,z:o.position.z,behaviour:o.userData.mind?o.userData.mind.behaviour:'explore',fear:o.userData.mind?o.userData.mind.fear:0}))}
+ function pointsFor(){return {water:staticPoints.water.concat(dynamicPoints.water),shelter:staticPoints.shelter.concat(dynamicPoints.shelter),food:staticPoints.food.concat(dynamicPoints.food),enrich:dynamicPoints.enrich,cover:staticPoints.cover}}
+ let cachedPoints=pointsFor();
  function updateAnimal(a,i,dt,t){
-  const u=a.userData,kind=u.kind,speedBase=u.speed||.45;
-  if(u.animationTime>0)u.animationTime=Math.max(0,u.animationTime-dt);else if(u.animation!=='idle'&&u.animation!=='forage')u.animation='idle';
-  let moving=false,swim=false,flying=false;
+  const u=a.userData,kind=u.kind,prof=profileOf(kind);
+  if(u.animationTime>0)u.animationTime=Math.max(0,u.animationTime-dt);else if(u.animation!=='idle'&&u.animation!=='forage'&&u.animation!=='drink'&&u.animation!=='play'&&u.animation!=='groom'&&u.animation!=='scratch')u.animation='idle';
+  const mind=u.mind||(u.mind=brain.newMind());let moving=false,swim=false,flying=false,anim=u.animation;
   const resting=u.sleeping||u.rescuePose||u.animation==='rescue'||u.animation==='rest';
+  const stats=(hooks.stats&&hooks.stats(u.id))||{};
   if(u.destination){
    _d.copy(u.destination).sub(a.position);_d.y=0;
    if(_d.length()>.12){_d.normalize();a.position.addScaledVector(_d,dt*(u.recovery?.85:1.15));turnTo(a,Math.atan2(_d.x,_d.z),9,dt);moving=true}
    else{a.position.x=u.destination.x;a.position.z=u.destination.z}
-  }else if(!resting){
-   u.aiTimer-=dt;
-   if(u.aiTimer<=0){const h=u.home;u.wanderTarget.set(h.x+(Math.random()-.5)*2.6,0,h.z+(Math.random()-.5)*2.6);u.aiTimer=2.6+Math.random()*3.4}
-   if(u.buddy&&Math.random()<.0015)u.wanderTarget.copy(u.buddy.position).add(_v.set((Math.random()-.5)*1.2,0,(Math.random()-.5)*1.2));
-   if(!u.buddy&&['raccoon','beaver','cardinal','bird'].includes(kind)&&Math.random()<.00045){const comp=animals.find((o,j)=>j!==i&&o.userData.kind===kind&&o.position.distanceTo(a.position)<7);if(comp)u.wanderTarget.copy(comp.position).add(_v.set((Math.random()-.5)*1.4,0,(Math.random()-.5)*1.4))}
-   if(kind==='whoopingCrane'){
-    const f=Math.max(0,Math.sin(t*.36+i*.7));flying=f>.2;const nx=u.home.x+Math.sin(t*.19+i)*1.6,nz=u.home.z+Math.cos(t*.15+i)*1.2;
-    if(flying){const dx=nx-a.position.x,dz=nz-a.position.z;if(Math.hypot(dx,dz)>.001)turnTo(a,Math.atan2(dx,dz),5,dt)}
-    a.position.x=nx;a.position.z=nz;a.position.y=.04+f*1.05;moving=flying||Math.hypot(nx-a.position.x,nz-a.position.z)>0;
-   }else{
-    _d.copy(u.wanderTarget).sub(a.position);_d.y=0;moving=_d.length()>.14;
-    u.forageTimer-=dt;
-    if(!moving&&u.forageTimer<=0){u.animation='forage';u.forageTimer=3+Math.random()*5;u.animationTime=2.5}
-    if(moving){_d.normalize();a.position.addScaledVector(_d,dt*speedBase*(kind==='turtle'?1:1));turnTo(a,Math.atan2(_d.x,_d.z),5.5,dt)}
+   u.vel=0;
+  }else if(resting){mind.behaviour='rest';u.vel=damp(u.vel||0,0,6,dt)}
+  else if(kind==='whoopingCrane'){
+   const f=Math.max(0,Math.sin(t*.36+i*.7));flying=f>.2;const nx=u.home.x+Math.sin(t*.19+i)*1.6,nz=u.home.z+Math.cos(t*.15+i)*1.2;
+   if(flying){const dx=nx-a.position.x,dz=nz-a.position.z;if(Math.hypot(dx,dz)>.001)turnTo(a,Math.atan2(dx,dz),5,dt)}
+   a.position.x=nx;a.position.z=nz;a.position.y=.04+f*1.05;moving=flying;
+  }else{
+   u.thinkIn=(u.thinkIn??Math.random()*.6)-dt;mind.timer-=dt;
+   // near-instant reaction when something frightening gets close
+   const close=rangerMoving&&Math.hypot(a.position.x-ranger.position.x,a.position.z-ranger.position.z)<prof.fleeAt*.6;
+   if(u.thinkIn<=0||mind.timer<=0||(close&&mind.behaviour!=='flee'&&!resting)){
+    AGENT.id=u.id;AGENT.kind=kind;AGENT.x=a.position.x;AGENT.z=a.position.z;AGENT.home=u.home;AGENT.traits=stats.traits||AGENT.traits;AGENT.trust=stats.trust??0;AGENT.stress=stats.stress??30;AGENT.hunger=stats.hunger??30;AGENT.thirst=stats.thirst??30;AGENT.energy=stats.energy??70;AGENT.boredom=stats.boredom??30;AGENT.social=stats.social??60;AGENT.sleeping=false;AGENT.mind=mind;
+    if(!AGENT.traits)AGENT.traits={bold:.5,social:.5,curious:.5,calm:.5};
+    const prev=mind.behaviour;
+    const dec=brain.think(AGENT,{phase:phaseNow,night:nightNow,rain:wx.rain,storm:wx.storm,ranger:{x:ranger.position.x,z:ranger.position.z,moving:rangerMoving},visitors:crowd.people.map(p=>p.f.position),others:snapshot,points:cachedPoints,radius:u.radius},.5);
+    u.thinkIn=.35+Math.random()*.45;
+    if(dec.behaviour==='flee'&&prev!=='flee'&&hooks.onCall&&Math.random()<.7)hooks.onCall(kind,'alarm',a.position,CALLS[kind]);
    }
+   const tgt=mind.target;let desired=0,dd=0;
+   if(tgt){_d.set(tgt.x-a.position.x,0,tgt.z-a.position.z);dd=_d.length()}
+   const arrived=!tgt||dd<.4;
+   if(!arrived&&mind.behaviour!=='rest'){desired=u.speed*(mind.speed||1)*(mind.behaviour==='flee'?1:1)}
+   u.vel=damp(u.vel||0,arrived?0:desired,mind.behaviour==='flee'?7:3.2,dt);   // accelerate and brake smoothly
+   if(u.vel>.02&&tgt&&dd>.05){_d.normalize();a.position.addScaledVector(_d,u.vel*dt);turnTo(a,Math.atan2(_d.x,_d.z),mind.behaviour==='flee'?9:4.5,dt)}
+   moving=u.vel>.06;
+   if(arrived&&mind.behaviour!=='explore'||(arrived&&mind.timer>0)){anim=mind.anim||'idle'}else anim=moving?'idle':(mind.anim==='forage'?'forage':'idle');
+   if(arrived&&!mind.arrived){mind.arrived=true;mind.work=0}
+   if(arrived){mind.work=(mind.work||0)+dt;
+    if(mind.behaviour==='drink'&&hooks.onNeed)hooks.onNeed(u.id,'drink',dt);
+    if(mind.behaviour==='eat'&&hooks.onNeed)hooks.onNeed(u.id,'eat',dt);
+    if(mind.behaviour==='enrich'&&mind.enrichId&&mind.work>3&&hooks.onEnrich){hooks.onEnrich(u.id,mind.enrichType);mind.work=-4}
+   }
+   // calls: contented chirps and herd contact calls now and then
+   if(hooks.onCall&&Math.random()<dt*.012&&(prof.social!=='solo'||kind==='bird'||kind==='cardinal'||kind==='owl'))hooks.onCall(kind,'contact',a.position,CALLS[kind]);
   }
   if(kind==='beaver'||kind==='riverOtter'){swim=Math.abs(a.position.x-7)<3.8&&Math.abs(a.position.z-1)<5.5;u.swimming=swim}
   if(kind!=='whoopingCrane')a.position.y=0;
-  u.rig.update(dt,{moving,anim:u.animation,sleeping:!!resting,alert:!!u.alert,swim,flying});
+  const run=mind.behaviour==='flee';
+  u.rig.update(dt,{moving,anim,sleeping:!!resting,alert:!!u.alert||mind.fear>.45,fear:mind.fear,swim,flying,speedScale:run?1.9:Math.max(.5,(u.vel||0)/(u.speed||.45)),run});
  }
- function update(dt,keys){updateRanger(dt,keys);const t=clock.elapsedTime;for(let i=0;i<animals.length;i++)updateAnimal(animals[i],i,dt,t)}
+ let snapT=0,ptsT=0;
+ function update(dt,keys){const t=clock.elapsedTime;snapT-=dt;ptsT-=dt;if(snapT<=0){snapshotOthers();snapT=.25}if(ptsT<=0){cachedPoints=pointsFor();ptsT=1}const px=ranger.position.x,pz=ranger.position.z;updateRanger(dt,keys);rangerMoving=Math.hypot(ranger.position.x-px,ranger.position.z-pz)>.001||!!(keys.forward||keys.back||keys.left||keys.right);for(let i=0;i<animals.length;i++)updateAnimal(animals[i],i,dt,t)}
  function nearResearchCentre(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,-7))<7.5}
  function setAnimalStage(id,stage){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.stage=stage;if(stage==='stabilized'){a.userData.rescuePose=true;a.userData.animation='rescue';a.userData.animationTime=2.2;a.userData.destination=null;ranger.userData.rescueTarget=a.position.clone()}else if(stage==='rehabilitating'||stage==='released'){a.userData.rescuePose=false;a.userData.animation='idle';a.rotation.z=0;ranger.userData.rescueTarget=null;ranger.userData.carrying=false}if(stage==='rehabilitating'){a.userData.destination=new THREE.Vector3(-10.3,0,6.1);a.userData.recovery=true;a.userData.animation='rescue';a.userData.animationTime=3.1}else if(stage==='released'){a.userData.destination=a.userData.home.clone();a.userData.recovery=false}else if(stage==='sighted'||stage==='assessed'){a.userData.destination=a.userData.home.clone();a.userData.recovery=false}return true}
  function setAnimalAction(id,action){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.animation=action==='feed'?'feed':action==='quiet'?'rest':'idle';a.userData.animationTime=action==='feed'?2.4:action==='quiet'?5:1.2;if(action==='quiet'){a.userData.sleeping=true;a.rotation.z=.025}return true}
@@ -133,7 +169,7 @@ export function createWorld(container){
  const SEASON={Spring:{leaf:'#ffffff',grass:'#ffffff',sky:'#a9b7a0'},Summer:{leaf:'#e4f0d0',grass:'#f4f0d8',sky:'#a5b39a'},Autumn:{leaf:'#ffbe78',grass:'#ffd9a0',sky:'#b5a58d'},Winter:{leaf:'#cfd9d2',grass:'#e4ebe6',sky:'#9daab0'}};
  let lastPhase='';const env={wind:.7,rain:false,night:false,glow:false,season:'Spring'};
  function setEnvironment(phase,weather,season='Spring'){
-  const night=phase==='Night',dusk=phase==='Dusk',dawn=phase==='Dawn';env.night=night;env.glow=night||dusk;env.season=season;env.rain=weather==='Light rain';env.wind=weather==='Breezy'?1.8:weather==='Light rain'?1.25:.7;
+  const night=phase==='Night',dusk=phase==='Dusk',dawn=phase==='Dawn';phaseNow=phase;nightNow=night;wx.rain=weather==='Light rain';wx.storm=false;env.night=night;env.glow=night||dusk;env.season=season;env.rain=weather==='Light rain';env.wind=weather==='Breezy'?1.8:weather==='Light rain'?1.25:.7;
   const S=SEASON[season]||SEASON.Spring;mats.leaf().color.set(S.leaf);mats.leafDry().color.set(S.leaf);
   art.grass.material.color.set(S.grass);art.savannaGrass.material.color.set(season==='Winter'?'#e0d8c0':'#ffffff');
   sun.intensity=night?.9:dusk?1.5:dawn?2.2:season==='Winter'?2.5:3.1;
@@ -173,5 +209,6 @@ export function createWorld(container){
  animate();
  return {scene,camera,renderer,animals,ranger,addAnimal,removeAnimal,addBuildItem,updateBuildItem,removeBuildItem,selectBuildItem,setBuildMode,setPhotoMode,setZoom,photoSubjects,capture,syncStaff,setVisitors,nearResearchCentre,focusResearchCentre(){target.set(-21,0,-7);cameraUpdate()},nearClinic(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,5))<6.5},focus(x,z){target.set(x,0,z);cameraUpdate()},setAnimalStage,setAnimalState,setAnimalAction,setEnvironment,
   setConservationProject(name){if(name==='nestBoxes')art.nestBoxes.visible=true;if(name==='riparian')art.willow.visible=true;if(name==='cameraTraps')art.cameraTraps.visible=true;if(name==='wetlandExpansion')art.wetland.visible=true;if(name==='meadowCorridor')art.meadow.visible=true;if(name==='highlandReserve')art.highland.visible=true},
+  setAIPoints(p){dynamicPoints={water:p.water||[],shelter:p.shelter||[],food:p.food||[],enrich:p.enrich||[]};cachedPoints=pointsFor()},setAIHooks(h){Object.assign(hooks,h)},minds:()=>animals.map(a=>({id:a.userData.id,kind:a.userData.kind,behaviour:a.userData.mind&&a.userData.mind.behaviour,fear:a.userData.mind&&a.userData.mind.fear})),
   setConservationProgress,pick,perf,get tier(){return governor.tier},setQuality(n){governor.set(n);try{localStorage.setItem('wildfrontier.quality',n)}catch{}},art,renderFrame};
 }
