@@ -87,7 +87,7 @@ export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJo
  function enterPhoto(){
   if(photoHud)return;close();zoom=1;world.setPhotoMode(true);document.body.classList.add('photo');
   photoHud=document.createElement('div');photoHud.className='photo-hud';
-  photoHud.innerHTML='<div class="vf"><i></i><i></i><i></i><i></i></div><div class="photo-top"><button data-p="close" aria-label="Exit camera">✕</button><span id="zoomLabel">CAMERA · ×1.0</span><span class="photo-hint">Frame an animal · drag to look · hold to walk</span></div><div class="photo-controls"><button data-p="zout" aria-label="Zoom out">−</button><button data-p="shot" class="shutter" aria-label="Take photo"></button><button data-p="zin" aria-label="Zoom in">+</button></div><div class="photo-flash"></div><div class="photo-result"></div>';
+  photoHud.innerHTML='<div class="vf"><i></i><i></i><i></i><i></i></div><div class="photo-top"><button data-p="close" aria-label="Exit camera">✕</button><span id="zoomLabel">CAMERA · ×1.0</span><span class="photo-hint">Frame an animal · drag to look · pinch to zoom</span></div><div class="photo-controls"><button data-p="zout" aria-label="Zoom out">−</button><button data-p="shot" class="shutter" aria-label="Take photo"></button><button data-p="zin" aria-label="Zoom in">+</button></div><div class="photo-flash"></div><div class="photo-result"></div>';
   document.body.appendChild(photoHud);photoHud.addEventListener('click',onPhotoClick);
  }
  function exitPhoto(){if(!photoHud)return;world.setPhotoMode(false);photoHud.remove();photoHud=null;document.body.classList.remove('photo')}

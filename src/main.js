@@ -53,18 +53,18 @@ const keys={forward:false,back:false,left:false,right:false};window.__wildKeys=k
 const keyMap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
 addEventListener('keydown',e=>{if(keyMap[e.code]){keys[keyMap[e.code]]=true;e.preventDefault()}if(e.code==='KeyE'&&world.nearClinic()){toast('Treatment wing ready. Select a patient in recovery to open clinical care.');renderAnimal(sim.selected())}if(e.code==='KeyE'&&world.nearResearchCentre())openResearchCentre();if(['1','2','3'].includes(e.key))selectTool(['observe','track','care'][Number(e.key)-1])});
 addEventListener('keyup',e=>{if(keyMap[e.code])keys[keyMap[e.code]]=false});
-// Touch walking: press and hold the ground and the ranger walks toward your finger; slide to steer, lift to stop.
-// A quick tap still selects, a quick drag still looks around, and two fingers still pinch to zoom.
-(function touchWalk(){const el=$('world'),HOLD=140,SLOP=26,DEAD=22;let id=null,t0=0,x0=0,y0=0,walking=false,timer=0,fx=0,fy=0;
+// Touch walking: put a finger on the ground and drag (or hold briefly) and the ranger walks toward it; lift to stop.
+// A quick tap still selects. Two fingers pinch to zoom and twist to rotate the view.
+(function touchWalk(){const el=$('world'),HOLD=120,SLOP=8,DEAD=22;let id=null,t0=0,x0=0,y0=0,walking=false,timer=0,fx=0,fy=0;
  const ring=document.createElement('div');ring.className='walk-ring';document.body.appendChild(ring);
  const clear=()=>{keys.left=keys.right=keys.forward=keys.back=false};
  function steer(){const p=world.ranger.position.clone();p.y=.9;p.project(world.camera);const sx=(p.x*.5+.5)*innerWidth,sy=(-p.y*.5+.5)*innerHeight,dx=fx-sx,dy=fy-sy,len=Math.hypot(dx,dy);
   if(len<DEAD){clear();return}const nx=dx/len,ny=dy/len,t=.38;keys.left=nx<-t;keys.right=nx>t;keys.forward=ny<-t;keys.back=ny>t}
  function show(){ring.style.transform='translate('+fx+'px,'+fy+'px)';ring.classList.add('on')}
  function stop(){clearTimeout(timer);if(walking){walking=false;window.__wildWalking=false;clear();ring.classList.remove('on')}id=null}
- el.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;if(id!==null){stop();return}id=e.pointerId;x0=fx=e.clientX;y0=fy=e.clientY;t0=performance.now();clearTimeout(timer);
+ el.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||document.body.classList.contains('photo'))return;if(id!==null){stop();return}id=e.pointerId;x0=fx=e.clientX;y0=fy=e.clientY;t0=performance.now();clearTimeout(timer);
   timer=setTimeout(()=>{if(id===null||document.body.classList.contains('intro'))return;walking=true;window.__wildWalking=true;show();steer()},HOLD)},{passive:true});
- el.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;fx=e.clientX;fy=e.clientY;if(walking){show();steer();return}if(Math.hypot(fx-x0,fy-y0)>SLOP)clearTimeout(timer)},{passive:true});
+ el.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;fx=e.clientX;fy=e.clientY;if(walking){show();steer();return}if(Math.hypot(fx-x0,fy-y0)>SLOP){clearTimeout(timer);if(!document.body.classList.contains('intro')){walking=true;window.__wildWalking=true;show();steer()}}},{passive:true});
  for(const ev of['pointerup','pointercancel'])el.addEventListener(ev,e=>{if(e.pointerId===id)stop()},{passive:true});
  setInterval(()=>{if(walking)steer()},120);
 })();
