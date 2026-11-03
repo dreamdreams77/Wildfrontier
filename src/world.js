@@ -51,7 +51,7 @@ function makeRanger(scene){const g=new THREE.Group();g.position.set(-5,0,11);sce
  // A small wooden water trough and signpost make the clearing legible.
  const trough=new THREE.Mesh(new THREE.BoxGeometry(1.8,.28,.65),mat('#765a3d'));trough.position.set(9,.35,4);trough.castShadow=true;scene.add(trough);
  const post=new THREE.Group();post.position.set(-5,0,4);scene.add(post);cylinder(post,palette.bark,[0,0,0],[0,1.5,0],.08,.07);const sign=new THREE.Mesh(new THREE.BoxGeometry(1.1,.42,.08),mat('#d0bd8d'));sign.position.set(.35,1.28,0);post.add(sign);
- const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let target=new THREE.Vector3(0,0,0),yaw=.72,pitch=.48,distance=19,selected=null;
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let target=new THREE.Vector3(ranger.position.x,0,ranger.position.z),yaw=.72,pitch=.48,distance=19,selected=null;
  function cameraUpdate(){const horizontal=Math.cos(pitch)*distance;camera.position.set(target.x+Math.sin(yaw)*horizontal,target.y+Math.sin(pitch)*distance+2,target.z+Math.cos(yaw)*horizontal);camera.lookAt(target)}
  cameraUpdate();
  function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener('resize',resize);resize();
