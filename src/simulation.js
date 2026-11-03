@@ -9,7 +9,7 @@ export function createSimulation(){
  const animals=initialAnimals.map(a=>({...a}));
  const habitat={water:61,cover:73,food:68,disturbance:22,health:68,biodiversity:57};
  const log=[{time:'06:40',text:'Morning survey started at North Woodland.'},{time:'06:52',text:'Juniper sighted near the old oak. Possible leg injury.'}];
- let minutes=0,day=3,selectedId='fawn-01',restoration=2450,waterStation=false,coverRestored=false,weatherIndex=0,weatherMinutes=0;
+ let minutes=0,day=3,selectedId='fawn-01',restoration=2450,waterStation=false,coverRestored=false,forageSeeded=false,weatherIndex=0,weatherMinutes=0;
  const add=text=>log.unshift({time:clock(),text});
  const clock=()=>{const total=6*60+40+minutes;return String(Math.floor(total/60)%24).padStart(2,'0')+':'+String(total%60).padStart(2,'0')};
  const phase=()=>{const h=Number(clock().slice(0,2));return h<6||h>=20?'Night':h<9?'Dawn':h<17?'Day':'Dusk'};
@@ -34,6 +34,7 @@ export function createSimulation(){
    }
   }
   if(night){habitat.disturbance=clamp(habitat.disturbance-.018*delta);habitat.water=clamp(habitat.water+weather().water*.04*delta)}
+  const rabbits=animals.filter(a=>a.kind==='rabbit'&&a.stage==='wild');if(rabbits.length>1){for(const rabbit of rabbits)rabbit.social=clamp(rabbit.social+(habitat.disturbance<45?.006:-.012)*delta)}
   recalc();if(day>previousDay)add('A new morning begins at North Woodland · Day '+day+'.');
  }
  function selected(){return animals.find(a=>a.id===selectedId)||animals[0]}
@@ -54,6 +55,6 @@ export function createSimulation(){
  }
  function serviceWater(){if(waterStation)return {ok:false,message:'The creekside station is already full.'};waterStation=true;habitat.water=clamp(habitat.water+24);habitat.disturbance=clamp(habitat.disturbance-3);restoration=Math.min(3000,restoration+90);recalc();add('Creekside water station cleaned and refilled.');return {ok:true,message:'Water station refilled. Habitat water quality improved.'}}
  function restoreCover(){if(coverRestored)return {ok:false,message:'This meadow plot has already been restored.'};coverRestored=true;habitat.cover=clamp(habitat.cover+12);habitat.food=clamp(habitat.food+7);habitat.biodiversity=clamp(habitat.biodiversity+5);habitat.disturbance=clamp(habitat.disturbance-5);restoration=Math.min(3000,restoration+70);recalc();add('Native cover and pollinator plants restored along the meadow edge.');return {ok:true,message:'Native cover planted. Shelter, forage and biodiversity improved.'}}
- function enrichHabitat(){habitat.food=clamp(habitat.food+8);habitat.biodiversity=clamp(habitat.biodiversity+3);restoration=Math.min(3000,restoration+45);recalc();add('Native forage patch seeded in the north meadow.');return {ok:true,message:'Native forage patch seeded. Food availability is improving.'}}
- return {animals,habitat,log,tick,select,selected,act,serviceWater,restoreCover,enrichHabitat,behavior,get restoration(){return restoration},get waterStation(){return waterStation},get coverRestored(){return coverRestored},get time(){return clock()},get phase(){return phase()},get weather(){return weather()},get day(){return day}};
+ function enrichHabitat(){if(forageSeeded)return {ok:false,message:'The north meadow forage plot has already been seeded.'};forageSeeded=true;habitat.food=clamp(habitat.food+8);habitat.biodiversity=clamp(habitat.biodiversity+3);restoration=Math.min(3000,restoration+45);recalc();add('Native forage patch seeded in the north meadow.');return {ok:true,message:'Native forage patch seeded. Food availability is improving.'}}
+ return {animals,habitat,log,tick,select,selected,act,serviceWater,restoreCover,enrichHabitat,behavior,get restoration(){return restoration},get waterStation(){return waterStation},get coverRestored(){return coverRestored},get forageSeeded(){return forageSeeded},get time(){return clock()},get phase(){return phase()},get weather(){return weather()},get day(){return day}};
 }
