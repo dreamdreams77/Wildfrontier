@@ -13,6 +13,7 @@ import {
   plasterTexture,
   clothTexture
 } from './paint.js';
+import { CLAY } from './style.js';
 
 const cache = new Map();
 const memo = (key, factory) => {
@@ -35,10 +36,61 @@ function materialOptions(options) {
   );
 }
 
+// Clay look: matte, soft thumbprint dents instead of fur or leaf grain, and a warm rim light on the edges.
+let clayPrintTex = null;
+function clayPrint() {
+  if (clayPrintTex || !canPaint) return clayPrintTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#808080';
+  g.fillRect(0, 0, 128, 128);
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * 128, y = rnd() * 128, r = 8 + rnd() * 18, light = rnd() > 0.5;
+    for (const [ox, oy] of [[0, 0], [128, 0], [-128, 0], [0, 128], [0, -128]]) {
+      const q = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+      q.addColorStop(0, light ? 'rgba(255,255,255,.22)' : 'rgba(0,0,0,.22)');
+      q.addColorStop(1, 'rgba(128,128,128,0)');
+      g.fillStyle = q;
+      g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+    }
+  }
+  clayPrintTex = new THREE.CanvasTexture(c);
+  clayPrintTex.wrapS = clayPrintTex.wrapT = THREE.RepeatWrapping;
+  clayPrintTex.repeat.set(3, 3);
+  return clayPrintTex;
+}
+
+function clayify(material) {
+  if (!CLAY) return material;
+  material.roughness = Math.max(0.82, material.roughness ?? 0.82);
+  material.metalness = 0;
+  if (material.bumpMap && clayPrint()) {
+    material.bumpMap = clayPrint();
+    material.bumpScale = 0.55;
+  }
+  const previous = material.onBeforeCompile;
+  material.onBeforeCompile = (shader, renderer) => {
+    if (previous) previous.call(material, shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `#include <opaque_fragment>
+{
+  float wfRim = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 2.6);
+  gl_FragColor.rgb += wfRim * vec3(0.16, 0.12, 0.07) * 0.8;
+}`
+    );
+  };
+  material.customProgramCacheKey = () => 'wildfrontier-clay';
+  return material;
+}
+
 function surfaceMaterial(options) {
-  return physical
+  return clayify(physical
     ? new THREE.MeshPhysicalMaterial(options)
-    : new THREE.MeshStandardMaterial(materialOptions(options));
+    : new THREE.MeshStandardMaterial(materialOptions(options)));
 }
 
 function setupTexture(texture, repeat = null) {

@@ -1,4 +1,5 @@
 import './style.css';
+import { CLAY } from './art/style.js';
 import { createWorld } from './world.js';
 import { createSimulation } from './simulation.js';
 import { createSanctuary, SPECIES, FOODS, stageOf, welfareOf } from './sanctuary.js';
@@ -53,6 +54,8 @@ const keys={forward:false,back:false,left:false,right:false};window.__wildKeys=k
 const keyMap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
 addEventListener('keydown',e=>{if(keyMap[e.code]){keys[keyMap[e.code]]=true;e.preventDefault()}if(e.code==='KeyE'&&world.nearClinic()){toast('Treatment wing ready. Select a patient in recovery to open clinical care.');renderAnimal(sim.selected())}if(e.code==='KeyE'&&world.nearResearchCentre())openResearchCentre();if(['1','2','3'].includes(e.key))selectTool(['observe','track','care'][Number(e.key)-1])});
 addEventListener('keyup',e=>{if(keyMap[e.code])keys[keyMap[e.code]]=false});
+// Clay look extras: a soft miniature-diorama blur along the top and bottom edges and a warmer, richer colour boost.
+if(CLAY){document.body.classList.add('clay');for(const side of['top','bottom']){const d=document.createElement('div');d.className='tilt tilt-'+side;document.body.appendChild(d)}}
 // Touch walking: put a finger on the ground and drag (or hold briefly) and the ranger walks toward it; lift to stop.
 // A quick tap still selects. Two fingers pinch to zoom and twist to rotate the view.
 (function touchWalk(){const el=$('world'),HOLD=120,SLOP=8,DEAD=22;let id=null,t0=0,x0=0,y0=0,walking=false,timer=0,fx=0,fy=0;

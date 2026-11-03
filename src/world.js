@@ -9,6 +9,7 @@ import { TIERS, detectTier, createGovernor } from './art/quality.js';
 import { createPost } from './art/post.js';
 import { setTextureScale } from './art/paint.js';
 import { setPhysical, mats } from './art/materials.js';
+import { stepRig } from './art/style.js';
 import { createStaffLayer, createCrowd } from './npcs.js';
 import { createBrain, profileOf, CALLS } from './ai.js';
 import { damp as dampM, approachSpeed, turnToward, avoid } from './motion.js';
@@ -127,7 +128,7 @@ export function createWorld(container){
   if(following){target.x=dampM(target.x,ranger.position.x,5,dt);target.z=dampM(target.z,ranger.position.z,5,dt)}
   if(Math.abs(distGoal-distance)>.01){distance=dampM(distance,distGoal,7,dt)}
   if(spd>.05||Math.abs(distGoal-distance)>.01||following)cameraUpdate();
-  ranger.userData.rig.update(dt,{moving:moving&&spd>.3||moving&&ranger.userData.rescueTarget,carrying:!!ranger.userData.carrying,speedScale:Math.max(.4,spd/4.2)});
+  stepRig(ranger.userData.rig,dt,{moving:moving&&spd>.3||moving&&ranger.userData.rescueTarget,carrying:!!ranger.userData.carrying,speedScale:Math.max(.4,spd/4.2)});
  }
  const AGENT={id:'',kind:'',x:0,z:0,home:null,traits:null,trust:0,stress:30,hunger:30,thirst:30,energy:70,boredom:30,social:60,sleeping:false,young:false,mind:null};
  let snapshot=[],rangerMoving=false;
@@ -140,7 +141,7 @@ export function createWorld(container){
   const mind=u.mind||(u.mind=brain.newMind());let moving=false,swim=false,flying=false,anim=u.animation;
   const resting=u.sleeping||u.rescuePose||u.animation==='rescue'||u.animation==='rest';
   const stats=(hooks.stats&&hooks.stats(u.id))||{};
-  if(u.hidden){u.rig.update(dt,{moving:false,anim:'idle',sleeping:false});return}
+  if(u.hidden){stepRig(u.rig,dt,{moving:false,anim:'idle',sleeping:false});return}
   if(u.destination){
    _d.copy(u.destination).sub(a.position);_d.y=0;
    if(_d.length()>.12){_d.normalize();a.position.addScaledVector(_d,dt*(u.recovery?.85:1.15));turnTo(a,Math.atan2(_d.x,_d.z),9,dt);moving=true}
@@ -183,7 +184,7 @@ export function createWorld(container){
   if(kind==='beaver'||kind==='riverOtter'){swim=Math.abs(a.position.x-7)<3.8&&Math.abs(a.position.z-1)<5.5;u.swimming=swim}
   if(kind!=='whoopingCrane')a.position.y=0;
   const run=mind.behaviour==='flee';
-  u.rig.update(dt,{moving,anim,sleeping:!!resting,alert:!!u.alert||mind.fear>.45,fear:mind.fear,swim,flying,speedScale:run?1.9:Math.max(.5,(u.vel||0)/(u.speed||.45)),run});
+  stepRig(u.rig,dt,{moving,anim,sleeping:!!resting,alert:!!u.alert||mind.fear>.45,fear:mind.fear,swim,flying,speedScale:run?1.9:Math.max(.5,(u.vel||0)/(u.speed||.45)),run});
  }
  let snapT=0,ptsT=0;
  function update(dt,keys){const t=clock.elapsedTime;snapT-=dt;ptsT-=dt;if(snapT<=0){snapshotOthers();snapT=.25}if(ptsT<=0){cachedPoints=pointsFor();ptsT=1}const px=ranger.position.x,pz=ranger.position.z;updateRanger(dt,keys);rangerMoving=Math.hypot(ranger.position.x-px,ranger.position.z-pz)>.001||!!(keys.forward||keys.back||keys.left||keys.right);for(let i=0;i<animals.length;i++)updateAnimal(animals[i],i,dt,t)}

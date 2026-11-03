@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { makeRole, makeVisitor } from './art/human.js';
+import { stepRig } from './art/style.js';
 
 // Staff and visitor figures. These are fully rigged people (see art/human.js): positions and tasks are simulated in
 // operations.js, and the figures here only render and animate them.
@@ -15,7 +16,7 @@ export function createStaffLayer(scene){
    const dh=Math.atan2(Math.sin(m.heading-f.rotation.y),Math.cos(m.heading-f.rotation.y));f.rotation.y+=dh*Math.min(1,dt*8);
    const walking=m.state==='walk'||m.state==='return';
    const pose=m.state==='work'?(m.task&&m.task.kind==='talk'?'talk':'work'):null;
-   f.userData.rig.update(dt,{moving:walking,pose,speedScale:1+(m.skill-1)*.08});
+   stepRig(f.userData.rig,dt,{moving:walking,pose,speedScale:1+(m.skill-1)*.08});
   }
   for(const [id,f] of figures)if(!live.has(id)){scene.remove(f);figures.delete(id)}
  }
@@ -42,7 +43,7 @@ export function createCrowd(scene){
    else{p.pose=null;const [tx,tz]=PATH[p.target];const dx=tx-p.f.position.x,dz=tz-p.f.position.z,d=Math.hypot(dx,dz);
     if(d<.3){if(STOPS.has(p.target)&&Math.random()<.5)p.wait=3+Math.random()*5;p.target=(p.target+1)%PATH.length}
     else{const s=p.speed*dt;p.f.position.x+=dx/d*s;p.f.position.z+=dz/d*s;const h=Math.atan2(dx,dz);p.f.rotation.y+=Math.atan2(Math.sin(h-p.f.rotation.y),Math.cos(h-p.f.rotation.y))*Math.min(1,dt*6);moving=true}}
-   p.f.userData.rig.update(dt,{moving,pose:p.pose,speedScale:.8});
+   stepRig(p.f.userData.rig,dt,{moving,pose:p.pose,speedScale:.8});
   }
  }
  return {setCount,update,people};
