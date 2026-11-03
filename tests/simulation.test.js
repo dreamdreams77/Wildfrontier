@@ -89,10 +89,10 @@ test('animal selection remains stable for unknown IDs',()=>{
  assert.equal(sim.select('missing').id,'rabbit-02');
 });
 
-test('the reserve roster includes eleven distinct wildlife species',()=>{
+test('the reserve roster includes thirteen distinct wildlife species',()=>{
  const sim=createSimulation();
  assert.equal(sim.animals.length,16);
- assert.deepEqual([...new Set(sim.animals.map(a=>a.kind))].sort(),['beaver','bird','cardinal','deer','fox','owl','rabbit','raccoon','skunk','squirrel','turtle']);
+ assert.deepEqual([...new Set(sim.animals.map(a=>a.kind))].sort(),['beaver','bird','cardinal','deer','fox','owl','rabbit','raccoon','redWolf','skunk','squirrel','turtle','whoopingCrane']);
  for(const id of ['raccoon-01','beaver-01','skunk-01','turtle-01','cardinal-01'])assert.ok(sim.animals.some(a=>a.id===id));
  assert.ok(sim.animals.some(a=>a.name==='Ember'&&a.kind==='fox'));
  assert.ok(sim.animals.some(a=>a.name==='Moss'&&a.kind==='owl'));
