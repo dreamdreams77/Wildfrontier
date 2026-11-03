@@ -30,3 +30,9 @@
 #animalStage{color:#c3d294}
 @media(max-width:760px){.left-rail{max-height:calc(100vh - 205px);overflow-y:auto}.right-panel{max-height:calc(100vh - 160px)}.welfare{gap:8px 10px;padding:10px 13px}.injury-note{margin:10px 13px}.action-buttons{padding:0 13px 8px}}
 @media(max-width:420px){.right-panel{max-height:calc(100vh - 145px)}.left-rail{max-height:calc(100vh - 205px)}}
+
+.journal-mini{margin-top:13px;padding-top:11px;border-top:1px solid var(--line)}
+.journal-mini ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:7px}
+.journal-mini li{display:grid;grid-template-columns:34px 1fr;gap:7px;font-size:9px;line-height:1.4;color:#c2c8b7}
+.journal-mini time{font:8px 'DM Mono';color:#c3d294}
+@media(max-width:760px){.journal-mini{display:none}}
