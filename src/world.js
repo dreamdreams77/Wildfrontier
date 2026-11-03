@@ -9,6 +9,7 @@ import { TIERS, detectTier, createGovernor } from './art/quality.js';
 import { createPost } from './art/post.js';
 import { setTextureScale } from './art/paint.js';
 import { setPhysical, mats } from './art/materials.js';
+import { stepRig, clayTime } from './art/style.js';
 import { createStaffLayer, createCrowd } from './npcs.js';
 import { createBrain, profileOf, CALLS } from './ai.js';
 import { damp as dampM, approachSpeed, turnToward, avoid } from './motion.js';
@@ -56,13 +57,13 @@ export function createWorld(container){
  function cameraUpdate(){if(cine)return;const horizontal=Math.cos(pitch)*distance;camera.position.set(target.x+Math.sin(yaw)*horizontal,target.y+Math.sin(pitch)*distance+2,target.z+Math.cos(yaw)*horizontal);const cp=avoid({x:camera.position.x,y:camera.position.y,z:camera.position.z},CAM_OBSTACLES,.9);camera.position.set(cp.x,cp.y,cp.z);camera.lookAt(target)}
  cameraUpdate();
  let rw=0,rh=0;function resize(){const w=Math.round(innerWidth),h=Math.round(innerHeight);if(w===rw&&h===rh)return;rw=w;rh=h;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);if(post)post.setSize(w,h,renderer.getPixelRatio())}addEventListener('resize',resize);resize();
- const el=renderer.domElement;el.style.touchAction='none';const pointers=new Map();let tapStart=null,pinchBase=0,pinchDist0=distance;
+ const el=renderer.domElement;el.style.touchAction='none';const pointers=new Map();let tapStart=null,pinchBase=0,pinchDist0=distance,pinchAng=null;
  const pinchSpan=()=>{const [a,b]=[...pointers.values()];return Math.hypot(a.x-b.x,a.y-b.y)};
- el.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{el.setPointerCapture(e.pointerId)}catch{}if(pointers.size===1)tapStart={x:e.clientX,y:e.clientY,t:performance.now(),moved:false};else{tapStart=null;pinchBase=pinchSpan();pinchDist0=distGoal}});
- el.addEventListener('pointermove',e=>{const prev=pointers.get(e.pointerId);if(!prev)return;const cur={x:e.clientX,y:e.clientY};if(pointers.size>=2){pointers.set(e.pointerId,cur);if(pinchBase>0){distGoal=THREE.MathUtils.clamp(pinchDist0*pinchBase/Math.max(20,pinchSpan()),7,44)}return}
-  if(tapStart&&Math.abs(cur.x-tapStart.x)+Math.abs(cur.y-tapStart.y)>10)tapStart.moved=true;if(window.__wildWalking){pointers.set(e.pointerId,cur);return}if(e.pointerType==='mouse'&&!(e.buttons&1)){pointers.set(e.pointerId,cur);return}
+ el.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{el.setPointerCapture(e.pointerId)}catch{}if(pointers.size===1)tapStart={x:e.clientX,y:e.clientY,t:performance.now(),moved:false};else{tapStart=null;pinchBase=pinchSpan();pinchDist0=distGoal;{const [a,b]=[...pointers.values()];pinchAng=Math.atan2(b.y-a.y,b.x-a.x)}}});
+ el.addEventListener('pointermove',e=>{const prev=pointers.get(e.pointerId);if(!prev)return;const cur={x:e.clientX,y:e.clientY};if(pointers.size>=2){pointers.set(e.pointerId,cur);if(pinchBase>0){distGoal=THREE.MathUtils.clamp(pinchDist0*pinchBase/Math.max(20,pinchSpan()),7,44)}{const [a,b]=[...pointers.values()],ang=Math.atan2(b.y-a.y,b.x-a.x);if(pinchAng!==null){let d=ang-pinchAng;if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;yaw-=d}pinchAng=ang;cameraUpdate()}return}
+  if(tapStart&&Math.abs(cur.x-tapStart.x)+Math.abs(cur.y-tapStart.y)>10)tapStart.moved=true;if(window.__wildWalking||(e.pointerType==='touch'&&!photoMode)){pointers.set(e.pointerId,cur);return}if(e.pointerType==='mouse'&&!(e.buttons&1)){pointers.set(e.pointerId,cur);return}
   yaw-=(cur.x-prev.x)*.006;pitch=THREE.MathUtils.clamp(pitch+(cur.y-prev.y)*.005,.12,.85);pointers.set(e.pointerId,cur);cameraUpdate()});
- const endPointer=(e,cancelled)=>{const was=tapStart;pointers.delete(e.pointerId);if(pointers.size<2)pinchBase=0;if(pointers.size===0)tapStart=null;if(!cancelled&&was&&!was.moved&&performance.now()-was.t<600){if(photoMode)return;if(buildMode){const bid=pickBuild(e.clientX,e.clientY);if(bid)window.dispatchEvent(new CustomEvent('wildfrontier:builditem',{detail:{id:bid}}));else{const g=pickGround(e.clientX,e.clientY);if(g)window.dispatchEvent(new CustomEvent('wildfrontier:ground',{detail:{x:g.x,z:g.z}}))}return}const a=pick(e.clientX,e.clientY);if(a)window.dispatchEvent(new CustomEvent('wildfrontier:select',{detail:a.userData}))}};
+ const endPointer=(e,cancelled)=>{const was=tapStart;pointers.delete(e.pointerId);if(pointers.size<2){pinchBase=0;pinchAng=null}if(pointers.size===0)tapStart=null;if(!cancelled&&was&&!was.moved&&!window.__wildWalking&&performance.now()-was.t<600){if(photoMode)return;if(buildMode){const bid=pickBuild(e.clientX,e.clientY);if(bid)window.dispatchEvent(new CustomEvent('wildfrontier:builditem',{detail:{id:bid}}));else{const g=pickGround(e.clientX,e.clientY);if(g)window.dispatchEvent(new CustomEvent('wildfrontier:ground',{detail:{x:g.x,z:g.z}}))}return}const a=pick(e.clientX,e.clientY);if(a)window.dispatchEvent(new CustomEvent('wildfrontier:select',{detail:a.userData}))}};
  el.addEventListener('pointerup',e=>endPointer(e,false));el.addEventListener('pointercancel',e=>endPointer(e,true));el.addEventListener('contextmenu',e=>e.preventDefault());
  el.addEventListener('wheel',e=>{distGoal=THREE.MathUtils.clamp(distGoal+e.deltaY*.012,7,44)},{passive:true});
  function pick(clientX,clientY){pointer.x=clientX/innerWidth*2-1;pointer.y=-(clientY/innerHeight)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(animals,true);if(!hits.length)return null;let obj=hits[0].object;while(obj.parent&&!obj.userData.kind)obj=obj.parent;selected=obj;return obj}
@@ -127,7 +128,7 @@ export function createWorld(container){
   if(following){target.x=dampM(target.x,ranger.position.x,5,dt);target.z=dampM(target.z,ranger.position.z,5,dt)}
   if(Math.abs(distGoal-distance)>.01){distance=dampM(distance,distGoal,7,dt)}
   if(spd>.05||Math.abs(distGoal-distance)>.01||following)cameraUpdate();
-  ranger.userData.rig.update(dt,{moving:moving&&spd>.3||moving&&ranger.userData.rescueTarget,carrying:!!ranger.userData.carrying,speedScale:Math.max(.4,spd/4.2)});
+  stepRig(ranger.userData.rig,dt,{moving:moving&&spd>.3||moving&&ranger.userData.rescueTarget,carrying:!!ranger.userData.carrying,speedScale:Math.max(.4,spd/4.2)});
  }
  const AGENT={id:'',kind:'',x:0,z:0,home:null,traits:null,trust:0,stress:30,hunger:30,thirst:30,energy:70,boredom:30,social:60,sleeping:false,young:false,mind:null};
  let snapshot=[],rangerMoving=false;
@@ -140,7 +141,7 @@ export function createWorld(container){
   const mind=u.mind||(u.mind=brain.newMind());let moving=false,swim=false,flying=false,anim=u.animation;
   const resting=u.sleeping||u.rescuePose||u.animation==='rescue'||u.animation==='rest';
   const stats=(hooks.stats&&hooks.stats(u.id))||{};
-  if(u.hidden){u.rig.update(dt,{moving:false,anim:'idle',sleeping:false});return}
+  if(u.hidden){stepRig(u.rig,dt,{moving:false,anim:'idle',sleeping:false});return}
   if(u.destination){
    _d.copy(u.destination).sub(a.position);_d.y=0;
    if(_d.length()>.12){_d.normalize();a.position.addScaledVector(_d,dt*(u.recovery?.85:1.15));turnTo(a,Math.atan2(_d.x,_d.z),9,dt);moving=true}
@@ -183,10 +184,10 @@ export function createWorld(container){
   if(kind==='beaver'||kind==='riverOtter'){swim=Math.abs(a.position.x-7)<3.8&&Math.abs(a.position.z-1)<5.5;u.swimming=swim}
   if(kind!=='whoopingCrane')a.position.y=0;
   const run=mind.behaviour==='flee';
-  u.rig.update(dt,{moving,anim,sleeping:!!resting,alert:!!u.alert||mind.fear>.45,fear:mind.fear,swim,flying,speedScale:run?1.9:Math.max(.5,(u.vel||0)/(u.speed||.45)),run});
+  stepRig(u.rig,dt,{moving,anim,sleeping:!!resting,alert:!!u.alert||mind.fear>.45,fear:mind.fear,swim,flying,speedScale:run?1.9:Math.max(.5,(u.vel||0)/(u.speed||.45)),run});
  }
  let snapT=0,ptsT=0;
- function update(dt,keys){const t=clock.elapsedTime;snapT-=dt;ptsT-=dt;if(snapT<=0){snapshotOthers();snapT=.25}if(ptsT<=0){cachedPoints=pointsFor();ptsT=1}const px=ranger.position.x,pz=ranger.position.z;updateRanger(dt,keys);rangerMoving=Math.hypot(ranger.position.x-px,ranger.position.z-pz)>.001||!!(keys.forward||keys.back||keys.left||keys.right);for(let i=0;i<animals.length;i++)updateAnimal(animals[i],i,dt,t)}
+ function update(dt,keys){const t=clock.elapsedTime;clayTime.value=t;snapT-=dt;ptsT-=dt;if(snapT<=0){snapshotOthers();snapT=.25}if(ptsT<=0){cachedPoints=pointsFor();ptsT=1}const px=ranger.position.x,pz=ranger.position.z;updateRanger(dt,keys);rangerMoving=Math.hypot(ranger.position.x-px,ranger.position.z-pz)>.001||!!(keys.forward||keys.back||keys.left||keys.right);for(let i=0;i<animals.length;i++)updateAnimal(animals[i],i,dt,t)}
  function nearResearchCentre(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,-7))<7.5}
  function setAnimalStage(id,stage){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.stage=stage;if(stage==='stabilized'){a.userData.rescuePose=true;a.userData.animation='rescue';a.userData.animationTime=2.2;a.userData.destination=null;ranger.userData.rescueTarget=a.position.clone()}else if(stage==='rehabilitating'||stage==='released'){a.userData.rescuePose=false;a.userData.animation='idle';a.rotation.z=0;ranger.userData.rescueTarget=null;ranger.userData.carrying=false}if(stage==='rehabilitating'){a.userData.destination=new THREE.Vector3(-10.3,0,6.1);a.userData.recovery=true;a.userData.animation='rescue';a.userData.animationTime=3.1}else if(stage==='released'){a.userData.destination=a.userData.home.clone();a.userData.recovery=false}else if(stage==='sighted'||stage==='assessed'){a.userData.destination=a.userData.home.clone();a.userData.recovery=false}return true}
  function setAnimalAction(id,action){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.animation=action==='feed'?'feed':action==='quiet'?'rest':'idle';a.userData.animationTime=action==='feed'?2.4:action==='quiet'?5:1.2;if(action==='quiet'){a.userData.sleeping=true;a.rotation.z=.025}return true}

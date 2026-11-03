@@ -7,7 +7,7 @@ export const INTRO_CARDS=[
  {kicker:'YOUR FIRST DAY',title:'Learn the land. Answer the call.',text:'Explore the woodland and the creek, care for the animals, open the safari gate, and bring this place back to life.'},
 ];
 export const TUTORIAL=[
- {id:'move',text:'Walk: WASD or arrow keys, or press and hold the ground on touch screens.',done:c=>c.moved>=6},
+ {id:'move',text:'Walk: WASD or arrow keys, or drag a finger on the ground on touch screens.',done:c=>c.moved>=6},
  {id:'look',text:'Look around: drag to rotate, scroll or pinch to zoom.',done:c=>!!c.looked},
  {id:'tap',text:'Tap or click an animal to open its field record.',done:c=>!!c.selected},
  {id:'activity',text:'Find a coloured ring in the world and press E (or tap the button) to try a field activity.',done:c=>!!c.activity},

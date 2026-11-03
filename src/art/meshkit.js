@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fbm } from './noise.js';
+import { CLAY } from './style.js';
 
 // Mesh construction toolkit: lofted organic forms, displaced blobs, lathes, automatic skin weights and rigs.
 const V=(a,b,c)=>new THREE.Vector3(a,b,c);
@@ -32,6 +33,7 @@ export const tube=(points,r0,r1,opts={})=>{const n=points.length;return loft(poi
 
 // A displaced sphere: rocks, leaf clumps, bushes, rounded forms. Vertex colours are lit from above.
 export function blobGeo(rx,ry,rz,{seg=14,noise=0,freq=2,seed=1,low=[.55,.55,.55],high=[1,1,1],squash=0}={}){
+ if(CLAY){seg=Math.round(seg*1.5)+3;noise*=.4}   // clay look: rounder, smoother lumps
  const g=new THREE.SphereGeometry(1,seg,Math.max(6,Math.round(seg*.7)));const p=g.attributes.position;const col=[];
  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);const n=noise?(fbm(x*freq+seed,y*freq+seed*2,z*freq,3,seed)-.5)*2*noise:0;
   const k=1+n;p.setXYZ(i,x*rx*k,(y<0?y*(1-squash):y)*ry*k,z*rz*k);const h=y*.5+.5;col.push(low[0]+(high[0]-low[0])*h,low[1]+(high[1]-low[1])*h,low[2]+(high[2]-low[2])*h)}

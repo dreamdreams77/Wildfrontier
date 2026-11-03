@@ -13,6 +13,7 @@ import {
   plasterTexture,
   clothTexture
 } from './paint.js';
+import { CLAY, clayTime } from './style.js';
 
 const cache = new Map();
 const memo = (key, factory) => {
@@ -35,10 +36,83 @@ function materialOptions(options) {
   );
 }
 
+// Clay look: matte, soft thumbprint dents instead of fur or leaf grain, and a warm rim light on the edges.
+let clayPrintTex = null;
+function clayPrint() {
+  if (clayPrintTex || !canPaint) return clayPrintTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#808080';
+  g.fillRect(0, 0, 128, 128);
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * 128, y = rnd() * 128, r = 8 + rnd() * 18, light = rnd() > 0.5;
+    for (const [ox, oy] of [[0, 0], [128, 0], [-128, 0], [0, 128], [0, -128]]) {
+      const q = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+      q.addColorStop(0, light ? 'rgba(255,255,255,.22)' : 'rgba(0,0,0,.22)');
+      q.addColorStop(1, 'rgba(128,128,128,0)');
+      g.fillStyle = q;
+      g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+    }
+  }
+  clayPrintTex = new THREE.CanvasTexture(c);
+  clayPrintTex.wrapS = clayPrintTex.wrapT = THREE.RepeatWrapping;
+  clayPrintTex.repeat.set(5, 5);
+  return clayPrintTex;
+}
+
+function clayify(material) {
+  if (!CLAY) return material;
+  material.roughness = Math.max(0.82, material.roughness ?? 0.82);
+  material.metalness = 0;
+  if (material.bumpMap && clayPrint()) {
+    material.bumpMap = clayPrint();
+    material.bumpScale = 0.9;
+  }
+  const previous = material.onBeforeCompile;
+  material.onBeforeCompile = (shader, renderer) => {
+    if (previous) previous.call(material, shader, renderer);
+    shader.uniforms.uClayT = clayTime;
+
+    // "Boil": vertices breathe a hair along their normals, re-rolled 12 times a second, like handled clay filmed frame by frame.
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uClayT;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+{
+  vec3 wfCell = floor(position * 7.0) + floor(uClayT * 12.0);
+  float wfBoil = fract(sin(dot(wfCell, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5;
+  float wfNL = dot(normal, normal);   // skip degenerate normals so a bad vertex can never poison the frame
+  transformed += (wfNL > 0.5 && wfNL < 1.5) ? normal * wfBoil * 0.016 : vec3(0.0);
+}`);
+
+    shader.fragmentShader = shader.fragmentShader
+      // Blur away fine texture detail so surfaces read as smooth modelling clay, not printed fabric.
+      .replace('#include <map_fragment>', `
+#ifdef USE_MAP
+  vec4 sampledDiffuseColor = texture2D(map, vMapUv);
+  vec4 wfSoft = texture2D(map, vMapUv, 4.5);
+  diffuseColor *= mix(sampledDiffuseColor, wfSoft, 0.6);
+#endif`)
+      .replace('#include <opaque_fragment>', `#include <opaque_fragment>
+{
+  float wfRim = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 2.4);
+  gl_FragColor.rgb += wfRim * vec3(0.20, 0.15, 0.09) * 0.8;
+  // Lift the darkest shadows: clay is soft, never pitch black.
+  gl_FragColor.rgb = gl_FragColor.rgb * 0.93 + vec3(0.07, 0.058, 0.04) * 0.55;
+  // A single NaN would bloom into a black smear across the screen; turn it into one dark pixel instead.
+  if (!(gl_FragColor.r >= 0.0 && gl_FragColor.g >= 0.0 && gl_FragColor.b >= 0.0 && gl_FragColor.r < 64.0 && gl_FragColor.g < 64.0 && gl_FragColor.b < 64.0)) gl_FragColor.rgb = vec3(0.0);
+}`);
+  };
+  material.customProgramCacheKey = () => 'wildfrontier-clay';
+  return material;
+}
+
 function surfaceMaterial(options) {
-  return physical
+  return clayify(physical
     ? new THREE.MeshPhysicalMaterial(options)
-    : new THREE.MeshStandardMaterial(materialOptions(options));
+    : new THREE.MeshStandardMaterial(materialOptions(options)));
 }
 
 function setupTexture(texture, repeat = null) {
