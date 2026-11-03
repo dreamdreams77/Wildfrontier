@@ -109,7 +109,7 @@ test('the injured fawn assignment only completes after a successful release',()=
  const sim=createSimulation();
  assert.equal(sim.completeMission('fawn').ok,false);
  sim.act('assess');sim.act('stabilize');sim.act('transport');
- sim.act('feed');sim.act('water');sim.act('quiet');sim.tick(800);sim.tick(300);sim.act('feed');sim.act('water');
+ sim.act('feed');sim.act('water');sim.act('quiet');sim.tick(800);sim.tick(300);sim.act('feed');sim.act('water');sim.act('examine');sim.act('woundCare');sim.act('rehab');sim.act('rehab');
  assert.equal(sim.act('release').ok,true);
  assert.equal(sim.completeMission('fawn').ok,true);
 });
@@ -119,4 +119,27 @@ test('seasonal ecology advances after five simulated days',()=>{
  sim.tick(7200);
  assert.equal(sim.season,'Summer');
  assert.ok(sim.habitat.health>=0&&sim.habitat.health<=100);
+});
+
+test('treatment wing progression gates release on clinical care and mobility',()=>{
+ const sim=createSimulation();sim.act('assess');sim.act('stabilize');sim.act('transport');
+ assert.equal(sim.act('rehab').ok,false);
+ assert.equal(sim.act('examine').ok,true);
+ assert.equal(sim.act('woundCare').ok,true);
+ assert.equal(sim.act('rehab').ok,true);
+ assert.equal(sim.act('rehab').ok,true);
+ assert.equal(sim.selected().rehabSessions,2);
+});
+test('expanded wildlife has distinct species diets and routines',()=>{
+ const sim=createSimulation();
+ for(const id of ['raccoon-01','beaver-01','skunk-01','turtle-01','cardinal-01'])assert.ok(sim.animals.some(a=>a.id===id));
+ assert.match(sim.animals.find(a=>a.kind==='beaver').routine,/water|dusk|night/i);
+});
+test('ecosystem population survey evolves with habitat conditions',()=>{
+ const sim=createSimulation();
+ const initial=sim.populations.smallHerbivores;
+ sim.tick(360);
+ assert.notEqual(sim.populations.smallHerbivores,initial);
+ assert.ok(sim.populationBalance>=0&&sim.populationBalance<=100);
+ assert.match(sim.migrationStatus,/birds|visitors/i);
 });
