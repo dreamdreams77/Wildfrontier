@@ -155,3 +155,8 @@ test('nest box installation improves breeding habitat once',()=>{
  assert.equal(sim.installNestBoxes().ok,true);assert.ok(sim.habitat.cover>cover);assert.equal(sim.populations.breedingPairs,pairs+1);
  assert.equal(sim.nestBoxesInstalled,true);assert.equal(sim.installNestBoxes().ok,false);
 });
+
+
+test('endangered red wolves and whooping cranes are represented',()=>{const sim=createSimulation();assert.ok(sim.animals.some(a=>a.kind==='redWolf'&&a.species.includes('critically endangered')));assert.ok(sim.animals.some(a=>a.kind==='whoopingCrane'&&a.species.includes('endangered')));assert.equal(sim.animals.length,16)});
+test('feeding schedules validate time and prohibit feeding free-ranging wildlife',()=>{const sim=createSimulation();assert.equal(sim.scheduleFeed('wolf-01','07:30').ok,true);assert.equal(sim.feedingSchedule['wolf-01'],'07:30');assert.equal(sim.scheduleFeed('wolf-01','25:90').ok,false);assert.equal(sim.scheduleFeed('rabbit-01','08:00').ok,false)});
+test('endangered breeding programme requires habitat readiness and genetic review',()=>{const sim=createSimulation();assert.equal(sim.startBreedingProgram().ok,true);assert.equal(sim.breedingProgram.active,true);assert.equal(sim.breedingProgram.geneticReview,true);assert.equal(sim.startBreedingProgram().ok,false)});
