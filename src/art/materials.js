@@ -83,7 +83,8 @@ function clayify(material) {
 {
   vec3 wfCell = floor(position * 7.0) + floor(uClayT * 12.0);
   float wfBoil = fract(sin(dot(wfCell, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5;
-  transformed += normal * wfBoil * 0.016;
+  float wfNL = dot(normal, normal);   // skip degenerate normals so a bad vertex can never poison the frame
+  transformed += (wfNL > 0.5 && wfNL < 1.5) ? normal * wfBoil * 0.016 : vec3(0.0);
 }`);
 
     shader.fragmentShader = shader.fragmentShader
@@ -100,6 +101,8 @@ function clayify(material) {
   gl_FragColor.rgb += wfRim * vec3(0.20, 0.15, 0.09) * 0.8;
   // Lift the darkest shadows: clay is soft, never pitch black.
   gl_FragColor.rgb = gl_FragColor.rgb * 0.93 + vec3(0.07, 0.058, 0.04) * 0.55;
+  // A single NaN would bloom into a black smear across the screen; turn it into one dark pixel instead.
+  if (!(gl_FragColor.r >= 0.0 && gl_FragColor.g >= 0.0 && gl_FragColor.b >= 0.0 && gl_FragColor.r < 64.0 && gl_FragColor.g < 64.0 && gl_FragColor.b < 64.0)) gl_FragColor.rgb = vec3(0.0);
 }`);
   };
   material.customProgramCacheKey = () => 'wildfrontier-clay';
