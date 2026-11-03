@@ -209,7 +209,7 @@ test('research centre unlocks only after sufficient field evidence is archived',
  for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(id)}
  assert.equal(sim.getResearchCentre().unlocked,true);
  assert.equal(sim.researchCentreUnlocked,true);
- assert.ok(sim.getResearchCentre().projects.some(p=>p.name==='Migration telemetry'&&p.status==='Available'));
+ assert.ok(sim.getResearchCentre().projects.some(p=>p.name==='Migration telemetry map'&&p.status==='Ready'));
 });
 
 
@@ -234,5 +234,9 @@ test('genetics registry requires managed programme and never approves endangered
  const sim=createSimulation();
  sim.installCameraTraps();sim.tick(180);sim.completeMission('camera');
  sim.enrichHabitat();sim.conductPollinatorSurvey();
- for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(m.id)}
+ for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(id)}
+ assert.equal(sim.runResearchProject('genetics').ok,false);
+ assert.equal(sim.startBreedingProgram().ok,true);
+ assert.equal(sim.runResearchProject('genetics').ok,true);
+ assert.equal(sim.breedingProgram.geneticReview,true);
 });
