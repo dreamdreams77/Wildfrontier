@@ -30,6 +30,13 @@ jobs:
         run: npm test
       - name: Build production site
         run: npm run build
+      - name: Verify Pages entry and bundled assets
+        shell: bash
+        run: |
+          test -s dist/index.html
+          grep -q '/Wildfrontier-/assets/.*\.js' dist/index.html
+          grep -q '/Wildfrontier-/assets/.*\.css' dist/index.html
+          while IFS= read -r asset; do test -s "dist$asset"; done < <(grep -oE '/Wildfrontier-/assets/[^" ]+\.(js|css)' dist/index.html | sed 's#^/Wildfrontier-##')
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload production artifact
