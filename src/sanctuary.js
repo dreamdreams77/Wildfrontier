@@ -1,0 +1,330 @@
+// Safari sanctuary layer: managed residents, diets, supplies, staff, welfare and a responsible breeding programme.
+// Pure logic (no rendering) so it can be unit-tested. It adds its residents to the shared simulation animal list,
+// so selection, the field record panel and the world all treat them like every other animal.
+
+const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
+const DAY=1440;
+
+export const FOODS={
+ meat:{label:'Fresh meat ration',short:'Meat',price:12,icon:'🥩'},
+ hay:{label:'Hay & grass bale',short:'Hay',price:4,icon:'🌾'},
+ browse:{label:'Acacia & leaf browse',short:'Browse',price:5,icon:'🌿'},
+ produce:{label:'Fruit & vegetable treats',short:'Produce',price:6,icon:'🍉'},
+ aquatic:{label:'Shrimp & algae mix',short:'Aquatic',price:8,icon:'🦐'},
+};
+export const MEDICINE_PRICE=20;
+
+// foods[0] is the staple; later entries are acceptable alternatives. `treat` foods are enrichment only.
+export const SPECIES={
+ africanLion:{common:'African lion',latin:'Panthera leo',region:'Sub-Saharan Africa',heritage:'Swahili',emoji:'🦁',status:'Vulnerable',habitat:'savannaKopje',spawn:[24,-8.5],capacity:6,
+  foods:['meat'],gestationDays:8,litter:[2,3],infantDays:3,matureDays:10,
+  personalities:['Bold and sociable','Calm and watchful','Playful and curious'],routine:'Rests through the heat; most active at dusk and dawn',
+  notes:'Lives in prides. Needs shade, a high vantage point and a meat-based diet.',
+  names:{male:['Jabari','Tau','Baraka','Kibo','Chaka','Zende'],female:['Nala','Zuri','Sarabi','Imara','Neema','Amani']}},
+ bengalTiger:{common:'Bengal tiger',latin:'Panthera tigris tigris',region:'India',heritage:'Hindi & Sanskrit',emoji:'🐯',status:'Endangered',habitat:'bambooThicket',spawn:[24,10],capacity:5,
+  foods:['meat'],gestationDays:8,litter:[2,3],infantDays:3,matureDays:11,
+  personalities:['Solitary and stealthy','Confident and territorial','Curious and agile'],routine:'Ambush hunter; active at dusk, dawn and after dark; cools off in water',
+  notes:'Solitary. Needs dense cover, a pool to bathe in and plenty of space.',
+  names:{male:['Rudra','Veer','Arjun','Shera','Vikram','Bhairav'],female:['Anika','Mohini','Kavya','Tara','Rani','Durga']}},
+ africanElephant:{common:'African elephant',latin:'Loxodonta africana',region:'Sub-Saharan Africa',heritage:'Swahili & Shona',emoji:'🐘',status:'Endangered',habitat:'acaciaGrove',spawn:[31,-0.5],capacity:6,
+  foods:['hay','browse','produce'],treat:['produce'],gestationDays:14,litter:[1,1],infantDays:5,matureDays:14,
+  personalities:['Gentle matriarch','Playful and inquisitive','Steady and protective'],routine:'Browses most of the day; bathes at the waterhole',
+  notes:'A herd animal with a long memory. Needs browse, water for bathing and company.',
+  names:{male:['Zuberi','Jengo','Tendai','Chuma','Mosi','Kito'],female:['Wangari','Imani','Subira','Tumaini','Nyota','Salama']}},
+ giraffe:{common:'Reticulated giraffe',latin:'Giraffa reticulata',region:'East Africa',heritage:'Swahili & Maasai',emoji:'🦒',status:'Endangered',habitat:'acaciaGrove',spawn:[28,-3],capacity:6,
+  foods:['browse','hay'],gestationDays:12,litter:[1,1],infantDays:4,matureDays:12,
+  personalities:['Graceful and shy','Curious about visitors','Calm and watchful'],routine:'Browses tall acacia crowns; rests standing in the shade',
+  notes:'Needs tall browse at head height and space to move.',
+  names:{male:['Kamili','Juma','Sudi','Dume','Ayubu','Hamisi'],female:['Zawadi','Asha','Pendo','Lulu','Neema','Rehema']}},
+ plainsZebra:{common:'Plains zebra',latin:'Equus quagga',region:'Eastern & Southern Africa',heritage:'Swahili',emoji:'🦓',status:'Near threatened',habitat:'openPlains',spawn:[30,-9],capacity:10,
+  foods:['hay'],gestationDays:9,litter:[1,1],infantDays:3,matureDays:10,
+  personalities:['Alert and quick','Social and playful','Wary of strangers'],routine:'Grazes in herds across the plains; drinks at midday',
+  notes:'A grazing herd animal. Needs open grassland and company of its own kind.',
+  names:{male:['Kito','Mwezi','Bahati','Juma','Zola','Dalili'],female:['Penda','Tumaini','Zahra','Mosi','Binti','Safi']}},
+ cheetah:{common:'Cheetah',latin:'Acinonyx jubatus',region:'Sub-Saharan Africa',heritage:'Swahili',emoji:'🐆',status:'Vulnerable',habitat:'openPlains',spawn:[22,3],capacity:5,
+  foods:['meat'],gestationDays:7,litter:[2,4],infantDays:3,matureDays:9,
+  personalities:['Shy and sensitive','Fast and focused','Affectionate with keepers'],routine:'Hunts by sight in the cool of the morning and evening',
+  notes:'Easily stressed. Needs long open runs, low disturbance and lookout mounds.',
+  names:{male:['Haraka','Kasi','Safiri','Upepo','Radi','Kimbia'],female:['Amani','Tamu','Zuwena','Nuru','Mwanga','Rafiki']}},
+ indianRhino:{common:'Greater one-horned rhinoceros',latin:'Rhinoceros unicornis',region:'Assam & Nepal',heritage:'Assamese & Sanskrit',emoji:'🦏',status:'Vulnerable',habitat:'riverWallow',spawn:[37,10],capacity:4,
+  foods:['hay','browse'],gestationDays:14,litter:[1,1],infantDays:5,matureDays:15,
+  personalities:['Solitary and placid','Territorial but gentle','Curious and food-driven'],routine:'Wallows in the mud through the heat; grazes at dawn and dusk',
+  notes:'Solitary. Needs a mud wallow, wetland grasses and a quiet, secure range.',
+  names:{male:['Bhima','Gaurav','Kamal','Dev','Nakul','Rohan'],female:['Gauri','Meena','Rupa','Sundari','Lata','Mala']}},
+ flamingo:{common:'Greater flamingo',latin:'Phoenicopterus roseus',region:'East African soda lakes',heritage:'Swahili',emoji:'🦩',status:'Least concern',habitat:'sodaLake',spawn:[38,-9.5],capacity:20,
+  foods:['aquatic'],gestationDays:4,litter:[1,1],infantDays:2,matureDays:7,
+  personalities:['Gregarious and loud','Graceful and watchful','Social flock leader'],routine:'Filter-feeds in shallow water; sleeps standing on one leg',
+  notes:'Lives in large flocks. Needs shallow saline water and company.',
+  names:{male:['Tabasamu','Furaha','Jua','Kipepeo','Rangi','Shani'],female:['Furaha','Zahra','Rangi','Pendo','Tausi','Waridi']}},
+};
+
+// Founding residents: [kind, name, sex, founder line, offset from the species spawn point]
+const FOUNDERS=[
+ ['africanLion','Jabari','male','LI-1',[0,0]],['africanLion','Nala','female','LI-2',[1.6,.8]],
+ ['bengalTiger','Rudra','male','TI-1',[0,0]],['bengalTiger','Anika','female','TI-2',[1.8,1]],
+ ['africanElephant','Zuberi','male','EL-1',[0,0]],['africanElephant','Wangari','female','EL-2',[2.2,1.2]],
+ ['giraffe','Kamili','male','GI-1',[0,0]],['giraffe','Zawadi','female','GI-2',[2.5,-1]],
+ ['plainsZebra','Kito','male','ZE-1',[0,0]],['plainsZebra','Penda','female','ZE-2',[1.5,1.2]],
+ ['cheetah','Haraka','male','CH-1',[0,0]],['cheetah','Amani','female','CH-2',[1.5,1]],
+ ['indianRhino','Bhima','male','RH-1',[0,0]],['indianRhino','Gauri','female','RH-2',[1.8,.8]],
+ ['flamingo','Tabasamu','male','FL-1',[0,0]],['flamingo','Furaha','female','FL-2',[1.4,.7]],
+];
+
+export function stageOf(a){
+ const sp=SPECIES[a.kind];if(!sp)return 'adult';
+ const age=a.ageDays??sp.matureDays+10;
+ return age<sp.infantDays?'infant':age<sp.matureDays?'juvenile':'adult';
+}
+export function scaleOf(a){
+ const sp=SPECIES[a.kind];if(!sp)return 1;
+ const age=a.ageDays??sp.matureDays+10;
+ if(age>=sp.matureDays)return 1;
+ return clamp(.36+.64*(age/sp.matureDays),.36,1,);
+}
+export function welfareOf(a){
+ return Math.round(clamp((a.health*1.5+a.nutrition+a.hydration+(100-a.stress)*1.2+(a.social??60)*.5)/5.2));
+}
+
+function residentRecord(kind,name,sex,line,x,z,extra={}){
+ const sp=SPECIES[kind];
+ return {
+  id:extra.id||kind+'-'+name.toLowerCase(),kind,name,sex,managed:true,breedingEligible:true,
+  species:sp.common+' · '+sp.status,latinName:sp.latin,heritage:sp.heritage,region:sp.region,
+  condition:'Managed sanctuary resident',location:'Safari · '+sp.habitat.replace(/([A-Z])/g,' $1').toLowerCase().replace(/^./,c=>c.toUpperCase()),
+  health:90+((name.length*7)%8),hydration:76+((name.length*5)%14),nutrition:62+((name.length*11)%22),stress:16+((name.length*3)%12),trust:20,
+  stage:'wild',injury:'No visible injury.',notes:sp.notes,energy:72,social:70,mood:'Settled',
+  personality:sp.personalities[name.length%sp.personalities.length],routine:sp.routine,sleeping:false,feedings:0,
+  geneticLine:line,lineage:[line],parents:null,ageDays:sp.matureDays+8+(name.length%9),young:false,
+  habitatPosition:[x,z],...extra,
+ };
+}
+
+export function createSanctuary(sim,options={}){
+ const rng=options.rng||Math.random;
+ const state={
+  minutes:400,day:3,funds:1500,credits:10,reputation:12,waterLevel:90,keepers:0,
+  stock:{meat:28,hay:40,browse:34,produce:14,aquatic:16,medicine:4},
+  pregnancies:[],familyTree:[],births:0,transfers:0,imports:0,serial:0,keeperFeedsToday:0,lastReport:null,
+ };
+ const events=[];
+ const say=text=>{const entry={time:sim.time,text};events.unshift({day:state.day,text});sim.log.unshift(entry);if(sim.log.length>80)sim.log.length=80};
+
+ for(const [kind,name,sex,line,[ox,oz]] of FOUNDERS){
+  const sp=SPECIES[kind];
+  if(!sim.animals.some(a=>a.id===kind+'-'+name.toLowerCase()))sim.animals.push(residentRecord(kind,name,sex,line,sp.spawn[0]+ox,sp.spawn[1]+oz));
+ }
+
+ const residents=()=>sim.animals.filter(a=>a.managed&&SPECIES[a.kind]);
+ const byId=id=>sim.animals.find(a=>a.id===id);
+ const countOf=kind=>residents().filter(a=>a.kind===kind).length;
+ const isAdult=a=>stageOf(a)==='adult';
+ const preferredFood=a=>SPECIES[a.kind].foods[0];
+ const accepts=(a,food)=>SPECIES[a.kind].foods.includes(food);
+
+ function buyFood(food,qty=1){
+  if(!(food in FOODS)&&food!=='medicine')return {ok:false,message:'Unknown supply.'};
+  qty=Math.max(1,Math.floor(qty));const price=(food==='medicine'?MEDICINE_PRICE:FOODS[food].price)*qty;
+  if(state.funds<price)return {ok:false,message:'Not enough funds: '+price+' needed.'};
+  state.funds-=price;state.stock[food]+=qty;
+  return {ok:true,message:'Bought '+qty+' × '+(food==='medicine'?'veterinary supplies':FOODS[food].label.toLowerCase())+' for '+price+'.'};
+ }
+
+ function feed(id,food){
+  const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Only sanctuary residents can be hand-fed.'};
+  const sp=SPECIES[a.kind];food=food||preferredFood(a);
+  if(!accepts(a,food))return {ok:false,message:a.name+' does not eat '+FOODS[food].short.toLowerCase()+'. A '+sp.common.toLowerCase()+' eats: '+sp.foods.map(f=>FOODS[f].short.toLowerCase()).join(', ')+'.'};
+  if(state.stock[food]<1)return {ok:false,message:'Out of '+FOODS[food].short.toLowerCase()+'. Buy more supplies.'};
+  if(a.nutrition>=96)return {ok:false,message:a.name+' is already well fed.'};
+  state.stock[food]-=1;
+  const treat=(sp.treat||[]).includes(food);
+  a.nutrition=clamp(a.nutrition+(treat?10:food===sp.foods[0]?34:22));
+  a.stress=clamp(a.stress-(treat?9:5));a.trust=clamp(a.trust+(treat?4:2));a.feedings=(a.feedings||0)+1;a.lastFedDay=state.day;
+  a.mood=treat?'Delighted':'Content';
+  return {ok:true,message:a.name+' ate '+FOODS[food].label.toLowerCase()+'.'};
+ }
+
+ function feedAllHungry(threshold=60){
+  let fed=0,missed=0;
+  for(const a of residents()){
+   if(a.nutrition>=threshold)continue;
+   const sp=SPECIES[a.kind];let ok=false;
+   for(const f of sp.foods.filter(x=>!(sp.treat||[]).includes(x)))if(feed(a.id,f).ok){ok=true;break}
+   if(ok)fed++;else missed++;
+  }
+  return {ok:fed>0,message:fed?'Fed '+fed+' hungry resident'+(fed>1?'s':'')+(missed?'; '+missed+' could not be fed (check supplies).':'.'):(missed?'Could not feed '+missed+' resident'+(missed>1?'s':'')+': supplies are low.':'Everyone is fed.')};
+ }
+
+ function refillWater(){
+  const cost=20;if(state.funds<cost)return {ok:false,message:'Not enough funds to run the pumps ('+cost+').'};
+  state.funds-=cost;state.waterLevel=100;return {ok:true,message:'Waterholes and the soda lake refilled with clean water.'};
+ }
+ function hireKeeper(){
+  if(state.keepers>=4)return {ok:false,message:'Maximum of four keepers.'};
+  const cost=150;if(state.funds<cost)return {ok:false,message:'Hiring a keeper costs '+cost+'.'};
+  state.funds-=cost;state.keepers++;say('A new keeper joined the safari team. Keepers feed hungry residents each day (wage 40/day).');
+  return {ok:true,message:'Keeper hired. They will feed up to 6 hungry residents a day from stock.'};
+ }
+ function treat(id){
+  const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Select a sanctuary resident.'};
+  if(a.health>=92)return {ok:false,message:a.name+' is in good health; no treatment needed.'};
+  if(state.stock.medicine<1)return {ok:false,message:'Out of veterinary supplies.'};
+  state.stock.medicine--;a.health=clamp(a.health+18);a.stress=clamp(a.stress+4);a.injury=a.health>=80?'No visible injury.':a.injury;
+  return {ok:true,message:'Veterinary check complete: '+a.name+' is responding well.'};
+ }
+ function enrich(id){
+  const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Select a sanctuary resident.'};
+  if(a.enrichedDay===state.day)return {ok:false,message:a.name+' has already had enrichment today.'};
+  a.enrichedDay=state.day;a.stress=clamp(a.stress-14);a.social=clamp((a.social??60)+8);a.energy=clamp(a.energy-6);a.trust=clamp(a.trust+3);a.mood='Playful';
+  return {ok:true,message:'Enrichment session with '+a.name+': scent trails, puzzle feeders and play.'};
+ }
+
+ // ---- Breeding programme -------------------------------------------------------------------------------------
+ const lineageOf=a=>a.lineage||[a.geneticLine];
+ function pairStatus(maleId,femaleId){
+  const m=byId(maleId),f=byId(femaleId);const issues=[],notes=[];
+  if(!m||!f||!m.managed||!f.managed)return {ok:false,issues:['Choose two sanctuary residents.'],notes};
+  if(m.kind!==f.kind)issues.push('Different species cannot be paired.');
+  if(m.sex!=='male'||f.sex!=='female')issues.push('A breeding pair needs one male and one female.');
+  if(issues.length)return {ok:false,issues,notes};
+  const sp=SPECIES[m.kind];
+  for(const a of [m,f]){
+   if(!isAdult(a))issues.push(a.name+' is not yet mature.');
+   if(a.health<70)issues.push(a.name+' needs to be healthier (health '+Math.round(a.health)+'%).');
+   if(a.stress>50)issues.push(a.name+' is too stressed (stress '+Math.round(a.stress)+'%).');
+   if(a.nutrition<55)issues.push(a.name+' needs better nutrition.');
+  }
+  if(f.pregnant)issues.push(f.name+' is already expecting.');
+  const shared=lineageOf(m).filter(l=>lineageOf(f).includes(l));
+  if(shared.length)issues.push('Too closely related (shared line '+shared.join(', ')+'). Import an unrelated founder.');
+  if(countOf(m.kind)>=sp.capacity)issues.push('The '+sp.common.toLowerCase()+' habitat is at capacity ('+countOf(m.kind)+'/'+sp.capacity+'). Transfer surplus animals first.');
+  if(state.waterLevel<25)issues.push('Water supply is too low for a pregnancy.');
+  const total=[...new Set(residents().filter(a=>a.kind===m.kind).flatMap(lineageOf))].length;
+  notes.push('Genetic diversity: '+total+' founder line'+(total===1?'':'s')+' in this population.');
+  return {ok:issues.length===0,issues,notes};
+ }
+ function startBreeding(maleId,femaleId){
+  const s=pairStatus(maleId,femaleId);if(!s.ok)return {ok:false,message:s.issues[0],issues:s.issues};
+  const m=byId(maleId),f=byId(femaleId),sp=SPECIES[m.kind];
+  f.pregnant={sireId:m.id,sireName:m.name,sireLine:lineageOf(m),dueMinute:state.minutes+sp.gestationDays*DAY};
+  state.pregnancies.push({damId:f.id,sireId:m.id,kind:m.kind});
+  f.mood='Expecting';f.condition='Expecting · managed breeding programme';
+  say(m.name+' and '+f.name+' ('+sp.common+') have been paired under the breeding programme. Birth expected in about '+sp.gestationDays+' days.');
+  return {ok:true,message:m.name+' and '+f.name+' paired. Keep '+f.name+' well fed and calm.'};
+ }
+ function giveBirth(dam,sim_){
+  const sp=SPECIES[dam.kind],preg=dam.pregnant;dam.pregnant=null;dam.condition='Managed sanctuary resident';dam.mood='Protective';
+  state.pregnancies=state.pregnancies.filter(p=>p.damId!==dam.id);
+  const welfare=welfareOf(dam);
+  if(dam.health<35||dam.nutrition<20){say(dam.name+' lost her pregnancy; the pregnancy was not supported by her condition. Review diet and welfare before pairing again.');dam.stress=clamp(dam.stress+20);return []}
+  const n=sp.litter[0]+Math.floor(rng()*(sp.litter[1]-sp.litter[0]+1));const babies=[];
+  const sire=byId(preg.sireId);
+  for(let i=0;i<n;i++){
+   const sex=rng()<.5?'male':'female';const pool=sp.names[sex];
+   let name=pool.find(x=>!sim.animals.some(a=>a.name===x))||pool[(state.serial)%pool.length]+' '+(state.serial+2);
+   state.serial++;
+   const id=dam.kind+'-born-'+state.serial;
+   const lineage=[...new Set([...lineageOf(dam),...preg.sireLine])];
+   const baby={...residentRecord(dam.kind,name,sex,lineage.join('×'),dam.habitatPosition[0]+(i-.5)*.8,dam.habitatPosition[1]+.8,{id,young:true,ageDays:0,scale:.36,lineage,parents:[dam.name,preg.sireName],
+    health:94,hydration:82,nutrition:78,stress:10,trust:30,breedingEligible:false,condition:'Newborn · bonding with '+dam.name,notes:'Born at the sanctuary to '+dam.name+' and '+preg.sireName+'. Needs close monitoring and plenty of milk and food.',personality:'Newborn; learning from '+dam.name,mood:'Sleepy'}),};
+   baby.ageDays=0;sim.animals.push(baby);babies.push(baby);
+   state.familyTree.push({id,name,kind:dam.kind,species:sp.common,sex,parents:[dam.name,preg.sireName],born:'Day '+state.day,lineage});
+  }
+  state.births+=babies.length;state.credits+=babies.length*3;state.reputation+=babies.length*4;
+  say(dam.name+' gave birth to '+babies.map(b=>b.name).join(' and ')+' ('+sp.common+(n>1?' cubs/young':'')+'). Conservation credits +'+babies.length*3+'.');
+  return babies;
+ }
+ function transferOut(id){
+  const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Select a sanctuary resident.'};
+  const sp=SPECIES[a.kind];
+  if(!isAdult(a))return {ok:false,message:a.name+' is too young to be transferred.'};
+  if(a.pregnant)return {ok:false,message:a.name+' is expecting and cannot be moved.'};
+  if(countOf(a.kind)<=2)return {ok:false,message:'Keep at least two '+sp.common.toLowerCase()+'s at the sanctuary. Transfers are for surplus animals.'};
+  if(welfareOf(a)<70)return {ok:false,message:a.name+' must be in good welfare (70+) before a transfer.'};
+  const i=sim.animals.indexOf(a);sim.animals.splice(i,1);
+  if(sim.selected&&sim.selected()===a&&sim.animals.length)sim.select(sim.animals[0].id);
+  state.transfers++;state.credits+=6;state.reputation+=6;state.funds+=120;
+  say(a.name+' ('+sp.common+') was transferred to a partner reserve as part of the species recovery plan. Credits +6, partner grant +120.');
+  return {ok:true,message:a.name+' left for a partner reserve. Credits +6, grant +120.',removedId:a.id};
+ }
+ function importFounder(kind,sex){
+  const sp=SPECIES[kind];if(!sp)return {ok:false,message:'Unknown species.'};
+  if(state.credits<10)return {ok:false,message:'Importing a new founder costs 10 conservation credits.'};
+  if(countOf(kind)>=sp.capacity)return {ok:false,message:'The habitat is full ('+countOf(kind)+'/'+sp.capacity+').'};
+  state.credits-=10;state.imports++;
+  const pool=sp.names[sex];const name=pool.find(x=>!sim.animals.some(a=>a.name===x))||pool[state.imports%pool.length]+' '+(state.imports+1);
+  const line=kind.slice(0,2).toUpperCase()+'-F'+(state.imports);
+  const rec=residentRecord(kind,name,sex,line,sp.spawn[0]+(state.imports%4)*.9,sp.spawn[1]-1.6,{condition:'New arrival · settling in',stress:34,notes:'Arrived from a partner reserve to bring new genetics to the studbook. '+sp.notes,id:kind+'-'+name.toLowerCase().replace(/\s+/g,'-')});
+  sim.animals.push(rec);
+  say(name+', an unrelated '+sp.common.toLowerCase()+' ('+sex+'), arrived from a partner reserve to widen genetic diversity.');
+  return {ok:true,message:name+' arrived with a new founder line.',animal:rec};
+ }
+
+ // ---- Simulation step ---------------------------------------------------------------------------------------
+ function dailyReport(){
+  const list=residents();const avg=list.length?Math.round(list.reduce((n,a)=>n+welfareOf(a),0)/list.length):0;
+  const grant=Math.round(45+state.reputation*1.6+(avg>=75?40:0));
+  const wages=state.keepers*40;
+  state.funds=Math.max(0,state.funds+grant-wages);
+  if(avg>=75)state.reputation+=1;
+  const neglected=list.filter(a=>a.health<25);
+  if(neglected.length){state.reputation=Math.max(0,state.reputation-3);say('Warning: '+neglected.map(a=>a.name).join(', ')+' in poor health. Reputation suffers until they receive care.')}
+  state.keeperFeedsToday=0;
+  state.lastReport={day:state.day,avg,grant,wages};
+  say('Day '+state.day+' report: average welfare '+avg+'%. Grants +'+grant+(wages?', keeper wages −'+wages:'')+'.');
+ }
+ function tick(delta=1){
+  if(!Number.isFinite(delta)||delta<=0)return;
+  const steps=Math.max(1,Math.ceil(delta/60));const d=delta/steps;
+  for(let s=0;s<steps;s++){
+   state.minutes+=d;
+   const list=residents();
+   state.waterLevel=clamp(state.waterLevel-(.003+list.length*.0002)*d);
+   const counts={};for(const a of list)counts[a.kind]=(counts[a.kind]||0)+1;
+   for(const a of list){
+    const sp=SPECIES[a.kind];
+    if(a.ageDays!==undefined){a.ageDays+=d/DAY;const was=a.young;a.young=a.ageDays<sp.matureDays;if(was&&!a.young){a.breedingEligible=true;a.condition='Managed sanctuary resident';say(a.name+' has grown up and is now an adult '+sp.common.toLowerCase()+'.')}}
+    a.scale=scaleOf(a);
+    if(state.waterLevel>8)a.hydration=clamp(a.hydration+.07*d);else a.hydration=clamp(a.hydration-.03*d);
+    const crowd=(counts[a.kind]||0)>sp.capacity;
+    if(crowd)a.stress=clamp(a.stress+.03*d);
+    if(a.nutrition<18)a.health=clamp(a.health-.012*d);
+    if(a.hydration<15)a.health=clamp(a.health-.016*d);
+    if(a.nutrition>=45&&a.hydration>=45&&a.stress<55&&a.health<100)a.health=clamp(a.health+.006*d);
+    if(a.nutrition<30)a.stress=clamp(a.stress+.02*d);
+    a.social=clamp((a.social??60)+((counts[a.kind]||0)>1?.002:-.01)*d);
+    a.mood=a.pregnant?'Expecting':a.nutrition<30?'Hungry':a.stress>60?'Stressed':a.mood==='Delighted'||a.mood==='Playful'?a.mood:'Content';
+    if(a.pregnant&&state.minutes>=a.pregnant.dueMinute){giveBirth(a)}
+   }
+   if(state.minutes>=(state.day-2)*DAY){
+    state.day++;dailyReport();
+    // Keepers feed hungry residents, most hungry first, up to their daily capacity.
+    if(state.keepers>0){let budget=state.keepers*6;const hungry=residents().filter(a=>a.nutrition<55).sort((x,y)=>x.nutrition-y.nutrition);for(const a of hungry){if(budget<=0)break;const sp=SPECIES[a.kind];for(const f of sp.foods.filter(x=>!(sp.treat||[]).includes(x)))if(feed(a.id,f).ok){budget--;state.keeperFeedsToday++;break}}}
+   }
+  }
+ }
+
+ function summary(){
+  const list=residents();const species=Object.keys(SPECIES).map(kind=>{
+   const members=list.filter(a=>a.kind===kind);
+   return {kind,common:SPECIES[kind].common,emoji:SPECIES[kind].emoji,count:members.length,capacity:SPECIES[kind].capacity,
+    founders:[...new Set(members.flatMap(lineageOf))].length,welfare:members.length?Math.round(members.reduce((n,a)=>n+welfareOf(a),0)/members.length):0};
+  });
+  const avg=list.length?Math.round(list.reduce((n,a)=>n+welfareOf(a),0)/list.length):0;
+  const hungry=list.filter(a=>a.nutrition<45).length;
+  return {funds:Math.round(state.funds),credits:state.credits,reputation:Math.round(state.reputation),stock:{...state.stock},waterLevel:Math.round(state.waterLevel),keepers:state.keepers,
+   residents:list.length,avgWelfare:avg,hungry,species,pregnancies:list.filter(a=>a.pregnant).map(a=>({name:a.name,kind:a.kind,sire:a.pregnant.sireName,daysLeft:Math.max(0,Math.ceil((a.pregnant.dueMinute-state.minutes)/DAY))})),
+   births:state.births,transfers:state.transfers,familyTree:state.familyTree.slice(),day:state.day,lastReport:state.lastReport,events:events.slice(0,6)};
+ }
+
+ function serialize(){
+  return {v:1,state:{...state,stock:{...state.stock},pregnancies:state.pregnancies.slice(),familyTree:state.familyTree.slice()},animals:residents().map(a=>({...a}))};
+ }
+ function restore(data){
+  if(!data||data.v!==1)return false;
+  Object.assign(state,data.state);
+  const keep=sim.animals.filter(a=>!a.managed);sim.animals.length=0;sim.animals.push(...keep,...data.animals.map(a=>({...a})));
+  return true;
+ }
+
+ return {state,SPECIES,FOODS,residents,feed,feedAllHungry,buyFood,refillWater,hireKeeper,treat,enrich,pairStatus,startBreeding,transferOut,importFounder,tick,summary,serialize,restore,welfareOf,stageOf,scaleOf,preferredFood};
+}

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#18251d" />
     <meta name="description" content="Wild Frontier — a handcrafted wildlife rescue and conservation simulation." />
     <title>Wild Frontier — Field Station</title>
@@ -16,13 +16,14 @@
         <div class="weather"><span class="weather-icon" id="weatherIcon">☀</span><span id="weatherName">CLEAR</span><i></i><span id="weatherTemp">18°C</span><i></i><span id="weatherWind">WIND 4 KM/H</span></div>
         <div class="top-actions"><span class="day-chip">DAY <b id="dayNumber">03</b> · <span id="dayPhase">DAWN</span> · <span id="dayTime">06:40</span> · <span id="seasonName">SPRING</span></span><button class="icon-button" id="soundBtn" title="Toggle sound">♫</button><button class="icon-button" id="mapBtn" title="Map">⌖</button></div>
       </header>
+      <div class="quickbar"><button id="sanctBtn" class="quick-btn">🦁 SAFARI SANCTUARY</button><span id="speedCtl" class="speed-ctl" aria-label="Game speed"><button data-speed="0" title="Pause">⏸</button><button data-speed="4" class="on" title="Normal speed">▶</button><button data-speed="15" title="Fast">▶▶</button><button data-speed="45" title="Fastest">▶▶▶</button></span></div>
       <aside class="left-rail">
         <div class="rail-label">RESERVE STATUS</div>
         <div class="stat-card"><span class="stat-icon">♧</span><div><b id="animalCount">20</b><small>ANIMALS MONITORED</small></div><span class="trend">↗</span></div>
         <div class="stat-card"><span class="stat-icon amber">✧</span><div><b id="healthScore">86%</b><small>HABITAT HEALTH</small></div><span class="trend">↗</span></div>
         <div class="stat-card"><span class="stat-icon blue">◉</span><div><b>04</b><small>ACTIVE TRACKERS</small></div></div><div class="stat-card"><span class="stat-icon blue">≈</span><div><b id="waterScore">61%</b><small>WATER QUALITY</small></div></div><div class="stat-card"><span class="stat-icon">♧</span><div><b id="coverScore">73%</b><small>NATIVE COVER</small></div></div><div class="stat-card"><span class="stat-icon amber">✿</span><div><b id="foodScore">68%</b><small>NATIVE FORAGE</small></div></div>
         <div class="rail-divider"></div>
-        <div class="rail-label">WILDLIFE ROSTER</div><div class="species-roster"><span>🦌 Juniper</span><span>🐇 Clover · Pip</span><span>🦊 Ember</span><span>🦉 Moss</span><span>🐿 Acorn</span><span>🐦 Wren</span><span>🦝 Maple</span><span>🦫 Birch</span><span>🦨 Pepper</span><span>🐢 Marlow</span><span>🐦 Ruby</span><span>🐺 Ash · Willow (red wolf)</span><span>🪽 Prairie · Reed (whooping crane)</span><span>🦦 Ripple (river otter)</span><span>🐈 Cinder (bobcat)</span><span>🦆 Mallory (wood duck)</span><span>🐾 Pecan (Virginia opossum)</span></div>
+        <div class="rail-label">WILDLIFE ROSTER</div><div class="species-roster"><span>🦌 Awi</span><span>🐇 Wabasso · Waboose</span><span>🦊 Tsula</span><span>🦉 Hinhan</span><span>🐿 Salali</span><span>🐦 Tsisqua</span><span>🦝 Esiban</span><span>🦫 Amik</span><span>🦨 Zhigaag</span><span>🐢 Mikinaak</span><span>🐦 Zitkala-Sa</span><span>🐺 Wahya · Maiingan (red wolf)</span><span>🪽 Ajijaak · Ajijaakons (whooping crane)</span><span>🦦 Nigig (river otter)</span><span>🐈 Wesa (bobcat)</span><span>🦆 Shiishiib (wood duck)</span><span>🐾 Apasum (Virginia opossum)</span></div>
         <div class="rail-divider"></div>
         <div class="rail-label">FIELD ASSIGNMENTS</div><div class="mission-list" id="missionList"></div>
         <div class="rail-divider"></div>
@@ -43,6 +44,7 @@
         <div id="actionButtons" class="action-buttons"></div>
         <button class="secondary-action" id="helpBtn">FIELD PROTOCOL <span>＋</span></button>
       </section>
+      <div id="joystick" aria-label="Move ranger" role="application"><div class="stick"></div></div>
       <div class="bottom-hud">
         <div class="tool-label"><span>FIELD TOOLS</span><small>SELECT A TOOL</small></div>
         <button class="tool active" data-tool="observe"><span>◎</span><small>OBSERVE</small><kbd>1</kbd></button>

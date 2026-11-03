@@ -39,6 +39,17 @@ A wildlife rescue and conservation simulation with a handcrafted, claymation-ins
 - Restoration tasks are one-time projects rather than endlessly repeatable score buttons
 - Field journal and responsive mobile/desktop HUD
 
+## Safari sanctuary (new)
+A second reserve east of the woodland: walk through the gate (or tap **Safari Sanctuary → Go to safari gate**) onto a savanna with an acacia grove, waterhole, soda lake, lion kopje, bamboo thicket for the tigers and a rhino wallow.
+
+- **Eight managed species with heritage-appropriate names**: African lions (Swahili names such as Jabari, Nala), Bengal tigers (Hindi/Sanskrit: Rudra, Anika), African elephants, reticulated giraffes, plains zebras, cheetahs, greater one-horned rhinos (Assamese/Sanskrit: Bhima, Gauri) and greater flamingos. The woodland residents now carry names from their native North American languages too.
+- **Feeding**: every species has its own diet (meat, hay, browse, aquatic mix; produce is a treat). Wrong food is refused, stock is spent, and hungry animals lose health.
+- **Economy**: funds, daily grants driven by reputation and welfare, supplies to buy, veterinary stock, keepers who feed hungry residents each day (wages apply), and a water supply that runs down and must be refilled.
+- **Breeding programme**: pairs must be mature, healthy, calm, well fed and unrelated; gestation is tracked, litters are born with parents and genetic lines recorded, young grow visibly from newborn to adult. Inbreeding is blocked, habitats have capacity limits, surplus adults can be transferred to partner reserves for conservation credits, and credits import unrelated founders.
+- **Management panel** with Overview, Residents, Supplies and Breeding tabs, goals, a family record, and a game-speed control (pause / ×1 / ×4 / ×12).
+- **Saving**: the safari sanctuary is saved in your browser and restored on reload. The woodland rescue missions are not saved yet.
+- **Touch controls**: drag to look, pinch to zoom, tap an animal for its record, on-screen joystick to walk.
+
 ## Run locally
 ```bash
 npm install

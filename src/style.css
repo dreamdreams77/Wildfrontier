@@ -76,23 +76,6 @@
 /* Keep the full expedition board reachable on desktop instead of letting it run below the viewport. */
 .left-rail{max-height:calc(100vh - 124px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#81936a55 transparent}
 .left-rail::-webkit-scrollbar{width:4px}.left-rail::-webkit-scrollbar-thumb{background:#81936a66;border-radius:8px}
-/* Make UI overlay responsive on mobile screens */
-@media (max-width: 768px) {
-    /* Prevent UI cards from taking over the entire screen */
-    .ui-overlay, .dashboard, .hud-panel, div[class*="overlay"], div[class*="panel"] {
-        max-width: 90vw !important;
-        max-height: 40vh !important;
-        overflow-y: auto !important;
-        opacity: 0.85; /* Makes background 3D scene visible */
-        font-size: 0.8rem !important;
-    }
-
-    /* Option to collapse/hide panels on tap so you can see the 3D graphics */
-    body {
-        touch-action: manipulation;
-    }
-}
-
 /* Phone layout: keep the 3D world visible. Panels become collapsible sheets above the toolbar. */
 @media(max-width:760px){
  .left-rail{display:none;top:70px;bottom:auto;left:8px;right:8px;width:auto;max-height:calc(100vh - 190px)}
@@ -100,3 +83,57 @@
  .right-panel{top:auto;bottom:112px;left:8px;right:8px;width:auto;max-height:42vh}
  .brand{cursor:pointer}
 }
+
+/* Touch: stop the browser panning/zooming the page so the game receives every gesture. */
+html,body{overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#world,#world canvas{touch-action:none}
+.right-panel,.left-rail,.research-panel,.sanctuary-panel{touch-action:pan-y}
+#joystick{display:none;position:absolute;z-index:4;left:18px;bottom:112px;width:116px;height:116px;border-radius:50%;background:rgba(20,31,24,.55);border:1px solid rgba(190,205,150,.35);touch-action:none;backdrop-filter:blur(6px)}
+#joystick .stick{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(192,206,152,.85);box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none}
+@media(pointer:coarse){#joystick{display:block}.right-panel:not(.hidden)~#joystick{display:none}}
+
+/* Safari sanctuary: quick bar, roster buttons and the management panel. */
+.species-roster button{background:none;border:0;padding:0;text-align:left;font:8px 'DM Mono';color:#cbd1bd;white-space:nowrap;cursor:pointer}
+.species-roster button:hover{color:#e7efc6}
+.quickbar{position:absolute;z-index:4;top:86px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center}
+.quick-btn{background:#c0ce98;color:#1c2b20;border:0;border-radius:999px;padding:9px 16px;font:600 10px 'DM Mono',monospace;letter-spacing:1px;box-shadow:0 8px 24px #0006;white-space:nowrap}
+.speed-ctl{display:flex;background:rgba(20,31,24,.82);border:1px solid var(--line);border-radius:999px;overflow:hidden;backdrop-filter:blur(8px)}
+.speed-ctl button{background:none;border:0;color:#cdd3bd;padding:8px 10px;font:10px 'DM Mono',monospace;min-width:34px}
+.speed-ctl button.on{background:#c0ce98;color:#1c2b20}
+.sanctuary-panel{position:fixed;z-index:9;left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,calc(100% - 16px));max-height:min(88vh,820px);display:flex;flex-direction:column;background:linear-gradient(145deg,rgba(28,43,32,.99),rgba(17,29,23,.99));border:1px solid #b8c68b55;border-radius:10px;box-shadow:0 30px 90px #000a;color:#e5e7da;overflow:hidden}
+.sanctuary-panel header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:18px 20px 8px}
+.sanctuary-panel header small{font:9px 'DM Mono';letter-spacing:1.3px;color:#aebc8e}.sanctuary-panel h2{margin:4px 0 0;font:600 24px 'Playfair Display',Georgia,serif}
+.sanctuary-panel header button{background:none;border:1px solid var(--line);border-radius:50%;width:34px;height:34px;font-size:20px;line-height:1}
+.s-tabs{display:flex;gap:6px;padding:4px 20px 0;overflow-x:auto}.s-tabs button{background:#ffffff0a;border:1px solid var(--line);border-bottom:0;border-radius:6px 6px 0 0;padding:9px 13px;font:9px 'DM Mono';letter-spacing:1.2px;color:#b7c19e;white-space:nowrap}
+.s-tabs button.on{background:#c0ce98;color:#1c2b20}
+.s-top{display:flex;gap:16px;flex-wrap:wrap;padding:9px 20px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font:11px 'DM Mono';color:#d9e1b8;background:#0003}
+.s-body{overflow-y:auto;padding:6px 20px 20px;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.s-body h3{font:600 10px 'DM Mono';letter-spacing:1.4px;color:#aebc8e;margin:18px 0 8px;text-transform:uppercase}.s-body h3 small{text-transform:none;letter-spacing:0}
+.s-muted{color:#9fa992;font-size:11px;line-height:1.5}
+.s-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.s-stats div{background:#ffffff08;border:1px solid var(--line);border-radius:6px;padding:10px}
+.s-stats small{display:block;font:8px 'DM Mono';letter-spacing:1px;color:#a8ad9e}.s-stats b{font:600 20px 'DM Sans',sans-serif}
+.good{color:#bfe08a}.ok{color:#e4c98a}.bad{color:#e8a08a}
+.s-row,.s-supply{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff10}
+.s-row>span{font-weight:600;font-size:13px}.s-row .sbar{grid-column:1}.s-row small{grid-column:1}
+.s-supply{grid-template-columns:28px 1fr auto auto}.s-supply b{font-size:13px;display:block}.s-supply small{font:9px 'DM Mono';color:#9fa992}
+.s-sanctuary-panel button,.sanctuary-panel button{cursor:pointer}
+.s-row button,.s-supply button,.s-acts button,.s-foot button,.s-pick button{background:#c0ce98;color:#1c2b20;border:0;border-radius:4px;padding:9px 11px;font:600 9px 'DM Mono';letter-spacing:.8px}
+.s-foot button:disabled,.s-row button:disabled{opacity:.4}
+.s-foot{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}.s-foot .s-danger{background:#6b3b33;color:#f2d5cc}
+.sbar{display:block;height:5px;border-radius:5px;background:#ffffff18;overflow:hidden}.sbar em{display:block;height:100%;background:#bdcc91}.sbar.low em{background:#d1805f}
+.s-species{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.s-species button{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;gap:0 8px;text-align:left;background:#ffffff08;border:1px solid var(--line);border-radius:6px;padding:9px;color:inherit}
+.s-species span{grid-row:1/3;font-size:22px;align-self:center}.s-species b{font-size:12px}.s-species small{font:9px 'DM Mono';color:#9fa992}
+.s-goals,.s-events,.s-diets{list-style:none;margin:0;padding:0;display:grid;gap:6px}.s-goals li{display:flex;gap:9px;font-size:12px;color:#c9cdbd}.s-goals li.done{color:#bfe08a}.s-goals li span{width:14px}
+.s-events li,.s-diets li{font-size:11px;line-height:1.5;color:#c9cdbd}
+.s-list{display:grid;gap:8px}.s-res{border:1px solid var(--line);background:#ffffff07;border-radius:6px;padding:10px}
+.s-res-head{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:baseline}.s-res-head small{font:9px 'DM Mono';color:#9fa992}.s-link{background:none;border:0;color:#e5e7da;font-size:13px;text-align:left;padding:0}
+.s-w{font:600 12px 'DM Mono'}
+.s-meters{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0}.s-meters label{font:8px 'DM Mono';letter-spacing:.8px;color:#a8ad9e;display:grid;gap:4px}
+.s-acts{display:flex;gap:6px;flex-wrap:wrap}
+.s-pick{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.s-pick button{background:#ffffff0c;color:inherit;border:1px solid var(--line);font-size:20px;padding:6px 10px}.s-pick button.on{background:#c0ce98}
+.s-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.s-pair label{display:grid;gap:5px;font:9px 'DM Mono';letter-spacing:1px;color:#aebc8e}
+.s-pair select{background:#0b150f;color:#e5e7da;border:1px solid var(--line);border-radius:4px;padding:9px;font:12px 'DM Sans',sans-serif;width:100%}
+.s-status{margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;line-height:1.5;background:#ffffff07}
+@media(max-width:560px){.quickbar{top:72px;gap:6px}.quick-btn{padding:8px 11px;font-size:9px}.speed-ctl button{padding:8px 7px;min-width:28px}.s-stats{grid-template-columns:1fr 1fr}.s-pair{grid-template-columns:1fr}.s-meters{grid-template-columns:1fr 1fr}.sanctuary-panel header{padding:14px 14px 6px}.s-body,.s-top,.s-tabs{padding-left:14px;padding-right:14px}.sanctuary-panel h2{font-size:20px}}
+.sanctuary-panel>*{flex-shrink:0}.sanctuary-panel>.s-body{flex:1 1 auto;min-height:0}

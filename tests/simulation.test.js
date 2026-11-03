@@ -94,8 +94,8 @@ test('the reserve roster includes seventeen distinct wildlife species',()=>{
  assert.equal(sim.animals.length,20);
  assert.deepEqual([...new Set(sim.animals.map(a=>a.kind))].sort(),['beaver','bird','bobcat','cardinal','deer','fox','opossum','owl','rabbit','raccoon','redWolf','riverOtter','skunk','squirrel','turtle','whoopingCrane','woodDuck']);
  for(const id of ['raccoon-01','beaver-01','skunk-01','turtle-01','cardinal-01'])assert.ok(sim.animals.some(a=>a.id===id));
- assert.ok(sim.animals.some(a=>a.name==='Ember'&&a.kind==='fox'));
- assert.ok(sim.animals.some(a=>a.name==='Moss'&&a.kind==='owl'));
+ assert.ok(sim.animals.some(a=>a.name==='Tsula'&&a.kind==='fox'));
+ assert.ok(sim.animals.some(a=>a.name==='Hinhan'&&a.kind==='owl'));
 });
 test('survey assignments require a recorded observation',()=>{
  const sim=createSimulation();
@@ -183,7 +183,7 @@ test('spring breeding records cottontail offspring and preserves parent lineage'
  assert.ok(sim.familyTree.length>=2);
  const record=sim.familyTree[0];
  assert.equal(record.species,'Eastern cottontail');
- assert.deepEqual(record.parents,['Clover','Pip']);
+ assert.deepEqual(record.parents,['Wabasso','Waboose']);
  const young=sim.animals.find(a=>a.id===record.id);
  assert.equal(young.juvenile,true);
  assert.equal(young.stage,'wild');
