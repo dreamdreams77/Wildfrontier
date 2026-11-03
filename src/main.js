@@ -1,25 +1,36 @@
 import './style.css';
 import { createWorld } from './world.js';
+import { createSimulation } from './simulation.js';
 
 const $=id=>document.getElementById(id);
+const sim=createSimulation();
 const world=createWorld($('world'));
 const keys={forward:false,back:false,left:false,right:false};window.__wildKeys=keys;
 const keyMap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
 addEventListener('keydown',e=>{if(keyMap[e.code]){keys[keyMap[e.code]]=true;e.preventDefault()}if(['1','2','3'].includes(e.key))selectTool(['observe','track','care'][Number(e.key)-1])});
 addEventListener('keyup',e=>{if(keyMap[e.code])keys[keyMap[e.code]]=false});
-const panel=$('inspectPanel');let selected=null,tool='observe',progress=2450,waterDone=false;
-function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2400)}
-function showAnimal(data){selected=data;$('speciesTag').textContent=data.kind==='deer'?'WILDLIFE · FIELD SIGHTING':'WILDLIFE · MEADOW RESIDENT';$('animalName').textContent=data.name;$('animalDesc').textContent=data.description;$('condition').textContent=data.condition;$('location').textContent=data.location;$('animalPortrait').querySelector('span').textContent=data.icon;panel.classList.remove('hidden')}
-addEventListener('wildfrontier:select',e=>showAnimal(e.detail));
+const panel=$('inspectPanel');let tool='observe',selectedId='fawn-01',lastTick=performance.now();
+function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2600)}
+function statusFor(a){const stage={sighted:'FIELD SIGHTING',assessed:'RANGER ASSESSED',stabilized:'STABILIZED',rehabilitating:'IN RECOVERY',released:'RELEASED',wild:'WILD RESIDENT'};return stage[a.stage]||'FIELD RECORD'}
+function renderAnimal(a){selectedId=a.id;$('speciesTag').textContent=a.species.toUpperCase();$('animalName').textContent=a.name;$('animalDesc').textContent=a.notes;$('condition').textContent=a.condition.toUpperCase();$('location').textContent=a.location.toUpperCase();$('animalPortrait').querySelector('span').textContent=a.kind==='deer'?'♧':'◌';$('animalStage').textContent=statusFor(a);$('injuryText').textContent=a.injury;
+  for(const key of ['health','hydration','nutrition','stress']){$('meter-'+key).style.width=a[key]+'%';$('value-'+key).textContent=Math.round(a[key])+'%'}
+  const actions=actionSet(a);$('actionButtons').innerHTML=actions.map(x=>'<button class="care-action '+(x.primary?'primary-action':'secondary-action')+'" data-action="'+x.id+'">'+x.label+' <span>↗</span></button>').join('');
+  $('actionButtons').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>perform(b.dataset.action)));
+  panel.classList.remove('hidden');
+}
+function actionSet(a){if(a.stage==='sighted')return [{id:'observe',label:'LOG OBSERVATION'},{id:'track',label:'PLACE TRACKERS'},{id:'assess',label:'REQUEST RANGER ASSESSMENT',primary:true}];if(a.stage==='assessed')return [{id:'observe',label:'RECORD OBSERVATION'},{id:'stabilize',label:'STABILIZE IN FIELD',primary:true}];if(a.stage==='stabilized')return [{id:'transport',label:'TRANSPORT TO RECOVERY',primary:true}];if(a.stage==='rehabilitating')return [{id:'feed',label:'SERVE RECOVERY FEED'},{id:'water',label:'REFRESH WATER'},{id:'release',label:'RUN RELEASE ASSESSMENT',primary:true}];if(a.stage==='released')return [{id:'observe',label:'LOG POST-RELEASE SIGHTING'}];return [{id:'observe',label:'LOG OBSERVATION'},{id:'track',label:'PLACE TRACKERS'}]}
+function perform(action){const result=sim.act(action);toast(result.message);renderAnimal(sim.selected());renderHud()}
+addEventListener('wildfrontier:select',e=>{const id=e.detail.id|| (e.detail.kind==='deer'?'fawn-01':'rabbit-01');renderAnimal(sim.select(id))});
 function selectTool(name){tool=name;document.querySelectorAll('.tool').forEach(el=>el.classList.toggle('active',el.dataset.tool===name));toast(name==='observe'?'Observation lens ready':name==='track'?'Tracking scope ready':'Care kit equipped')}
 document.querySelectorAll('.tool').forEach(el=>el.addEventListener('click',()=>selectTool(el.dataset.tool)));
 $('closeInspect').addEventListener('click',()=>panel.classList.add('hidden'));
-$('observeBtn').addEventListener('click',()=>{if(!selected){toast('Choose a resident to observe first');return}if(tool==='track'){toast('Tracker placed · movement will be logged');progress=Math.min(3000,progress+75)}else if(tool==='care'){toast(selected.kind==='deer'?'You keep a respectful distance. A ranger assessment is needed.':'A small portion of feed is placed nearby.');progress=Math.min(3000,progress+40)}else{toast('Observation recorded · +25 restoration points');progress=Math.min(3000,progress+25)}$('progressText').textContent=progress.toLocaleString()+' / 3,000';$('progressBar').style.width=(progress/3000*100)+'%'});
-$('helpBtn').addEventListener('click',()=>toast('Field guide: observe first, approach slowly, never disturb resting wildlife.'));
-$('taskRescue').addEventListener('click',()=>{world.focus(-1,1);toast('The north meadow is just beyond the old oak.')});
-$('taskWater').addEventListener('click',()=>{world.focus(9,4);if(!waterDone){waterDone=true;$('taskWater').querySelector('.task-check').textContent='✓';$('taskWater').classList.add('active');$('healthScore').textContent='89%';toast('Water station checked · habitat health +3%')}else toast('Water station is already full.')});
-$('mapBtn').addEventListener('click',()=>toast('Map view: North Meadow · Clover Patch · Creekside'));
-$('soundBtn').addEventListener('click',()=>toast('Ambient sound settings will be available in the next field update.'));
-$('animalCount').textContent=String(12+world.animals.length-1);
-let touchStart=null;world.renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length===1)touchStart=[e.touches[0].clientX,e.touches[0].clientY]},{passive:true});world.renderer.domElement.addEventListener('touchend',()=>touchStart=null,{passive:true});
+$('helpBtn').addEventListener('click',()=>toast('Field protocol: observe first, assess with a ranger, stabilize only when trained, and release only when every welfare measure passes.'));
+$('taskRescue').addEventListener('click',()=>{world.focus(-1,1);renderAnimal(sim.select('fawn-01'));toast('Juniper is near the old oak. Approach slowly.')});
+$('taskWater').addEventListener('click',()=>{const r=sim.serviceWater();toast(r.message);renderHud();$('taskWater').classList.add('complete');$('taskWater').querySelector('.task-check').textContent='✓'});
+$('taskCover').addEventListener('click',()=>{const r=sim.restoreCover();toast(r.message);renderHud();$('taskCover').classList.add('complete');$('taskCover').querySelector('.task-check').textContent='✓'});
+$('mapBtn').addEventListener('click',()=>toast('Reserve map: North Meadow · Clover Patch · Creekside · Field Station'));
+$('soundBtn').addEventListener('click',()=>toast('Soundscape controls are planned for the next field update.'));
+function renderHud(){const h=sim.habitat;$('healthScore').textContent=h.health+'%';$('waterScore').textContent=h.water+'%';$('coverScore').textContent=h.cover+'%';$('progressText').textContent=sim.restoration.toLocaleString()+' / 3,000';$('progressBar').style.width=(sim.restoration/3000*100)+'%';$('dayTime').textContent=sim.time;$('animalCount').textContent=sim.animals.filter(a=>a.stage!=='released').length;$('journalList').innerHTML=sim.log.slice(0,4).map(x=>'<li><time>'+x.time+'</time><span>'+x.text+'</span></li>').join('')}
+function frame(now){if(now-lastTick>12000){sim.tick(1);lastTick=now;renderHud()}requestAnimationFrame(frame)}
+renderAnimal(sim.selected());renderHud();requestAnimationFrame(frame);
 setTimeout(()=>$('loading').classList.add('done'),1250);
