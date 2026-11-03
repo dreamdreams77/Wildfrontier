@@ -34,9 +34,9 @@ jobs:
         shell: bash
         run: |
           test -s dist/index.html
-          grep -q '/Wildfrontier-/assets/.*\.js' dist/index.html
-          grep -q '/Wildfrontier-/assets/.*\.css' dist/index.html
-          while IFS= read -r asset; do test -s "dist$asset"; done < <(grep -oE '/Wildfrontier-/assets/[^" ]+\.(js|css)' dist/index.html | sed 's#^/Wildfrontier-##')
+          grep -q '/Wildfrontier/assets/.*\.js' dist/index.html
+          grep -q '/Wildfrontier/assets/.*\.css' dist/index.html
+          while IFS= read -r asset; do test -s "dist$asset"; done < <(grep -oE '/Wildfrontier/assets/[^" ]+\.(js|css)' dist/index.html | sed 's#^/Wildfrontier##')
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload production artifact
