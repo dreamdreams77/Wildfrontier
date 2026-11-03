@@ -6,13 +6,13 @@ import { makeRole } from './human.js';
 // 3D-rendered portraits and icons: every thumbnail in the interface (animal records, journal, build palette) is a
 // real render of the same models used in the world, lit like a small studio, instead of a flat glyph.
 export function createPortraits(renderer){
- const size=256;
+ const size=320;
  const rt=new THREE.WebGLRenderTarget(size,size,{samples:4});
  const scene=new THREE.Scene();
- scene.add(new THREE.HemisphereLight('#fff6e0','#6a7a58',1.6));
- const key=new THREE.DirectionalLight('#ffe8c0',2.6);key.position.set(-3,4,5);scene.add(key);
- const rim=new THREE.DirectionalLight('#a8c4ff',1.2);rim.position.set(4,2,-4);scene.add(rim);
- const floor=new THREE.Mesh(new THREE.CircleGeometry(3,32),new THREE.MeshStandardMaterial({color:'#7e9a62',roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+ scene.add(new THREE.HemisphereLight('#f5efe0','#394839',1.25));
+ const key=new THREE.DirectionalLight('#ffd9ad',3.0);key.position.set(-3.5,4.5,5);scene.add(key);
+ const rim=new THREE.DirectionalLight('#91b7d9',1.45);rim.position.set(4,2.5,-4);scene.add(rim);
+ const floor=new THREE.Mesh(new THREE.CircleGeometry(3,32),new THREE.MeshStandardMaterial({color:'#303a31',roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
  const cam=new THREE.PerspectiveCamera(32,1,.05,100);
  const cache=new Map();const canvas=document.createElement('canvas');canvas.width=canvas.height=size;const ctx=canvas.getContext('2d');
  const buf=new Uint8Array(size*size*4);
@@ -22,7 +22,7 @@ export function createPortraits(renderer){
   cam.position.set(c.x+Math.sin(yaw)*Math.cos(pitch)*d,c.y*aim+box.min.y*(1-aim)+Math.sin(pitch)*d*.9,c.z+Math.cos(yaw)*Math.cos(pitch)*d);cam.lookAt(c.x,box.min.y+sz.y*aim,c.z);
   floor.position.y=box.min.y-.01;floor.scale.setScalar(Math.max(.6,r*.7));
   const prevRT=renderer.getRenderTarget(),prevShadow=renderer.shadowMap.enabled;renderer.shadowMap.enabled=false;
-  renderer.setRenderTarget(rt);renderer.setClearColor('#a8c498',1);renderer.clear();renderer.render(scene,cam);
+  renderer.setRenderTarget(rt);renderer.setClearColor('#202a23',1);renderer.clear();renderer.render(scene,cam);
   renderer.readRenderTargetPixels(rt,0,0,size,size,buf);renderer.setRenderTarget(prevRT);renderer.shadowMap.enabled=prevShadow;
   scene.remove(obj);
   const img=ctx.createImageData(size,size);
@@ -31,7 +31,12 @@ export function createPortraits(renderer){
   for(let y=0;y<size;y++){const src=(size-1-y)*size*4,dst=y*size*4;for(let x=0;x<size;x++){const i=src+x*4,o=dst+x*4;img.data[o]=enc(buf[i]);img.data[o+1]=enc(buf[i+1]);img.data[o+2]=enc(buf[i+2]);img.data[o+3]=buf[i+3]}}
   ctx.putImageData(img,0,0);
   // round vignette so thumbnails read as portraits
-  ctx.globalCompositeOperation='destination-in';const g=ctx.createRadialGradient(size/2,size/2,size*.38,size/2,size/2,size*.5);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,size,size);ctx.globalCompositeOperation='source-over';
+  ctx.globalCompositeOperation='source-over';
+  const vg=ctx.createRadialGradient(size*.48,size*.42,size*.12,size*.5,size*.5,size*.72);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(.68,'rgba(0,0,0,.05)');
+  vg.addColorStop(1,'rgba(0,0,0,.46)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,size,size);
   return canvas.toDataURL('image/png');
  }
  function portrait(kind,{sex='male',young=false}={}){

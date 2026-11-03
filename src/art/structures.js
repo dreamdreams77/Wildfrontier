@@ -140,21 +140,21 @@ export function makeDeck(){
 }
 export function makeTrough(){const g=new THREE.Group();mk(g,[bx(1.8,.3,.65,{pos:[0,.4,0],color:[.7,.55,.4]}),bx(1.65,.04,.5,{pos:[0,.55,0],color:[.4,.55,.6]}),bx(.1,.4,.5,{pos:[-.7,.2,0]}),bx(.1,.4,.5,{pos:[.7,.2,0]})],mats.plank('#7a5a3a'));return g}
 export function makeSignpost(text='NORTH WOODLAND'){const g=new THREE.Group();mk(g,[post(0,0,1.9,.07)],mats.bark());const s=signMesh(text,1.3,.34);s.position.set(0,1.7,.08);g.add(s);const s2=signMesh('CREEK TRAIL',1.1,.3);s2.position.set(0,1.3,.08);s2.rotation.y=.2;g.add(s2);return g}
-export function makeBoardwalk(planks=9,len=1.65){const g=new THREE.Group();const list=[];for(let i=0;i<planks;i++)list.push(bx(len,.12,.58,{pos:[0,0,i*.68],color:[.9+.05*(i%2),.8,.7],uv:.6}));mk(g,list,mats.plank('#9b7951'));return g}
+export function makeBoardwalk(planks=9,len=1.65){const g=new THREE.Group();const list=[];for(let i=0;i<planks;i++)list.push(bx(len,.12,.58,{pos:[0,0,i*.68],color:[.9+.05*(i%2),.8,.7],uv:.6}));mk(g,list,mats.plank('#9b7951'));g.traverse(o=>{if(o.isMesh&&o.geometry?.attributes?.position?.count<220)o.castShadow=false});return g}
 
 // ---------------- Conservation installations ----------------
-export function makeNestBox(){const g=new THREE.Group();mk(g,[post(0,0,2.1,.05),bx(.42,.5,.38,{pos:[0,2.2,0],color:[.85,.7,.55]}),bx(.55,.06,.5,{pos:[0,2.5,0],rot:[.12,0,0],color:[.6,.45,.3]}),bx(.1,.1,.02,{pos:[0,2.25,.19],color:[.1,.07,.05]})],mats.plank('#8b6947'));return g}
-export function makeCameraTrap(){const g=new THREE.Group();mk(g,[post(0,0,1.4,.06),bx(.34,.26,.2,{pos:[0,1.3,.08],color:[.25,.28,.22]})],mats.plank('#5a6a4a'));mk(g,[xform(lathe([[.04,0],[.05,.04],[.03,.05]],{seg:8,color:()=>[.02,.02,.05]}),{pos:[0,1.32,.19],rot:[Math.PI/2,0,0]})],mats.plain());return g}
+export function makeNestBox(){const g=new THREE.Group();mk(g,[post(0,0,2.1,.05),bx(.42,.5,.38,{pos:[0,2.2,0],color:[.85,.7,.55]}),bx(.55,.06,.5,{pos:[0,2.5,0],rot:[.12,0,0],color:[.6,.45,.3]}),bx(.1,.1,.02,{pos:[0,2.25,.19],color:[.1,.07,.05]})],mats.plank('#8b6947'));g.traverse(o=>{if(o.isMesh)o.castShadow=false});return g}
+export function makeCameraTrap(){const g=new THREE.Group();mk(g,[post(0,0,1.4,.06),bx(.34,.26,.2,{pos:[0,1.3,.08],color:[.25,.28,.22]})],mats.plank('#5a6a4a'));mk(g,[xform(lathe([[.04,0],[.05,.04],[.03,.05]],{seg:8,color:()=>[.02,.02,.05]}),{pos:[0,1.32,.19],rot:[Math.PI/2,0,0]})],mats.plain());g.traverse(o=>{if(o.isMesh)o.castShadow=false});return g}
 export function makeHighlandReserve(){
  const g=new THREE.Group();const rocks=[];const r=rng(3);
  for(let i=0;i<8;i++){const m=makeRock(i+40,{size:1.3+(i%3)*.28});m.position.set(-3+(i%4)*1.8+(i>3?1:0),0,-2+Math.floor(i/4)*-1.5+r()*.4);m.scale.y=1.2;g.add(m)}
- const pool=new THREE.Mesh(new THREE.CircleGeometry(2.15,32),new THREE.MeshStandardMaterial({color:'#5f8b94',roughness:.15}));pool.rotation.x=-Math.PI/2;pool.position.set(2.4,.12,2.3);g.add(pool);
+ const pool=new THREE.Mesh(new THREE.CircleGeometry(2.15,24),new THREE.MeshStandardMaterial({color:'#5f8b94',roughness:.15}));pool.rotation.x=-Math.PI/2;pool.position.set(2.4,.12,2.3);g.add(pool);
  const reeds=makeReeds(3,10);for(let i=0;i<7;i++){const rd=reeds.clone();rd.position.set(2+Math.cos(i*.9)*2.3,0,2.3+Math.sin(i*.9)*2.1);g.add(rd)}
  const walk=makeBoardwalk(8,1.8);walk.position.set(-2,.34,2.1);walk.rotation.y=-.22;g.add(walk);
  for(let i=0;i<5;i++){const t=makeOak(i+20,{scale:.55+(i%3)*.1});t.position.set(-3.1+i*1.25,0,-2.8-(i%2)*.65);g.add(t)}
  const sg=signMesh('HIGHLAND MARSH',2.2,.5);sg.position.set(-2.2,1.5,3);g.add(sg);return g;
 }
-export function makeWetland(){const g=new THREE.Group();const pool=new THREE.Mesh(new THREE.CircleGeometry(2.6,28),new THREE.MeshStandardMaterial({color:'#5f8b94',roughness:.15}));pool.rotation.x=-Math.PI/2;pool.position.y=.1;g.add(pool);for(let i=0;i<18;i++){const a=i*Math.PI*2/18;const rd=makeReeds(i,6);rd.position.set(Math.cos(a)*2.7,0,Math.sin(a)*2.7);g.add(rd)}return g}
+export function makeWetland(){const g=new THREE.Group();const pool=new THREE.Mesh(new THREE.CircleGeometry(2.6,20),new THREE.MeshStandardMaterial({color:'#5f8b94',roughness:.15}));pool.rotation.x=-Math.PI/2;pool.position.y=.1;g.add(pool);for(let i=0;i<18;i++){const a=i*Math.PI*2/18;const rd=makeReeds(i,6);rd.position.set(Math.cos(a)*2.7,0,Math.sin(a)*2.7);g.add(rd)}return g}
 export function makeMeadowPatch(){const g=new THREE.Group();const r=rng(9);for(let i=0;i<22;i++){const b=makeBush(i,{scale:.35});b.position.set((i%6)*.52-1.3,0,Math.floor(i/6)*.72-1.2);g.add(b)}return g}
 
 // ---------------- Buildable items ----------------
@@ -185,6 +185,13 @@ export function makeBuildModel(type){
   case 'education':{const b=bx(3.4,1.8,2.6,{pos:[0,.9,0],color:[1,1,1],uv:.35}),roof=gable(3.4,2.6,1.0,{over:.4,y:1.8,uv:.4}),trim=[bx(.9,1.2,.05,{pos:[0,.6,1.32],color:[.3,.22,.15]})],gl=[bx(.7,.6,.04,{pos:[-1.1,1.05,1.32]}),bx(.7,.6,.04,{pos:[1.1,1.05,1.32]})];mk(g,[b],mats.plaster('#dccaa0'));mk(g,roof,mats.shingle('#7a5a3a'));mk(g,trim,mats.plank('#4a3220'));mk(g,gl,lamp.mat,{shadow:false});const sg=signMesh('EDUCATION',1.8,.4);sg.position.set(0,2.15,1.38);g.add(sg);break}
   default:g.add(makeRock(1));
  }
- g.traverse(o=>{if(o.isMesh){o.castShadow=o.castShadow&&!o.userData.water;o.receiveShadow=true}});
+ g.traverse(o=>{
+ if(!o.isMesh)return;
+ const p=o.geometry?.attributes?.position?.count||0;
+ const tiny=p<180;
+ const transparent=!!o.material?.transparent;
+ o.castShadow=!!o.castShadow&&!o.userData.water&&!tiny&&!transparent;
+ o.receiveShadow=!transparent;
+});
  return g;
 }

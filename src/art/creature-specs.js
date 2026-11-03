@@ -60,5 +60,182 @@ export const SPECS={
  turtle:{type:'turtle',k:2.6,L:.17,w:.075,h:.06,head:{r:.025,len:.05},legR:.014,speed:.13,
   coat:{back:'#6a6a3a',belly:'#c9b98a',dark:'#2a2a16',accent:'#d9a83a',seed:107},gait:{type:'crawl',freq:1.8,stride:.3,bob:0}},
 };
+
+Object.assign(SPECS.deer, {
+  L: 0.94,
+  bh: 0.21,
+  bw: 0.14,
+  legH: 0.64,
+  legR: 0.032,
+  neck: { len: 0.44, r: 0.072, up: 0.9 },
+  head: { len: 0.28, r: 0.073, snout: 0.56 },
+  ears: { type: 'oval', size: 0.14 },
+  coat: {
+    ...SPECS.deer.coat,
+    back: '#9f6b43',
+    belly: '#e8dbc2',
+    dark: '#6a4932',
+    muzzle: '#e8dac2'
+  }
+});
+
+Object.assign(SPECS.rabbit, {
+  L: 0.32,
+  bh: 0.1,
+  bw: 0.078,
+  hind: 1.72,
+  arch: 0.78,
+  ears: { type: 'long', size: 0.18 },
+  coat: {
+    ...SPECS.rabbit.coat,
+    back: '#978064',
+    belly: '#e9e0cf',
+    dark: '#4a3a2c'
+  }
+});
+
+Object.assign(SPECS.fox, {
+  L: 0.66,
+  bh: 0.12,
+  bw: 0.092,
+  legH: 0.27,   // kept at the original height: a fox must stay shorter than a lion (tests/art.test.js)
+  neck: { len: 0.135, r: 0.063, up: 0.5 },
+  head: { len: 0.225, r: 0.067, snout: 0.57 },
+  tail: {
+    ...SPECS.fox.tail,
+    len: 0.54,
+    r: 0.076,
+    color: '#bd6429',
+    tip: '#eee9dc'
+  },
+  ears: { type: 'point', size: 0.12 },
+  coat: {
+    ...SPECS.fox.coat,
+    back: '#bd6429',
+    belly: '#eee3cf',
+    dark: '#30221a'
+  }
+});
+
+Object.assign(SPECS.redWolf, {
+  L: 1.04,
+  bh: 0.19,
+  bw: 0.125,
+  legH: 0.57,
+  neck: { len: 0.3, r: 0.102, up: 0.54 },
+  head: { len: 0.31, r: 0.092, snout: 0.59 },
+  ears: { type: 'point', size: 0.14 },
+  coat: {
+    ...SPECS.redWolf.coat,
+    back: '#87503a',
+    belly: '#c8ad8d',
+    dark: '#34241d',
+    muzzle: '#d4bea0'
+  }
+});
+
+Object.assign(SPECS.bobcat, {
+  L: 0.75,
+  bh: 0.16,
+  bw: 0.115,
+  legH: 0.35,
+  head: { len: 0.195, r: 0.092, snout: 0.34 },
+  ears: { type: 'tuft', size: 0.1 },
+  coat: {
+    ...SPECS.bobcat.coat,
+    back: '#a87f58',
+    belly: '#dfd1ba',
+    dark: '#3b2b22'
+  }
+});
+
+Object.assign(SPECS.raccoon, {
+  L: 0.58,
+  bh: 0.145,
+  bw: 0.135,
+  tail: {
+    ...SPECS.raccoon.tail,
+    len: 0.34,
+    r: 0.07
+  },
+  coat: {
+    ...SPECS.raccoon.coat,
+    back: '#696b66',
+    belly: '#aaa99f',
+    dark: '#23221f'
+  }
+});
+
+Object.assign(SPECS.riverOtter, {
+  L: 0.84,
+  bh: 0.09,
+  bw: 0.085,
+  neck: { len: 0.11, r: 0.073, up: 0.16 },
+  tail: {
+    ...SPECS.riverOtter.tail,
+    len: 0.49,
+    r: 0.055
+  },
+  coat: {
+    ...SPECS.riverOtter.coat,
+    back: '#49392e',
+    belly: '#b9a992',
+    dark: '#251b15'
+  }
+});
+
+Object.assign(SPECS.beaver, {
+  L: 0.58,
+  bh: 0.14,
+  bw: 0.13,
+  tail: {
+    ...SPECS.beaver.tail,
+    len: 0.33,
+    r: 0.11
+  },
+  coat: {
+    ...SPECS.beaver.coat,
+    back: '#5c402e',
+    belly: '#79583f',
+    dark: '#2b1e17'
+  }
+});
+
+Object.assign(SPECS.owl, {
+  body: { L: 0.31, rx: 0.105, ry: 0.13 },
+  head: { r: 0.09, len: 0.1, round: true },
+  wing: { len: 0.28, chord: 0.12 },
+  coat: {
+    ...SPECS.owl.coat,
+    back: '#71583f',
+    belly: '#d0bea1',
+    dark: '#30241c'
+  }
+});
+
+Object.assign(SPECS.woodDuck, {
+  body: { L: 0.39, rx: 0.078, ry: 0.078 },
+  wing: { len: 0.23, chord: 0.075 },
+  coat: {
+    ...SPECS.woodDuck.coat,
+    back: '#214f48',
+    belly: '#ded1b7',
+    dark: '#142320'
+  }
+});
+
+Object.assign(SPECS.whoopingCrane, {
+  body: { L: 0.58, rx: 0.078, ry: 0.09 },
+  legH: 0.82,
+  neck: { len: 0.66, r: 0.029, up: 1.9, s: true },
+  wing: { len: 0.64, chord: 0.18, tipDark: true },
+  coat: {
+    ...SPECS.whoopingCrane.coat,
+    back: '#edeae2',
+    belly: '#f8f7f2',
+    dark: '#1b1a18'
+  }
+});
+
 export const KINDS=Object.keys(SPECS);
 export const specOf=kind=>SPECS[kind]||null;

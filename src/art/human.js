@@ -95,10 +95,10 @@ function build(look){
  rig.finish();
  const body=mergeGeometries(parts.map(g=>{g.deleteAttribute('uv');if(!g.attributes.color)paintColor(g,[1,1,1]);if(!g.attributes.skinIndex)bindRigid(g,0);return g}),false);
  body.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(body.attributes.position.count*2),2));
- const mesh=new THREE.SkinnedMesh(body,mats.cloth());mesh.name='body';mesh.add(rig.root);mesh.bind(rig.skeleton());mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=false;
+ const mesh=new THREE.SkinnedMesh(body,mats.cloth());mesh.name='body';mesh.add(rig.root);mesh.bind(rig.skeleton());mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=true;mesh.geometry.computeBoundingSphere();
  // eyes
  const eg=mergeGeometries([(()=>{const g=new THREE.SphereGeometry(S(.011),8,6);g.deleteAttribute('uv');paintColor(g,[.96,.96,.95]);return g})(),(()=>{const g=new THREE.SphereGeometry(S(.0075),8,6);g.deleteAttribute('uv');paintColor(g,[.04,.03,.03]);return xform(g,{pos:[0,0,S(.006)]})})()].map(g=>{g.deleteAttribute&&g.deleteAttribute('uv');return g}),false);
- const eyeMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.2});
+ const eyeMat=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.08,metalness:0,clearcoat:1,clearcoatRoughness:.06,envMapIntensity:1.2});
  const eyes=[-1,1].map(s=>{const m=new THREE.Mesh(eg,eyeMat);m.name=s<0?'eyeL':'eyeR';m.position.set(s*S(.036)*HK,PIV+(S(1.69)-PIV)*HK,S(.083)*HK).sub(new THREE.Vector3(...P.head));m.scale.setScalar(HK);return m});
  rig.map.head.add(...eyes);
  const group=new THREE.Group();group.add(mesh);group.userData.height=S(1.86)+(look.hat==='wide'?S(.12):0);
@@ -130,7 +130,7 @@ function controller(root,look){
   const br=Math.sin(T*1.9)*.008;b.chest.scale.set(1+br,1+br*1.4,1+br);
   const look2=Math.sin(T*.35)*.35*(1-m);b.head.rotation.y=look2+Math.sin(p*.5)*-.05*m;b.head.rotation.x=Math.sin(T*.5)*.04-.12*w+(-.25*st.photo);b.neck.rotation.y=look2*.4;
   b.hips.rotation.x=Math.sin(T*.4)*.01*(1-m);
-  st.nb-=dt;if(st.nb<=0){st.blink=.13;st.nb=2+Math.random()*4}st.blink=Math.max(0,st.blink-dt);const bs=st.blink>0?.1:1;for(const e of eyes)e.scale.y=damp(e.scale.y,bs,40,dt);
+  st.nb-=dt;if(st.nb<=0){st.blink=.13;st.nb=2+Math.random()*4}st.blink=Math.max(0,st.blink-dt);const bs=st.blink>0?.1:1;for(const e of eyes)if(e)e.scale.y=damp(e.scale.y,bs,40,dt);
  }};
 }
 export function makeHuman(look){
@@ -138,6 +138,7 @@ export function makeHuman(look){
  if(!cache.has(key))cache.set(key,build(look));
  const proto=cache.get(key);
  const group=SkeletonUtils.clone(proto.group);
+ group.traverse(o=>{if(!o.isMesh)return;const p=o.geometry?.attributes?.position?.count||0;if(p<180)o.castShadow=false});
  group.userData.rig=controller(group,look);group.userData.height=proto.group.userData.height;group.userData.isHuman=true;
  return group;
 }

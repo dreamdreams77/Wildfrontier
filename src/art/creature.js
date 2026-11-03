@@ -13,8 +13,8 @@ const dirOf=(up)=>V(0,up,1).normalize();
 const cache=new Map();
 
 function eyeGeo(r,iris){
- const parts=[];const ball=new THREE.SphereGeometry(r,12,10);paintColor(ball,[.06,.05,.05]);parts.push(ball);
- const ir=new THREE.SphereGeometry(r*.72,12,10);paintColor(ir,iris);parts.push(xform(ir,{pos:[0,0,r*.34]}));
+ const parts=[];const ball=new THREE.SphereGeometry(r,14,12);paintColor(ball,[.06,.05,.05]);parts.push(ball);
+ const ir=new THREE.SphereGeometry(r*.72,14,12);paintColor(ir,iris);parts.push(xform(ir,{pos:[0,0,r*.34]}));
  const pu=new THREE.SphereGeometry(r*.42,10,8);paintColor(pu,[.02,.02,.02]);parts.push(xform(pu,{pos:[0,0,r*.62],scale:[.9,1.2,.7]}));
  const hl=new THREE.SphereGeometry(r*.17,8,6);paintColor(hl,[1,1,1]);parts.push(xform(hl,{pos:[r*.28,r*.3,r*.9]}));
  return mergeGeometries(parts.map(g=>{g.deleteAttribute('uv');return g}),false);
@@ -165,7 +165,7 @@ function buildQuad(kind,spec,opts){
  if(spec.horn){const hg=loft([{p:[0,hs[3].y+hR*.15,hs[3].z-hR*.05],rx:hR*.2},{p:[0,hs[3].y+hR*.5,hs[3].z+hR*.1],rx:hR*.12},{p:[0,hs[3].y+hR*.95,hs[3].z+hR*.2],rx:hR*.02}],{radial:10,rings:12,cap0:2,cap1:2,color:({t})=>lerpC(rgb('#4b463e'),rgb('#8a8272'),t*.6)});bindRigid(hg,head0);limbParts.push(hg)}
  if(spec.horns==='ossicones')for(const s of [-1,1]){const top=hc.y+hR*.95;const g1=loft([{p:[s*hR*.35,top-hR*.1,hc.z-hR*.1],rx:hR*.12},{p:[s*hR*.3,top+hR*.8,hc.z-hR*.15],rx:hR*.1}],{radial:8,rings:6,cap0:1,cap1:1,color:()=>rgb('#dcc08a')});const k=blobGeo(hR*.16,hR*.16,hR*.16,{seg:8,low:[.18,.12,.08],high:[.3,.2,.12]});const g2=xform(k,{pos:[s*hR*.3,top+hR*.9,hc.z-hR*.15]});bindRigid(g1,head0);bindRigid(g2,head0);limbParts.push(g1,g2)}
  // eyes (separate meshes so they can blink)
- const eg=eyeGeo(Math.max(hR*.165,.009*k),rgb(spec.eye));
+ const eg=eyeGeo(Math.max(hR*.175,.009*k),rgb(spec.eye));
  const eyes=[];const eyeMat=eyeMaterial();
  const eyeBase=hc.clone().addScaledVector(hd,hLen*.3);
  const eyeMeshes=[-1,1].map(s=>{const m=new THREE.Mesh(eg,eyeMat);m.name=s<0?'eyeL':'eyeR';m.position.set(s*hR*.66,eyeBase.y+hR*.28,eyeBase.z+hR*.12).sub(n2);m.rotation.y=s*.6;m.castShadow=false;return m});
@@ -178,7 +178,7 @@ function buildQuad(kind,spec,opts){
  const geo=mergeGeometries([torso,limbs],true);
  rig.finish();
  const mesh=new THREE.SkinnedMesh(geo,[torsoMat,limbMaterial()]);mesh.name='body';mesh.add(rig.root);mesh.bind(rig.skeleton());mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=false;
- const group=new THREE.Group();group.add(mesh);
+ const group=new THREE.Group();group.add(mesh);mesh.geometry.computeBoundingSphere();mesh.frustumCulled=true;
  rig.map.head.add(...eyeMeshes);
  group.userData.kind=kind;
  return {group,height:Math.max(yR,yC+nd.y*nLen+hd.y*hLen+hR),length:L};
