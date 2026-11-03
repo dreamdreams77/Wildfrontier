@@ -91,8 +91,8 @@ test('animal selection remains stable for unknown IDs',()=>{
 
 test('the reserve roster includes thirteen distinct wildlife species',()=>{
  const sim=createSimulation();
- assert.equal(sim.animals.length,16);
- assert.deepEqual([...new Set(sim.animals.map(a=>a.kind))].sort(),['beaver','bird','cardinal','deer','fox','owl','rabbit','raccoon','redWolf','skunk','squirrel','turtle','whoopingCrane']);
+ assert.equal(sim.animals.length,18);
+ assert.deepEqual([...new Set(sim.animals.map(a=>a.kind))].sort(),['beaver','bird','bobcat','cardinal','deer','fox','owl','rabbit','raccoon','redWolf','riverOtter','skunk','squirrel','turtle','whoopingCrane']);
  for(const id of ['raccoon-01','beaver-01','skunk-01','turtle-01','cardinal-01'])assert.ok(sim.animals.some(a=>a.id===id));
  assert.ok(sim.animals.some(a=>a.name==='Ember'&&a.kind==='fox'));
  assert.ok(sim.animals.some(a=>a.name==='Moss'&&a.kind==='owl'));
@@ -157,9 +157,12 @@ test('nest box installation improves breeding habitat once',()=>{
 });
 
 
-test('endangered red wolves and whooping cranes are represented',()=>{const sim=createSimulation();assert.ok(sim.animals.some(a=>a.kind==='redWolf'&&a.species.includes('critically endangered')));assert.ok(sim.animals.some(a=>a.kind==='whoopingCrane'&&a.species.includes('endangered')));assert.equal(sim.animals.length,16)});
+test('endangered red wolves and whooping cranes are represented',()=>{const sim=createSimulation();assert.ok(sim.animals.some(a=>a.kind==='redWolf'&&a.species.includes('critically endangered')));assert.ok(sim.animals.some(a=>a.kind==='whoopingCrane'&&a.species.includes('endangered')));assert.equal(sim.animals.length,18)});
 test('feeding schedules validate time and prohibit feeding free-ranging wildlife',()=>{const sim=createSimulation();assert.equal(sim.scheduleFeed('wolf-01','07:30').ok,true);assert.equal(sim.feedingSchedule['wolf-01'],'07:30');assert.equal(sim.scheduleFeed('wolf-01','25:90').ok,false);assert.equal(sim.scheduleFeed('rabbit-01','08:00').ok,false)});
 test('endangered breeding programme requires habitat readiness and genetic review',()=>{const sim=createSimulation();assert.equal(sim.startBreedingProgram().ok,true);assert.equal(sim.breedingProgram.active,true);assert.equal(sim.breedingProgram.geneticReview,true);assert.equal(sim.startBreedingProgram().ok,false)});
 
 
+test('river otter and bobcat join the roster with species-specific field notes',()=>{const sim=createSimulation();const otter=sim.animals.find(a=>a.id==='otter-01'),bobcat=sim.animals.find(a=>a.id==='bobcat-01');assert.equal(otter.kind,'riverOtter');assert.match(otter.routine,/fish|creek/i);assert.equal(bobcat.kind,'bobcat');assert.match(bobcat.routine,/twilight|cover/i);assert.equal(sim.startMission('otter').ok,true);sim.select('otter-01');assert.equal(sim.act('observe').ok,true);assert.equal(sim.completeMission('otter').ok,true)});
+test('feeding schedules fire when a large tick crosses the scheduled minute',()=>{const sim=createSimulation();sim.scheduleFeed('wolf-01','07:30');const wolf=sim.animals.find(a=>a.id==='wolf-01');const before=wolf.feedings;sim.tick(70);assert.equal(wolf.feedings,before+1);assert.ok(wolf.nutrition>74)});
+test('feeding schedules do not fire twice on repeated ticks in the same day',()=>{const sim=createSimulation();sim.scheduleFeed('wolf-01','07:30');const wolf=sim.animals.find(a=>a.id==='wolf-01');sim.tick(60);const after=wolf.feedings;sim.tick(30);assert.equal(wolf.feedings,after)});
 test('feeding and rest field actions create welfare changes for recovering wildlife',()=>{const sim=createSimulation();sim.select('fawn-01');const a=sim.selected();a.stage='rehabilitating';a.nutrition=40;a.energy=30;a.stress=50;assert.equal(sim.act('feed').ok,true);assert.ok(a.nutrition>40);assert.equal(sim.act('quiet').ok,true);assert.equal(a.sleeping,true);assert.ok(a.stress<50)});
