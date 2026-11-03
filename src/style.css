@@ -45,3 +45,15 @@
 .journal-mini{max-height:128px;overflow:hidden}
 @media(max-width:760px){.animal-profile{padding:9px 13px;gap:8px}.animal-profile b{font-size:9px}.day-chip{font-size:8px;letter-spacing:.3px}.weather{display:none}}
 @media(max-width:420px){.animal-profile{gap:7px}.animal-profile small{font-size:7px}.animal-profile b{font-size:8px}.day-chip{max-width:160px;white-space:nowrap;overflow:hidden}}
+
+/* Ranger, species roster and expedition board. */
+.species-roster{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;padding:8px 0 2px}
+.species-roster span{font:8px 'DM Mono';color:#cbd1bd;white-space:nowrap}
+.mission-list{display:grid;gap:6px;margin-top:8px}
+.mission{display:grid;grid-template-columns:15px 1fr;gap:7px;align-items:start;width:100%;padding:8px;background:#ffffff08;border:1px solid var(--line);border-radius:4px;text-align:left;color:#d6dacb;cursor:pointer}
+.mission b{display:block;font:9px 'DM Sans';font-weight:600;line-height:1.3}
+.mission small{display:block;margin-top:3px;font:8px 'DM Mono';line-height:1.45;color:#a7ae9d}
+.mission-mark{font:11px 'DM Mono';color:#aab98a}
+.mission.active{border-color:#bdcc9170;background:#bdcc9110}
+.mission.complete{opacity:.55}
+@media(max-width:760px){.species-roster{gap:5px}.species-roster span{font-size:7px}.mission{padding:7px}.mission small{font-size:7px}}
