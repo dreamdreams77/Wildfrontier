@@ -1,5 +1,6 @@
 import { SPECIES, FOODS, stageOf, welfareOf, MEDICINE_PRICE } from './sanctuary.js';
 import { ROLES } from './operations.js';
+import { EQUIPMENT } from './equipment.js';
 
 // Safari sanctuary management panel: overview, residents, supplies and the breeding programme.
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -45,9 +46,10 @@ export function mountSanctuaryUI({sim,sanct,ops,world,toast,afterChange,focusAni
 
  function supplies(sum){
   const rows=Object.entries(FOODS).map(([k,f])=>'<div class="s-supply"><span>'+f.icon+'</span><div><b>'+esc(f.label)+'</b><small>'+sum.stock[k]+' in stock · '+f.price+' each</small></div><button data-act="buy" data-food="'+k+'" data-qty="5">+5</button><button data-act="buy" data-food="'+k+'" data-qty="20">+20</button></div>').join('');
+  const equip='<h3>Rescue equipment</h3>'+Object.entries(EQUIPMENT).map(([k,e])=>'<div class="s-supply"><span>'+e.icon+'</span><div><b>'+esc(e.label)+'</b><small>'+(sum.stock[k]||0)+' in stock · '+e.price+(e.consumed?' each · used up':' · reusable')+' · '+esc(e.blurb)+'</small></div><button data-act="buy" data-food="'+k+'" data-qty="1">+1</button><button data-act="buy" data-food="'+k+'" data-qty="3">+3</button></div>').join('');
   const med='<div class="s-supply"><span>💉</span><div><b>Veterinary supplies</b><small>'+sum.stock.medicine+' in stock · '+MEDICINE_PRICE+' each</small></div><button data-act="buy" data-food="medicine" data-qty="1">+1</button><button data-act="buy" data-food="medicine" data-qty="5">+5</button></div>';
   const diets='<h3>Who eats what</h3><ul class="s-diets">'+Object.values(SPECIES).map(s=>'<li>'+s.emoji+' <b>'+esc(s.common)+'</b> — '+s.foods.map(f=>FOODS[f].short).join(', ')+'</li>').join('')+'</ul>';
-  return '<p class="s-muted">Grants arrive each day based on reputation and welfare. Spend them on food, medicine and staff. Treats such as produce are enrichment, not a full diet.</p>'+rows+med+diets;
+  return '<p class="s-muted">Grants arrive each day based on reputation and welfare. Spend them on food, medicine and staff. Treats such as produce are enrichment, not a full diet.</p>'+rows+med+equip+diets;
  }
 
  function breeding(sum){

@@ -72,6 +72,13 @@ Wild Frontier is a hand-painted 3D world. Nothing in the scene is a flat sprite 
 - **Movement**: smooth acceleration and braking, running when fleeing, drinking, foraging, grooming, scratching and play-bow animations in the rig, plus individual size variation.
 - **Enrichment**: climbing frame, digging pit, puzzle feeder, scratching post and scent station, with species-specific suitability. Boredom is a welfare stat that builds, causes stress and is relieved when animals actually use the objects. Water features count as swimming enrichment for swimmers.
 
+## Rescues and dynamic missions
+- **Rescue cases** (`src/rescue.js`): reports arrive by radio, scaled to reputation, up to two at a time, across four difficulty tiers (stunned songbird to wounded predator to a storm-stranded pair), with deadlines, equipment requirements (net, crate, first aid, sedation) and multi-animal cases such as an orphaned litter.
+- The chain is playable end to end: accept the call, follow a trail of clue markers in the world (the animal is hidden until you find it), get close to assess, choose an approach (quiet, net or sedation, each with different odds, stress and cost), secure each animal, load and transport it, rehabilitate and release. Failures have consequences: a botched capture hurts the animal and it bolts, a missed deadline loses the animal and costs reputation. Good handling pays more.
+- **Equipment** is bought in Supplies; durable gear is kept, consumables are used up. Older saves migrate automatically.
+- **Director** (`src/director.js`): missions raised from real simulation state and completed by real conditions: treat a sick animal, restock supplies, welcome a newborn, improve an inadequate habitat, protect a species from visitors, document a rare species, turn welfare around. They expire if ignored.
+- **Mission journal** with rescues, operations and history, a badge on the HUD, search areas and clues on the 3D world and the map.
+
 ## Run locally
 ```bash
 npm install

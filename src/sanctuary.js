@@ -4,6 +4,7 @@
 
 import { ensureProfile } from './ai.js';
 import { enrichmentFit, BOREDOM_RELIEF, STRESS_RELIEF } from './enrichment.js';
+import { EQUIPMENT, DEFAULT_EQUIPMENT } from './equipment.js';
 
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
 const DAY=1440;
@@ -108,7 +109,7 @@ export function createSanctuary(sim,options={}){
  const rng=options.rng||Math.random;
  const state={
   minutes:400,day:3,funds:1500,credits:10,reputation:12,waterLevel:90,
-  stock:{meat:28,hay:40,browse:34,produce:14,aquatic:16,medicine:4},
+  stock:{meat:28,hay:40,browse:34,produce:14,aquatic:16,medicine:4,...DEFAULT_EQUIPMENT},
   pregnancies:[],familyTree:[],births:0,transfers:0,imports:0,serial:0,lastReport:null,
  };
  const events=[];
@@ -132,11 +133,11 @@ export function createSanctuary(sim,options={}){
  const accepts=(a,food)=>SPECIES[a.kind].foods.includes(food);
 
  function buyFood(food,qty=1){
-  if(!(food in FOODS)&&food!=='medicine')return {ok:false,message:'Unknown supply.'};
-  qty=Math.max(1,Math.floor(qty));const price=(food==='medicine'?MEDICINE_PRICE:FOODS[food].price)*qty;
+  if(!(food in FOODS)&&food!=='medicine'&&!(food in EQUIPMENT))return {ok:false,message:'Unknown supply.'};
+  qty=Math.max(1,Math.floor(qty));const unit=food==='medicine'?MEDICINE_PRICE:food in EQUIPMENT?EQUIPMENT[food].price:FOODS[food].price;const price=unit*qty;
   if(state.funds<price)return {ok:false,message:'Not enough funds: '+price+' needed.'};
-  state.funds-=price;state.stock[food]+=qty;
-  return {ok:true,message:'Bought '+qty+' × '+(food==='medicine'?'veterinary supplies':FOODS[food].label.toLowerCase())+' for '+price+'.'};
+  state.funds-=price;state.stock[food]=(state.stock[food]||0)+qty;
+  return {ok:true,message:'Bought '+qty+' × '+(food==='medicine'?'veterinary supplies':food in EQUIPMENT?EQUIPMENT[food].label.toLowerCase():FOODS[food].label.toLowerCase())+' for '+price+'.'};
  }
 
  function feed(id,food){
@@ -334,7 +335,7 @@ function useEnrichment(id,type){
  }
  function restore(data){
   if(!data||data.v!==1)return false;
-  Object.assign(state,data.state);
+  Object.assign(state,data.state);state.stock={meat:0,hay:0,browse:0,produce:0,aquatic:0,medicine:0,...DEFAULT_EQUIPMENT,...(data.state.stock||{})};   // migrate older saves that predate equipment
   for(const h of hooks)if(h.key&&h.restore&&data.ext&&data.ext[h.key])h.restore(data.ext[h.key]);
   const keep=sim.animals.filter(a=>!a.managed);sim.animals.length=0;sim.animals.push(...keep,...data.animals.map(a=>({...a})));
   return true;

@@ -56,10 +56,13 @@ export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJo
   for(const a of world.animals){const kind=a.userData.kind;const e=journal.state.entries[kind];if(!e||e.first===null)continue;const x=a.position.x,z=a.position.z;
    const seen=known.some(l=>Math.hypot(l.x-x,l.z-z)<12)||Math.hypot(world.ranger.position.x-x,world.ranger.position.z-z)<10;if(!seen)continue;
    const rec=journal.info(kind);c.fillText(rec?rec.emoji:'🐾',MX(x),MZ(z)+5)}
+  // rescue reports: radio calls are always shown, even in unexplored fog
+  for(const mk of markerSrc()){if(mk.type==='search'){c.strokeStyle='#ffd35a';c.lineWidth=3;c.beginPath();c.arc(MX(mk.x),MZ(mk.z),mk.radius*W/(B.maxX-B.minX),0,7);c.stroke();c.font='18px sans-serif';c.fillStyle='#fff';c.fillText('❗',MX(mk.x),MZ(mk.z)+6)}else if(mk.type==='clue'&&!mk.found){c.fillStyle='#ff9a5a';c.beginPath();c.arc(MX(mk.x),MZ(mk.z),4,0,7);c.fill()}}
   // ranger
   const rx=MX(world.ranger.position.x),rz=MZ(world.ranger.position.z);c.fillStyle='#fff';c.strokeStyle='#1c2b20';c.lineWidth=3;c.beginPath();c.arc(rx,rz,7,0,Math.PI*2);c.fill();c.stroke();c.font='600 10px DM Mono, monospace';c.fillStyle='#fff';c.strokeText('YOU',rx,rz-12);c.fillText('YOU',rx,rz-12);
  }
  let opsItems=()=>[];function ops_items(){return opsItems()}
+ let markerSrc=()=>[];
  function mapHtml(){
   const known=LANDMARKS.filter(l=>journal.state.landmarks[l.id]);
   return '<canvas id="mapCanvas" width="'+W+'" height="'+H+'" class="map-canvas"></canvas><p class="s-muted">Walk to new places to uncover the map. '+known.length+'/'+LANDMARKS.length+' places discovered. Discovered animals appear where you can currently see them.</p><h3>Fast travel</h3><div class="s-species">'+known.map(l=>'<button data-m="go" data-id="'+l.id+'"><span>'+l.emoji+'</span><b>'+esc(l.label)+'</b><small>'+(l.safari?'Safari':'Woodland')+'</small></button>').join('')+'</div>';
@@ -109,5 +112,5 @@ export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJo
  }
  function onPhotoClick(e){const t=e.target.closest('[data-p]');if(!t)return;const a=t.dataset.p;if(a==='close')exitPhoto();else if(a==='zin')setZoom(zoom+.5);else if(a==='zout')setZoom(zoom-.5);else if(a==='shot')shoot()}
 
- return {openJournal,openMap,togglePhoto,close,exitPhoto,render,isPhoto:()=>!!photoHud,setItemsSource:fn=>{opsItems=fn}};
+ return {openJournal,openMap,togglePhoto,close,exitPhoto,render,isPhoto:()=>!!photoHud,setItemsSource:fn=>{opsItems=fn},setMarkersSource:fn=>{markerSrc=fn}};
 }

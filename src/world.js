@@ -87,9 +87,18 @@ export function createWorld(container){
   x.position.set(spawn[0],0,spawn[1]);scene.add(x);
   const u=x.userData;u.id=data.id;u.name=data.name;u.kind=kind;u.home=new THREE.Vector3(spawn[0],0,spawn[1]);u.wanderTarget=new THREE.Vector3(spawn[0],0,spawn[1]);
   u.aiTimer=2+Math.random()*2;u.forageTimer=2+Math.random()*4;u.animation='idle';u.animationTime=0;u.description='A wild '+kind+' is moving through its natural habitat. Observe quietly from a respectful distance.';u.condition='HEALTHY';u.location=WHERE[kind]||(data.location?String(data.location).toUpperCase():'RESERVE');
-  const vh=(()=>{let h=2166136261;for(const c of String(data.id)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0)/4294967296})();const vary=.95+vh*.1;u.radius=data.managed?Math.max(3.4,profileOf(kind).radius):profileOf(kind).radius;u.vel=0;u.baseScale=vary;
+  const vh=(()=>{let h=2166136261;for(const c of String(data.id)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0)/4294967296})();const vary=.95+vh*.1;u.radius=data.managed?Math.max(3.4,profileOf(kind).radius):profileOf(kind).radius;u.vel=0;u.baseScale=vary;if(data.hidden){x.visible=false;u.hidden=true}
   x.scale.setScalar((data.scale||(data.juvenile?.62:1))*vary);u.juvenile=!!data.juvenile;animals.push(x);return true;
  }
+ function revealAnimal(id){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.hidden=false;a.visible=true;return true}
+ function hideAnimal(id,pos){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.hidden=true;a.visible=false;if(pos){a.position.set(pos[0],0,pos[1]);a.userData.home.set(pos[0],0,pos[1])}return true}
+ // search areas and clues for rescue cases
+ const markerGroup=new THREE.Group();scene.add(markerGroup);let markerKey='';
+ function setMarkers(list){const key=JSON.stringify(list.map(m=>[m.id,m.type,Math.round(m.x),Math.round(m.z),m.found?1:0]));if(key===markerKey)return;markerKey=key;while(markerGroup.children.length){const c=markerGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+  for(const m of list){const g=new THREE.Group();g.position.set(m.x,0,m.z);
+   if(m.type==='search'){const ring=new THREE.Mesh(new THREE.RingGeometry(m.radius-.18,m.radius,48),new THREE.MeshBasicMaterial({color:'#ffd35a',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.1;g.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,16,10,1,true),new THREE.MeshBasicMaterial({color:'#ffd35a',transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));beam.position.y=8;g.add(beam)}
+   else{const dot=new THREE.Mesh(new THREE.CircleGeometry(.55,20),new THREE.MeshBasicMaterial({color:m.found?'#8aa07a':'#ff9a5a',transparent:true,opacity:m.found?.35:.85,depthWrite:false}));dot.rotation.x=-Math.PI/2;dot.position.y=.12;g.add(dot);if(!m.found){const pip=new THREE.Mesh(new THREE.ConeGeometry(.16,.5,8),new THREE.MeshBasicMaterial({color:'#ff9a5a'}));pip.position.y=1.1;pip.rotation.x=Math.PI;g.add(pip)}}
+   markerGroup.add(g)}}
  function removeAnimal(id){const i=animals.findIndex(a=>a.userData.id===id);if(i<0)return false;const [a]=animals.splice(i,1);scene.remove(a);return true}
 
  const _v=new THREE.Vector3(),_d=new THREE.Vector3();const damp=(c,tg,r,dt)=>c+(tg-c)*(1-Math.exp(-r*dt));
@@ -113,6 +122,7 @@ export function createWorld(container){
   const mind=u.mind||(u.mind=brain.newMind());let moving=false,swim=false,flying=false,anim=u.animation;
   const resting=u.sleeping||u.rescuePose||u.animation==='rescue'||u.animation==='rest';
   const stats=(hooks.stats&&hooks.stats(u.id))||{};
+  if(u.hidden){u.rig.update(dt,{moving:false,anim:'idle',sleeping:false});return}
   if(u.destination){
    _d.copy(u.destination).sub(a.position);_d.y=0;
    if(_d.length()>.12){_d.normalize();a.position.addScaledVector(_d,dt*(u.recovery?.85:1.15));turnTo(a,Math.atan2(_d.x,_d.z),9,dt);moving=true}
@@ -209,6 +219,6 @@ export function createWorld(container){
  animate();
  return {scene,camera,renderer,animals,ranger,addAnimal,removeAnimal,addBuildItem,updateBuildItem,removeBuildItem,selectBuildItem,setBuildMode,setPhotoMode,setZoom,photoSubjects,capture,syncStaff,setVisitors,nearResearchCentre,focusResearchCentre(){target.set(-21,0,-7);cameraUpdate()},nearClinic(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,5))<6.5},focus(x,z){target.set(x,0,z);cameraUpdate()},setAnimalStage,setAnimalState,setAnimalAction,setEnvironment,
   setConservationProject(name){if(name==='nestBoxes')art.nestBoxes.visible=true;if(name==='riparian')art.willow.visible=true;if(name==='cameraTraps')art.cameraTraps.visible=true;if(name==='wetlandExpansion')art.wetland.visible=true;if(name==='meadowCorridor')art.meadow.visible=true;if(name==='highlandReserve')art.highland.visible=true},
-  setAIPoints(p){dynamicPoints={water:p.water||[],shelter:p.shelter||[],food:p.food||[],enrich:p.enrich||[]};cachedPoints=pointsFor()},setAIHooks(h){Object.assign(hooks,h)},minds:()=>animals.map(a=>({id:a.userData.id,kind:a.userData.kind,behaviour:a.userData.mind&&a.userData.mind.behaviour,fear:a.userData.mind&&a.userData.mind.fear})),
+  setMarkers,revealAnimal,hideAnimal,setAIPoints(p){dynamicPoints={water:p.water||[],shelter:p.shelter||[],food:p.food||[],enrich:p.enrich||[]};cachedPoints=pointsFor()},setAIHooks(h){Object.assign(hooks,h)},minds:()=>animals.map(a=>({id:a.userData.id,kind:a.userData.kind,behaviour:a.userData.mind&&a.userData.mind.behaviour,fear:a.userData.mind&&a.userData.mind.fear})),
   setConservationProgress,pick,perf,get tier(){return governor.tier},setQuality(n){governor.set(n);try{localStorage.setItem('wildfrontier.quality',n)}catch{}},art,renderFrame};
 }
