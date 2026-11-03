@@ -57,3 +57,10 @@
 .mission.active{border-color:#bdcc9170;background:#bdcc9110}
 .mission.complete{opacity:.55}
 @media(max-width:760px){.species-roster{gap:5px}.species-roster span{font-size:7px}.mission{padding:7px}.mission small{font-size:7px}}
+
+/* Field ecology readout and treatment-wing task feedback. */
+.ecology-mini{display:grid;grid-template-columns:1fr auto;gap:4px 8px;padding:9px 0 2px}
+.ecology-mini b{font:8px 'DM Mono';letter-spacing:1px;color:#aeb99b}
+.ecology-mini span{font:10px 'DM Mono';color:#d4dfae}
+.ecology-mini small{grid-column:1/3;font:8px 'DM Mono';line-height:1.4;color:#9ca994}
+@media(max-width:760px){.ecology-mini{padding:7px 0 1px}.ecology-mini b,.ecology-mini small{font-size:7px}}
