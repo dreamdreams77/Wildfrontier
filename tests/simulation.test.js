@@ -257,3 +257,11 @@ test('migration telemetry brings a visible seasonal flock into the reserve and o
  sim.select('migrant-01');assert.equal(sim.act('observe').ok,true);
  assert.equal(sim.completeMission('migration-flock').ok,true);
 });
+
+
+test('highland reserve unlock requires habitat modelling and wetland expansion, then establishes a heron pair',()=>{
+ const sim=createSimulation();sim.installCameraTraps();sim.tick(180);sim.completeMission('camera');sim.enrichHabitat();sim.conductPollinatorSurvey();
+ for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(id)}
+ sim.startBreedingProgram();assert.equal(sim.runResearchProject('highland').ok,false);assert.equal(sim.runResearchProject('habitat').ok,true);assert.equal(sim.runResearchProject('wetland').ok,true);assert.equal(sim.runResearchProject('highland').ok,true);
+ const herons=sim.animals.filter(a=>a.kind==='greatBlueHeron');assert.equal(herons.length,2);assert.deepEqual(herons.map(a=>a.habitatPosition),[[16,-11],[13,-14]]);assert.equal(sim.missions.find(m=>m.id==='heron-survey').status,'available');assert.equal(sim.runResearchProject('highland').ok,false);
+});
