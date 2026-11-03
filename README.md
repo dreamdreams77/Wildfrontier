@@ -62,3 +62,9 @@ The goal is a tactile miniature world: soft forms, imperfect silhouettes, warm d
 3. Deeper food-web and population dynamics
 4. More detailed animal rigs, rescue equipment and rehabilitation interiors
 5. Save/load progression and longer-term seasonal ecology
+
+
+### Field research expansion
+- Passive pine-corridor camera traps unlock a delayed evidence-review assignment after three simulated hours, rewarding patient, non-invasive wildlife monitoring.
+- A prepared meadow can be surveyed for native bees, butterflies and hoverflies; the transect increases pollinator activity, biodiversity and the reserve research score.
+- Long simulation steps now process every crossed weather, season and ecosystem interval rather than silently dropping elapsed cycles.
