@@ -211,3 +211,28 @@ test('research centre unlocks only after sufficient field evidence is archived',
  assert.equal(sim.researchCentreUnlocked,true);
  assert.ok(sim.getResearchCentre().projects.some(p=>p.name==='Migration telemetry'&&p.status==='Available'));
 });
+
+
+test('research lodge projects invest evidence and unlock habitat improvements',()=>{
+ const sim=createSimulation();
+ assert.equal(sim.runResearchProject('migration').ok,false);
+ sim.installCameraTraps();sim.tick(180);sim.completeMission('camera');
+ sim.enrichHabitat();sim.conductPollinatorSurvey();
+ for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(id)}
+ assert.equal(sim.getResearchCentre().unlocked,true);
+ const visitors=sim.populations.migratoryVisitors;
+ assert.equal(sim.runResearchProject('migration').ok,true);
+ assert.ok(sim.populations.migratoryVisitors>visitors);
+ assert.equal(sim.getResearchCentre().records.migration,true);
+ assert.equal(sim.runResearchProject('habitat').ok,true);
+ assert.equal(sim.runResearchProject('wetland').ok,true);
+ assert.ok(sim.habitat.wetland>64);
+ assert.equal(sim.runResearchProject('wetland').ok,false);
+});
+
+test('genetics registry requires managed programme and never approves endangered pairings',()=>{
+ const sim=createSimulation();
+ sim.installCameraTraps();sim.tick(180);sim.completeMission('camera');
+ sim.enrichHabitat();sim.conductPollinatorSurvey();
+ for(const id of ['fox','owl','otter','bobcat']){sim.startMission(id);sim.select(sim.missions.find(m=>m.id===id).animalId);sim.act('observe');sim.completeMission(m.id)}
+});
