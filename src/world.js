@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
 const palette={moss:mat('#78885c'),moss2:mat('#94a36e'),dark:mat('#425b43'),bark:mat('#68513b'),bark2:mat('#806345'),leaf:mat('#526f4d'),leaf2:mat('#718b58'),stone:mat('#8b8a76'),cream:mat('#e5d9b7'),deer:mat('#a9784f'),deerLight:mat('#d7b78a'),black:mat('#342f29'),water: new THREE.MeshStandardMaterial({color:'#6f9990',roughness:.25,metalness:.12}),flower:mat('#d9b6a0')};
-const sphere=new THREE.SphereGeometry(1,18,14);
+const sphere=new THREE.SphereGeometry(1,18,14);const canopyGeo=new THREE.DodecahedronGeometry(1,1);
 function blob(parent,material,pos,scale){const m=new THREE.Mesh(sphere,material);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function cylinder(parent,material,a,b,r1,r2=r1,segments=9){const d=new THREE.Vector3(...b).sub(new THREE.Vector3(...a));const m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),segments),material);m.position.copy(new THREE.Vector3(...a).add(new THREE.Vector3(...b)).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function makeTree(scene,x,z,s=1,seed=0){
@@ -11,7 +11,7 @@ function makeTree(scene,x,z,s=1,seed=0){
  cylinder(g,palette.bark,[0,0,0],[0,2.45,0],.25,.105,11);
  for(let i=0;i<5;i++){const a=i*2.399+seed;const reach=.48+(i%3)*.16;cylinder(g,palette.bark2,[0,.28+(i%2)*.12,0],[Math.cos(a)*reach,.12,Math.sin(a)*reach],.105,.025,7)}
  for(let i=0;i<4;i++){const y=1.15+i*.34,a=i*1.72+seed;cylinder(g,palette.bark2,[0,y,0],[Math.cos(a)*(.82+i*.12),y+.7,Math.sin(a)*(.82+i*.12)],.105,.045,7)}
- const facets=new THREE.DodecahedronGeometry(1,1);
+ const facets=canopyGeo;
  for(let layer=0;layer<4;layer++){const count=layer===0?5:7;for(let i=0;i<count;i++){const a=i*2.399+seed+layer*.41;const radius=layer===0?.16:.72+(layer%2)*.08;const y=2.15+layer*.38+(i%3)*.13;const leaf=new THREE.Mesh(facets,(i+layer)%4===0?palette.moss2:(i+layer)%3===0?palette.leaf2:palette.leaf);leaf.position.set(Math.cos(a)*radius,y,Math.sin(a)*radius);leaf.scale.set(.63+(i%3)*.1,.64+(i%2)*.13,.62+(i%4)*.06);leaf.rotation.set((i%3)*.17,a*.4,(i%2)*.2);leaf.castShadow=true;leaf.receiveShadow=true;g.add(leaf)}}
  // A few sunlit outer shoots break up the canopy silhouette.
  for(let i=0;i<5;i++){const a=i*2.4+seed;const sprig=blob(g,i%2?palette.leaf2:palette.moss2,[Math.cos(a)*.92,2.9+(i%2)*.36,Math.sin(a)*.92],[.26,.34,.24]);sprig.rotation.z=Math.cos(a)*.24}
@@ -42,6 +42,10 @@ export function createWorld(container){
  for(let i=0;i<34;i++){const x=Math.sin(i*19.17)*17,z=Math.cos(i*8.31)*16;const patch=new THREE.Mesh(new THREE.CircleGeometry(1.2+(i%4)*.35,18),mat(i%3?'#83956a':'#687e59'));patch.rotation.x=-Math.PI/2;patch.position.set(x,.035,z);patch.scale.set(1.5,.8,.7);patch.receiveShadow=true;scene.add(patch)}
  // Creek with a softly curved bank.
  const creek=new THREE.Mesh(new THREE.PlaneGeometry(5,38),palette.water);creek.rotation.x=-Math.PI/2;creek.rotation.z=.28;creek.position.set(7,.06,0);scene.add(creek);
+ // Fine concentric creek ripples catch the moving light without obscuring the water.
+ const waterRipples=[];const rippleMat=new THREE.MeshBasicMaterial({color:'#d2e3d3',transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false});
+ for(let i=0;i<9;i++){const ring=new THREE.Mesh(new THREE.RingGeometry(.16,.205,32),rippleMat.clone());ring.rotation.x=-Math.PI/2;ring.position.set(5.9+(i%3)*.82,.085,-13+Math.floor(i/3)*8.5);ring.userData.phase=i*.71;ring.userData.base=.65+(i%3)*.12;scene.add(ring);waterRipples.push(ring)}
+
  for(let i=0;i<22;i++){const x=-19+(i%6)*7.3,z=-18+Math.floor(i/6)*11.5;if(Math.abs(x)<7&&Math.abs(z)<9)continue;makeTree(scene,x,z,.75+(i%4)*.16,i)}
  // Foreground framing trees and old oak.
  makeTree(scene,-10,1,1.55,4);makeTree(scene,12,-8,1.35,2);makeTree(scene,-15,-13,1.25,8);
@@ -141,6 +145,6 @@ export function createWorld(container){
  function setAnimalState(id,state){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.sleeping=!!state.sleeping;a.userData.stress=state.stress;a.userData.alert=state.stress>60;return true}
  function setConservationProgress(value){const growth=THREE.MathUtils.clamp(value/3000,0,1);willowPlantings.scale.setScalar(.65+growth*.45);nestInstallations.scale.setScalar(.8+growth*.2);willowPlantings.children.forEach(sapling=>{sapling.scale.y=.45+growth*.8})}
  function setEnvironment(phase,weather){rain.visible=weather==='Light rain';const night=phase==='Night',dusk=phase==='Dusk',dawn=phase==='Dawn';sun.intensity=night ? .42 : dusk ? 1.25 : dawn ? 2.2 : 3.1;sun.color.set(night?'#9aaec7':dusk?'#e5a778':'#ffe0ad');scene.fog.color.set(night?'#526476':weather==='Light rain'?'#879a9a':'#a9b7a0');scene.background.set(night?'#536477':weather==='Light rain'?'#879a9a':'#a9b7a0');}
- function animate(){const dt=Math.min(clock.getDelta(),.05);update(dt,window.__wildKeys||{});if(rain.visible){const p=rain.geometry.attributes.position;for(let i=0;i<p.count;i++){let y=p.getY(i)-dt*8;if(y<0)y=18;p.setY(i,y)}p.needsUpdate=true}renderer.render(scene,camera);requestAnimationFrame(animate)}animate();
+ function animate(){const dt=Math.min(clock.getDelta(),.05);update(dt,window.__wildKeys||{});if(rain.visible){const p=rain.geometry.attributes.position;for(let i=0;i<p.count;i++){let y=p.getY(i)-dt*8;if(y<0)y=18;p.setY(i,y)}p.needsUpdate=true}waterRipples.forEach((ring,i)=>{const phase=(clock.elapsedTime*.42+ring.userData.phase)%(Math.PI*2);const pulse=.72+Math.sin(phase)*.28;ring.scale.setScalar(ring.userData.base*pulse);ring.material.opacity=.08+Math.max(0,Math.sin(phase))*.16});renderer.render(scene,camera);requestAnimationFrame(animate)}animate();
  return {scene,camera,renderer,animals,ranger,addAnimal,nearResearchCentre,focusResearchCentre(){target.set(-21,0,-7);cameraUpdate()},nearClinic(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,5))<6.5},focus(x,z){target.set(x,0,z);cameraUpdate()},setAnimalStage,setAnimalState,setAnimalAction,setEnvironment,setConservationProject(name){if(name==='nestBoxes')nestInstallations.visible=true;if(name==='riparian')willowPlantings.visible=true;if(name==='cameraTraps')cameraTrapInstallations.visible=true;if(name==='wetlandExpansion')wetlandResearch.visible=true;if(name==='meadowCorridor')meadowResearch.visible=true},setConservationProgress,pick};
 }
