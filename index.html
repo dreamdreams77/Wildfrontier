@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#18251d" />
+    <meta name="description" content="Wild Frontier — a handcrafted wildlife rescue and conservation simulation." />
+    <title>Wild Frontier — Field Station</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="world" aria-label="Interactive 3D wildlife reserve"></div>
+      <div class="vignette"></div>
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Wild Frontier home"><span class="brand-mark">✳</span><span>WILD<span class="brand-light">FRONTIER</span><small>FIELD STATION 04 · NORTH WOODLAND</small></span></a>
+        <div class="weather"><span class="weather-icon">☀</span><span>GOLDEN HOUR</span><i></i><span>18°C</span><i></i><span>WIND 4 KM/H</span></div>
+        <div class="top-actions"><span class="day-chip">DAY <b>03</b></span><button class="icon-button" id="soundBtn" title="Toggle sound">♫</button><button class="icon-button" id="mapBtn" title="Map">⌖</button></div>
+      </header>
+      <aside class="left-rail">
+        <div class="rail-label">RESERVE STATUS</div>
+        <div class="stat-card"><span class="stat-icon">♧</span><div><b id="animalCount">12</b><small>ANIMALS IN CARE</small></div><span class="trend">↗</span></div>
+        <div class="stat-card"><span class="stat-icon amber">✧</span><div><b id="healthScore">86%</b><small>HABITAT HEALTH</small></div><span class="trend">↗</span></div>
+        <div class="stat-card"><span class="stat-icon blue">◉</span><div><b>04</b><small>ACTIVE TRACKERS</small></div></div>
+        <div class="rail-divider"></div>
+        <div class="rail-label">TODAY'S FIELDWORK</div>
+        <button class="task active" id="taskRescue"><span class="task-check">1</span><span><b>Check the clearing</b><small>Locate the injured fawn</small></span><span class="task-arrow">›</span></button>
+        <button class="task" id="taskWater"><span class="task-check">2</span><span><b>Refill water station</b><small>Creekside habitat</small></span><span class="task-arrow">›</span></button>
+        <div class="field-note"><span class="note-pin">✳</span><div><b>FIELD NOTE</b><p>Young deer spotted near the old oak. Move slowly and keep your distance.</p></div></div>
+      </aside>
+      <section class="right-panel" id="inspectPanel">
+        <div class="panel-top"><span class="eyebrow">FIELD OBSERVATION</span><button class="close-panel" id="closeInspect">×</button></div>
+        <div class="animal-portrait" id="animalPortrait"><span>✳</span></div>
+        <div class="animal-heading"><span class="species-tag" id="speciesTag">WOODLAND SIGHTING</span><h2 id="animalName">A quiet clearing</h2><p id="animalDesc">The reserve is waking up. Explore the woodland and observe its residents.</p></div>
+        <div class="animal-metrics"><div><small>CONDITION</small><b id="condition">—</b></div><div><small>LOCATION</small><b id="location">NORTH MEADOW</b></div></div>
+        <button class="primary-action" id="observeBtn">OBSERVE AREA <span>↗</span></button>
+        <button class="secondary-action" id="helpBtn">FIELD GUIDE <span>＋</span></button>
+      </section>
+      <div class="bottom-hud">
+        <div class="tool-label"><span>FIELD TOOLS</span><small>SELECT A TOOL</small></div>
+        <button class="tool active" data-tool="observe"><span>◎</span><small>OBSERVE</small><kbd>1</kbd></button>
+        <button class="tool" data-tool="track"><span>⌁</span><small>TRACK</small><kbd>2</kbd></button>
+        <button class="tool" data-tool="care"><span>✚</span><small>CARE KIT</small><kbd>3</kbd></button>
+        <div class="hud-divider"></div>
+        <div class="movement-hint"><span>W A S D</span><small>MOVE</small><span>DRAG</span><small>LOOK</small></div>
+        <div class="progress-block"><div><small>RESERVE RESTORATION</small><b id="progressText">2,450 / 3,000</b></div><div class="progress-track"><i id="progressBar"></i></div></div>
+      </div>
+      <div class="toast" id="toast"></div>
+      <div class="crosshair" id="crosshair">＋</div>
+      <div class="loading" id="loading"><div class="loading-mark">✳</div><b>WILD FRONTIER</b><span>PREPARING THE RESERVE</span><div class="loading-line"><i></i></div></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
