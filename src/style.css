@@ -88,9 +88,6 @@
 html,body{overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 #world,#world canvas{touch-action:none}
 .right-panel,.left-rail,.research-panel,.sanctuary-panel{touch-action:pan-y}
-#joystick{display:none;position:absolute;z-index:4;left:18px;bottom:112px;width:116px;height:116px;border-radius:50%;background:rgba(20,31,24,.55);border:1px solid rgba(190,205,150,.35);touch-action:none;backdrop-filter:blur(6px)}
-#joystick .stick{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(192,206,152,.85);box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none}
-@media(pointer:coarse){#joystick{display:block}.right-panel:not(.hidden)~#joystick{display:none}}
 
 /* Safari sanctuary: quick bar, roster buttons and the management panel. */
 .species-roster button{background:none;border:0;padding:0;text-align:left;font:8px 'DM Mono';color:#cbd1bd;white-space:nowrap;cursor:pointer}
@@ -154,7 +151,6 @@ html,body{overscroll-behavior:none;touch-action:none;-webkit-user-select:none;us
 .b-chips{display:flex;gap:4px;flex-wrap:wrap;max-width:210px}.b-chips button{background:#ffffff0c;border:1px solid var(--line);border-radius:5px;padding:3px 6px;font-size:15px}.b-chips button.on{background:#c0ce98}
 .b-score{display:grid;gap:4px;font:600 11px 'DM Mono'}.b-score small{font:10px 'DM Sans';color:#9fa992;font-weight:400}
 body.building .quickbar .speed-ctl{display:none}
-body.building #joystick{bottom:auto;top:150px;left:12px}
 body.building .left-rail,body.building .right-panel{display:none!important}
 .j-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
 .j-card{display:grid;gap:3px;justify-items:center;text-align:center;background:#ffffff08;border:1px solid var(--line);border-radius:8px;padding:8px;color:inherit;min-height:120px;align-content:start}
@@ -175,13 +171,12 @@ body.building .left-rail,body.building .right-panel{display:none!important}
 .photo-result{position:absolute;left:50%;top:84px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:#10170fee;border:1px solid #b8c68b66;border-radius:8px;padding:8px;font:11px 'DM Sans';color:#e5e7da;max-width:calc(100% - 24px);opacity:0;transition:opacity .25s;pointer-events:none!important}.photo-result.show{opacity:1}.photo-result img{width:84px;border-radius:4px}
 body.photo .left-rail,body.photo .right-panel,body.photo .bottom-hud,body.photo .quickbar,body.photo .topbar,body.photo .toast{opacity:1}
 body.photo .left-rail,body.photo .right-panel,body.photo .bottom-hud,body.photo .quickbar{display:none!important}
-body.photo #joystick{bottom:130px;left:14px;z-index:8}
 @media(max-width:560px){.quick-btn .lbl{display:none}.quick-btn{padding:9px 13px;font-size:14px}.build-panel{bottom:104px}.b-adv{grid-template-columns:1fr}.photo-hint{display:none}.vf{width:78vw}.j-dl{grid-template-columns:1fr}}
 body.photo .topbar{display:none}
 .b-chips .b-show{background:#c0ce98;color:#1c2b20;font:600 9px 'DM Mono';letter-spacing:.8px;padding:6px 9px}
 
 /* 3D-rendered portraits and icons */
-#animalPortrait.has-art{background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#bcd0a8}
+#animalPortrait.has-art{background-size:cover;background-repeat:no-repeat;background-position:center;background-color:#202a23}
 .p-img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#cfe0c0;vertical-align:middle;margin-right:4px}
 .s-species span .p-img{width:38px;height:38px;margin:0}
 .s-res-head .p-img{width:28px;height:28px}
@@ -210,7 +205,7 @@ body.photo .topbar{display:none}
 .intro-card{max-width:640px;text-align:center;color:#eef0e2}.intro-card small{font:10px 'DM Mono',monospace;letter-spacing:2.4px;color:#c0ce98}.intro-card h1{font:600 clamp(28px,6vw,52px)/1.1 'Playfair Display',Georgia,serif;margin:10px 0 12px}.intro-card p{font-size:clamp(14px,2.4vw,17px);line-height:1.6;color:#d6dac9;margin:0 0 20px}
 .intro-actions{display:flex;gap:10px;justify-content:center}.intro-actions button{background:#c0ce98;color:#1c2b20;border:0;border-radius:999px;padding:12px 26px;font:700 11px 'DM Mono',monospace;letter-spacing:1.4px}.intro-actions .ghost{background:transparent;color:#c9cdbd;border:1px solid #ffffff44}
 .intro-dots{display:flex;gap:6px;justify-content:center;margin-top:16px}.intro-dots i{width:7px;height:7px;border-radius:50%;background:#ffffff33}.intro-dots i.on{background:#c0ce98}
-body.intro .left-rail,body.intro .right-panel,body.intro .bottom-hud,body.intro .quickbar,body.intro .topbar,body.intro #joystick,body.intro #tutorial,body.intro .action-prompt{display:none!important}
+body.intro .left-rail,body.intro .right-panel,body.intro .bottom-hud,body.intro .quickbar,body.intro .topbar,body.intro #tutorial,body.intro .action-prompt{display:none!important}
 #tutorial{position:absolute;z-index:4;left:16px;top:84px;max-width:280px;background:rgba(17,28,21,.92);border:1px solid #b8c68b55;border-radius:10px;padding:10px 12px;backdrop-filter:blur(8px);font-size:12px;line-height:1.5;color:#e5e7da}
 #tutorial header{display:flex;gap:8px;align-items:center;font:600 9px 'DM Mono';letter-spacing:1.3px;color:#aebc8e}#tutorial header span{margin-left:auto}#tutorial header button{background:none;border:0;color:#aebc8e;font-size:16px}
 #tutorial p{margin:6px 0}.t-dots{display:flex;gap:4px}.t-dots i{flex:1;height:3px;border-radius:2px;background:#ffffff22}.t-dots i.on{background:#bdcc91}
@@ -218,3 +213,25 @@ body.intro .left-rail,body.intro .right-panel,body.intro .bottom-hud,body.intro 
 body.photo #tutorial,body.building #tutorial{display:none}
 
 .s-chart{display:flex;gap:6px;align-items:flex-end;height:66px;margin:8px 0 2px}.s-bar2{display:flex;gap:2px;align-items:flex-end;flex:1}.s-bar2 i{flex:1;min-height:2px;border-radius:2px 2px 0 0}.s-bar2 .in{background:#8bc062}.s-bar2 .out{background:#c9674f}
+
+/* Wild Frontier Part 4: professional species roster */
+.species-roster{grid-template-columns:1fr;gap:5px}
+.species-roster button{display:grid;grid-template-columns:28px 1fr;align-items:center;gap:8px;padding:6px 7px;border:1px solid transparent;border-radius:6px;white-space:normal;transition:background .18s,border-color .18s}
+.species-roster button:hover{background:#ffffff09;border-color:var(--line)}
+.roster-dot{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d0dbad,#71845f 55%,#334235);box-shadow:inset 0 0 0 1px #ffffff1f,0 3px 10px #0003}
+.roster-dot[data-kind="redWolf"],.roster-dot[data-kind="fox"]{background:radial-gradient(circle at 35% 30%,#d9b07b,#9b5734 58%,#3d2920)}
+.roster-dot[data-kind="riverOtter"],.roster-dot[data-kind="beaver"]{background:radial-gradient(circle at 35% 30%,#b59a7b,#604834 60%,#2d2822)}
+.roster-dot[data-kind="owl"],.roster-dot[data-kind="whoopingCrane"],.roster-dot[data-kind="woodDuck"]{background:radial-gradient(circle at 35% 30%,#e4e2d3,#80909a 55%,#313b3d)}
+.roster-copy{min-width:0;text-align:left}.roster-copy b{display:block;font:600 9px 'DM Sans';color:#e5e7da;overflow:hidden;text-overflow:ellipsis}.roster-copy small{display:block;margin-top:2px;font:7px 'DM Mono';letter-spacing:.65px;color:#929e8d;overflow:hidden;text-overflow:ellipsis}
+.animal-portrait.has-art{height:142px;box-shadow:inset 0 0 0 1px #ffffff12,0 10px 24px #0003}
+.quick-btn{font-size:9px;letter-spacing:.9px}.quick-btn .lbl{position:relative;top:-.5px}
+@media(max-width:760px){.species-roster{grid-template-columns:1fr 1fr}.species-roster button{grid-template-columns:23px 1fr;padding:5px}.roster-dot{width:22px;height:22px}.animal-portrait.has-art{height:108px}}
+
+/* Touch walking feedback: a soft ring under the finger while the ranger walks toward it */
+.walk-ring{position:fixed;left:-30px;top:-30px;width:60px;height:60px;border-radius:50%;border:2px solid rgba(206,222,160,.7);background:rgba(206,222,160,.14);pointer-events:none;z-index:3;opacity:0;transition:opacity .15s}
+.walk-ring.on{opacity:1}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}

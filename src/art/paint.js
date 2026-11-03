@@ -9,7 +9,7 @@ let SCALE=1;export const setTextureScale=s=>{SCALE=s};
 const cv=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
 function toTex(canvas,{srgb=true,repeat=true,aniso=4}={}){
  const t=new THREE.CanvasTexture(canvas);if(srgb)t.colorSpace=THREE.SRGBColorSpace;
- if(repeat){t.wrapS=t.wrapT=THREE.RepeatWrapping}t.anisotropy=aniso;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.needsUpdate=true;return t;
+ if(repeat){t.wrapS=t.wrapT=THREE.RepeatWrapping}t.anisotropy=Math.min(8,Math.max(1,aniso));t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.needsUpdate=true;return t;
 }
 const rgb=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
 const jitter=(c,r,n)=>[c[0]+(n-.5)*r,c[1]+(n-.5)*r*.9,c[2]+(n-.5)*r*.8];
@@ -33,7 +33,7 @@ function fillNoise(ctx,w,h,base,tint,scale,seed,amp=1){
  ctx.putImageData(id,0,0);
 }
 const memo=(key,fn)=>{if(!canPaint)return null;if(!cache.has(key))cache.set(key,fn());return cache.get(key)};
-const S=n=>Math.max(64,Math.round(n*SCALE));
+const S=n=>Math.max(64,Math.min(768,Math.round(n*SCALE)));
 
 export const barkTexture=()=>memo('bark',()=>{
  const w=S(256),h=S(256),c=cv(w,h),x=c.getContext('2d'),r=rng(11);
@@ -117,7 +117,7 @@ export const clothTexture=()=>memo('cloth',()=>{
 export const furTexture=()=>memo('fur',()=>{
  const w=S(256),h=S(256),c=cv(w,h),x=c.getContext('2d'),r=rng(101);
  x.fillStyle='#8a8a8a';x.fillRect(0,0,w,h);
- strokes(x,w,h,r,{colors:[[40,40,40],[220,220,220],[120,120,120]],count:5200*SCALE,len:[5,14],width:[.8,1.6],alpha:[.12,.4],angle:()=>Math.PI/2+(r()-.5)*.5});
+ strokes(x,w,h,r,{colors:[[40,40,40],[220,220,220],[120,120,120]],count:Math.round(3600*SCALE),len:[5,14],width:[.8,1.6],alpha:[.12,.4],angle:()=>Math.PI/2+(r()-.5)*.5});
  return toTex(c,{srgb:false});
 });
 export const waterNormal=()=>memo('waterN',()=>{
@@ -142,7 +142,7 @@ export const flowerTexture=()=>memo('flower',()=>{
 // along the loft (0 = tail tip, 1 = nose). Markings are functions of both so they wrap the form naturally.
 export function bodyTexture(spec){
  return memo('body'+JSON.stringify(spec),()=>{
-  const w=S(256),h=S(512),c=cv(w,h),x=c.getContext('2d'),id=x.createImageData(w,h),d=id.data;
+  const w=S(256),h=S(384),c=cv(w,h),x=c.getContext('2d'),id=x.createImageData(w,h),d=id.data;
   const back=hexToRgb(spec.back),belly=hexToRgb(spec.belly||spec.back),dark=hexToRgb(spec.dark||'#2a2118'),acc=spec.accent?hexToRgb(spec.accent):null;
   const seed=spec.seed||3;
   for(let y=0;y<h;y++){
@@ -187,7 +187,7 @@ export function bodyTexture(spec){
    }
   }
   x.putImageData(id,0,0);
-  const r=rng(seed*13);strokes(x,w,h,r,{colors:[[0,0,0],[255,255,255]],count:900*SCALE,len:[5,14],width:[.8,1.8],alpha:[.03,.08],angle:()=>Math.PI/2+(r()-.5)*.4,wrap:true});
+  const r=rng(seed*13);strokes(x,w,h,r,{colors:[[0,0,0],[255,255,255]],count:Math.round(650*SCALE),len:[5,14],width:[.8,1.8],alpha:[.03,.08],angle:()=>Math.PI/2+(r()-.5)*.4,wrap:true});
   return toTex(c);
  });
 }

@@ -52,7 +52,7 @@ A second reserve east of the woodland: walk through the gate (or tap **Safari Sa
 - **Visitors & education**: open or close the sanctuary, set ticket prices, close habitats to protect sensitive species (cheetahs, tigers and rhinos are disturbed most), and let educators give talks for awareness, donations and credits. Visitors walk the boardwalk in the 3D world.
 - **Journal, camera and map**: photograph animals in Camera mode (zoom, frame, shutter) for journal photos and funds; first photos, rare species and new behaviours (young, playing, foraging) pay more. The journal lists woodland and safari species with details. The world map starts mostly hidden and reveals as you explore; discovered places can be fast-travelled to.
 - **Saving**: the safari sanctuary is saved in your browser and restored on reload. The woodland rescue missions are not saved yet.
-- **Touch controls**: drag to look, pinch to zoom, tap an animal for its record, on-screen joystick to walk.
+- **Touch controls**: drag to look, pinch to zoom, tap an animal for its record, press and hold the ground to walk toward your finger.
 
 ## Art direction and rendering (visual overhaul)
 Wild Frontier is a hand-painted 3D world. Nothing in the scene is a flat sprite or a primitive solid any more:
