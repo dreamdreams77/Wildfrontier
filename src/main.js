@@ -19,7 +19,7 @@ function renderAnimal(a){selectedId=a.id;$('speciesTag').textContent=a.species.t
   panel.classList.remove('hidden');
 }
 function actionSet(a){if(a.stage==='sighted')return [{id:'observe',label:'LOG OBSERVATION'},{id:'track',label:'PLACE TRACKERS'},{id:'assess',label:'REQUEST RANGER ASSESSMENT',primary:true}];if(a.stage==='assessed')return [{id:'observe',label:'RECORD OBSERVATION'},{id:'stabilize',label:'STABILIZE IN FIELD',primary:true}];if(a.stage==='stabilized')return [{id:'transport',label:'TRANSPORT TO RECOVERY',primary:true}];if(a.stage==='rehabilitating')return [{id:'feed',label:'SERVE RECOVERY FEED'},{id:'water',label:'REFRESH WATER'},{id:'release',label:'RUN RELEASE ASSESSMENT',primary:true}];if(a.stage==='released')return [{id:'observe',label:'LOG POST-RELEASE SIGHTING'}];return [{id:'observe',label:'LOG OBSERVATION'},{id:'track',label:'PLACE TRACKERS'}]}
-function perform(action){const result=sim.act(action);toast(result.message);renderAnimal(sim.selected());renderHud()}
+function perform(action){const result=sim.act(action);const animal=sim.selected();world.setAnimalStage(animal.id,animal.stage);if(action==='transport'&&result.ok)world.focus(-12,0,7);if(action==='release'&&result.ok)world.focus(-1,0,1);toast(result.message);renderAnimal(animal);renderHud()}
 addEventListener('wildfrontier:select',e=>{const id=e.detail.id|| (e.detail.kind==='deer'?'fawn-01':'rabbit-01');renderAnimal(sim.select(id))});
 function selectTool(name){tool=name;document.querySelectorAll('.tool').forEach(el=>el.classList.toggle('active',el.dataset.tool===name));toast(name==='observe'?'Observation lens ready':name==='track'?'Tracking scope ready':'Care kit equipped')}
 document.querySelectorAll('.tool').forEach(el=>el.addEventListener('click',()=>selectTool(el.dataset.tool)));
@@ -32,5 +32,5 @@ $('mapBtn').addEventListener('click',()=>toast('Reserve map: North Meadow · Clo
 $('soundBtn').addEventListener('click',()=>toast('Soundscape controls are planned for the next field update.'));
 function renderHud(){const h=sim.habitat;$('healthScore').textContent=h.health+'%';$('waterScore').textContent=h.water+'%';$('coverScore').textContent=h.cover+'%';$('progressText').textContent=sim.restoration.toLocaleString()+' / 3,000';$('progressBar').style.width=(sim.restoration/3000*100)+'%';$('dayTime').textContent=sim.time;$('animalCount').textContent=sim.animals.filter(a=>a.stage!=='released').length;$('journalList').innerHTML=sim.log.slice(0,4).map(x=>'<li><time>'+x.time+'</time><span>'+x.text+'</span></li>').join('')}
 function frame(now){if(now-lastTick>12000){sim.tick(1);lastTick=now;renderHud()}requestAnimationFrame(frame)}
-renderAnimal(sim.selected());renderHud();requestAnimationFrame(frame);
+sim.animals.forEach(a=>world.setAnimalStage(a.id,a.stage));renderAnimal(sim.selected());renderHud();requestAnimationFrame(frame);
 setTimeout(()=>$('loading').classList.add('done'),1250);
