@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<!-- Prevents mobile browser from holding stale cached versions -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Wild Frontier — 3D Wildlife Sanctuary</title>
 <style>
 :root {
@@ -200,9 +204,22 @@ margin-bottom: 8px;
 font-size: 0.85rem;
 cursor: pointer;
 }
+​#debug-box {
+position: absolute;
+top: 5px;
+left: 5px;
+right: 5px;
+background: red;
+color: white;
+font-size: 11px;
+padding: 5px;
+z-index: 999;
+display: none;
+}
 </style>
 </head>
 <body>
+​<div id="debug-box"></div>
 ​<div class="top-hud">
 <div class="hud-badge">
 <h1>Wild Frontier</h1>
@@ -277,7 +294,12 @@ cursor: pointer;
 ​<!-- Three.js CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 ​<script>
-// --- 1. ENGINE INITIALIZATION ---
+window.onerror = function(msg, url, line) {
+var dbg = document.getElementById('debug-box');
+dbg.style.display = 'block';
+dbg.innerText = 'JS Error: ' + msg + ' (line ' + line + ')';
+};
+​// --- 1. ENGINE INITIALIZATION ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
@@ -344,6 +366,133 @@ scene.add(animalsGroup);
 ​function createDeer(name, x, z, bio, status) {
 const container = new THREE.Group();
 const mat = new THREE.MeshStandardMaterial({ color: 0x8c5830, flatShading: true });
+​const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 2.2), mat);
+body.position.y = 1.3;
+container.add(body);
+​const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 1.2), mat);
+head.position.set(0, 2.2, 1.3);
+container.add(head);
+​container.position.set(x, 0, z);
+container.userData = { name: name, bio: bio, health: status };
+animalsGroup.add(container);
+return container;
+}
+​function createFox(name, x, z, bio, status) {
+const container = new THREE.Group();
+const mat = new THREE.MeshStandardMaterial({ color: 0xc45a2b, flatShading: true });
+​const body = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.7, 1.6), mat);
+body.position.y = 1.0;
+container.add(body);
+​const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.8), mat);
+head.position.set(0, 1.7, 1.0);
+container.add(head);
+​container.position.set(x, 0, z);
+container.userData = { name: name, bio: bio, health: status };
+animalsGroup.add(container);
+return container;
+}
+​const wildlife = [
+createDeer("Juniper (Fawn)", -5, 4, "A shallow cut on the rear leg; movement is uneven. Wary, needs ranger assessment.", "Injured • Care Needed"),
+createFox("Ember (Red Fox)", 7, -5, "Active and alert. Foraging successfully along the northern ridge.", "Stable & Active"),
+createDeer("Acorn (Raccoon)", -7, -6, "Resting peacefully near the pond bank. Healthy hydration levels.", "Foraging Near Pond")
+];
+​const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+​window.addEventListener('pointerup', (e) => {
+if (e.target.tagName === 'BUTTON' || e.target.closest('.game-panel')) return;
+​mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+​raycaster.setFromCamera(mouse, camera);
+const intersects = raycaster.intersectObjects(animalsGroup.children, true);
+​if (intersects.length > 0) {
+let obj = intersects[0].object;
+while (obj.parent && !obj.userData.name) {
+obj = obj.parent;
+}
+if (obj.userData && obj.userData.name) {
+openAnimalProfile(obj.userData);
+}
+}
+});
+​function selectAnimalByName(name) {
+const found = wildlife.find(w => w.userData.name.includes(name));
+if (found) openAnimalProfile(found.userData);
+}
+​function openAnimalProfile(data) {
+closePanels();
+const panel = document.getElementById('panel-observe');
+const title = document.getElementById('panel-title');
+const content = document.getElementById('panel-content');
+​title.innerText = data.name;
+content.innerHTML = <div class="stat-card" style="margin-bottom: 12px;"> <label>Status & Condition</label> <val style="color: var(--accent-gold);">${data.health}</val> </div> <div class="stat-card" style="margin-bottom: 15px;"> <label>Field Notes</label> <p style="font-size: 0.85rem; margin: 6px 0 0; color: #fff; line-height: 1.4;">${data.bio}</p> </div> <button class="nav-btn" style="width: 100%; background: var(--accent-green); color: #0f1711;" onclick="togglePanel('care')">Open Care Kit for ${data.name}</button>;
+panel.classList.add('active');
+document.getElementById('btn-observe').classList.add('active');
+activePanel = 'observe';
+}
+​function applyCareTreatment() {
+alert('Medical treatment applied successfully! Animal health improving.');
+}
+​// --- 6. UI INTERACTION LOGIC ---
+let activePanel = null;
+​function togglePanel(panelName) {
+const target = document.getElementById('panel-' + panelName);
+const isAlreadyOpen = target && target.classList.contains('active');
+​closePanels();
+​if (!isAlreadyOpen) {
+if (panelName === 'observe') {
+document.getElementById('panel-title').innerText = "Wildlife Roster & Observations";
+document.getElementById('panel-content').innerHTML = <div class="stat-grid"> <div class="stat-card"><label>Active Trackers</label><val>04 Units</val></div> <div class="stat-card"><label>Water Quality</label><val>61%</val></div> <div class="stat-card"><label>Native Cover</label><val>73%</val></div> <div class="stat-card"><label>Native Forage</label><val>68%</val></div> </div> <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px; text-transform:uppercase;">Monitored Sanctuary Residents</p> <div class="roster-item" onclick="selectAnimalByName('Juniper')"> <span>🦌 Juniper (Fawn)</span> <span style="color: var(--accent-gold);">Injured • Needs Care</span> </div> <div class="roster-item" onclick="selectAnimalByName('Ember')"> <span>🦊 Ember (Red Fox)</span> <span style="color: var(--accent-green);">Stable & Active</span> </div> <div class="roster-item" onclick="selectAnimalByName('Acorn')"> <span>🦝 Acorn (Raccoon)</span> <span style="color: var(--accent-green);">Foraging Near Pond</span> </div>;
+}
+const panel = document.getElementById('panel-' + panelName);
+const btn = document.getElementById('btn-' + panelName);
+if (panel) panel.classList.add('active');
+if (btn) btn.classList.add('active');
+activePanel = panelName;
+}
+}
+​function closePanels() {
+document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+activePanel = null;
+}
+​// --- 7. TOUCH / MOUSE CONTROLS & RENDER LOOP ---
+let isDragging = false;
+let prevPos = { x: 0, y: 0 };
+let cameraAngle = 0;
+​window.addEventListener('pointerdown', (e) => {
+if (e.target.tagName === 'BUTTON' || e.target.closest('.game-panel')) return;
+isDragging = true;
+prevPos = { x: e.clientX, y: e.clientY };
+});
+​window.addEventListener('pointermove', (e) => {
+if (!isDragging) return;
+cameraAngle -= (e.clientX - prevPos.x) * 0.008;
+prevPos = { x: e.clientX, y: e.clientY };
+});
+​window.addEventListener('pointerup', () => { isDragging = false; });
+​let clock = new THREE.Clock();
+​function animate() {
+requestAnimationFrame(animate);
+const time = clock.getElapsedTime();
+​if (!isDragging) cameraAngle += 0.0015;
+​camera.position.x = Math.sin(cameraAngle) * 18;
+camera.position.z = Math.cos(cameraAngle) * 18;
+camera.position.y = 7 + Math.sin(time * 0.5) * 0.2;
+camera.lookAt(0, 1.2, 0);
+​animalsGroup.children.forEach((animal, index) => {
+animal.position.y = Math.sin(time * 3 + index) * 0.03;
+});
+​renderer.render(scene, camera);
+}
+​window.addEventListener('resize', () => {
+camera.aspect = window.innerWidth / window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth, window.innerHeight);
+});
+​animate();
+</script>
+</body>
+</html>ial({ color: 0x8c5830, flatShading: true });
 ​const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 2.2), mat);
 body.position.y = 1.3;
 container.add(body);
