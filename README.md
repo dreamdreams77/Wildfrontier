@@ -117,3 +117,23 @@ The goal is a tactile miniature world: soft forms, imperfect silhouettes, warm d
 - **Opening and tutorial** (`src/intro.js`): a four-card cinematic flyover on first launch (skip anytime; `?intro` replays it, `?nointro` skips it), then an eight-step tutorial driven by real game state (moving, looking, selecting, feeding, building, photos, missions, activities).
 
 Not verified: real phone hardware, audible audio output, or High-tier post-processing. Regions are labels, unlocks and activities rather than new 3D terrain.
+
+## Milestone 4: sanctuary management depth
+
+New pure-logic module `src/management.js` (hooks into the sanctuary and operations; everything is saved in its own `mgmt` block, so old saves load unchanged).
+
+- **Veterinary care:** five conditions (parasites, respiratory infection, digestive upset, injury, mange). Risk rises with stress, dirt, rain and poor diet. Cases are first only *symptoms*; a vet or check-up notices them, a diagnosis names them, and treatment spends veterinary supplies. Treating without a diagnosis can miss. Contagious illness spreads within a species unless the patient is isolated; vaccines protect for 40 days. Sick animals visibly move slower and rest more in the world.
+- **Hygiene and wear:** every enclosure gets dirtier with its residents (elephants most). Dirt raises stress and illness risk. Build items wear down daily; below 25% they stop counting toward habitat needs until repaired.
+- **Staff:** new Groundskeeper (cleans and repairs) and Researcher roles. Staff have energy and morale: tired or unhappy staff walk and work slower and take breaks at the shed. Wages rise with skill; staff can be trained.
+- **Research:** five projects (rapid diagnostics, hygiene protocols, long-lasting vaccines, welfare science, conservation outreach) funded with money and advanced by researchers studying at the supply shed.
+- **Visitors:** four segments (families, photographers, school groups, conservation donors) with different tastes, a daily feedback summary, and new Café and Gift shop buildings that earn extra per visitor.
+- **Resource management:** a categorised ledger (tickets, donations, grants, wages, supplies, building, upkeep, research), a 7-day chart and a runway warning. New Health, Budget and Research tabs plus staff energy/morale and visitor segments in the sanctuary panel.
+
+## Milestone 2 and graphics pass: water, shorelines and atmosphere
+
+- **Water** is now a depth-graded, soft-edged shader with animated foam, glints and ripples where the ranger, animals and visitors move through it.
+- **Savanna detail** (`src/art/detail.js`): wet shorelines, lily pads, reeds and stones around pools, trampled earth trails, bare dust patches, termite mounds, pebbles, thorn scrub and dead branches, merged so they add very few draw calls. Visitors no longer walk through the ponds.
+- **Atmosphere** (`src/art/atmosphere.js`): drifting cloud shadows across the ground, sunlit pollen and dust motes that follow the ranger, and birds soaring over the reserve. All fade out at night and in rain.
+- New models for the Café and Gift shop, and looks for the two new staff roles.
+
+Not verified: real phone hardware, the High tier's post-processing, or audible audio. Animal species, buildings and vegetation were already rebuilt in the earlier visual overhaul; this pass did not remodel them.

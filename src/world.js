@@ -3,6 +3,7 @@ import { makeCreature } from './art/creature.js';
 import { makeOak } from './art/vegetation.js';
 import { makeHuman, LOOKS } from './art/human.js';
 import { buildWorldArt } from './art/world-art.js';
+import { setWaterActors } from './art/terrain.js';
 import { makeBuildModel, setNight } from './art/structures.js';
 import { TIERS, detectTier, createGovernor } from './art/quality.js';
 import { createPost } from './art/post.js';
@@ -227,9 +228,19 @@ export function createWorld(container){
  const governor=createGovernor((t,fps)=>{perf.tier=t;applyTier(t)},tierName);
  if(tier.post){try{post=createPost(renderer,scene,camera,{ao:tier.ao});renderer.toneMapping=THREE.NoToneMapping;post.setSize(innerWidth,innerHeight,renderer.getPixelRatio())}catch{post=null}}
  refreshEnv();
+ const WATER=[[31,7,4.4],[25.5,8.2,2.3],[38,-10,5.2]];let wFrame=0;
+ function rippleUpdate(){
+  const pools=[...WATER];for(const m of buildItems.values())if(m.userData.type==='pond'||m.userData.type==='wallow')pools.push([m.position.x,m.position.z,2.4]);
+  const near=(x,z)=>Math.abs(x-7)<3.4||pools.some(([px,pz,r])=>Math.hypot(px-x,pz-z)<r+.6);
+  const list=[];const rv=ranger.userData.vel,rs=rv?rv.length()/4.2:0;
+  if(rs>.1&&near(ranger.position.x,ranger.position.z))list.push({x:ranger.position.x,z:ranger.position.z,speed:rs});
+  for(const a of animals){if(list.length>=8)break;if((a.userData.vel||0)>.25&&near(a.position.x,a.position.z))list.push({x:a.position.x,z:a.position.z,speed:Math.min(1,a.userData.vel/2)})}
+  for(const p of crowd.people){if(list.length>=8)break;const q=p.f.position;if(near(q.x,q.z))list.push({x:q.x,z:q.z,speed:.5})}
+  setWaterActors(list);
+ }
  function animate(){
   const dt=Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;
-  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env);
+  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env,ranger.position);if((wFrame++&1)===0)rippleUpdate();
   const f=governor.tick();if(f)perf.fps=Math.round(f);
   if(cine){cine.t+=dt;const k=Math.min(1,cine.t/cine.duration);const e=k*k*(3-2*k);camera.position.copy(cine.P.getPoint(e));camera.lookAt(cine.Lk.getPoint(e));if(k>=1)stopCinematic()}
   renderFrame();requestAnimationFrame(animate);

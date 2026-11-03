@@ -5,6 +5,7 @@ import { mats } from './materials.js';
 import { signTexture, mapTexture, canPaint } from './paint.js';
 import { makeAcacia, makeBamboo, makeRock, makeReeds, makeWillow, makeOak, makeBush } from './vegetation.js';
 import { rng } from './noise.js';
+import { makeWaterDisc } from './terrain.js';
 
 // Buildings and buildable habitat structures: timber frames, shingle and thatch roofs, stone footings, painted signs.
 const C=h=>{const c=new THREE.Color(h);return [c.r,c.g,c.b]};
@@ -163,7 +164,7 @@ export function makeBuildModel(type){
   case 'shadeTree':{const t=makeAcacia(Math.floor(Math.random()*50),.75);g.add(t);break}
   case 'pond':{const rim=[];const r=rng(2);for(let i=0;i<14;i++){const a=i/14*6.28;rim.push(xform(blobGeo(.3+r()*.15,.16,.28,{seg:8,noise:.25,seed:i,low:[.4,.4,.38],high:[.78,.76,.7]}),{pos:[Math.cos(a)*2.05,.1,Math.sin(a)*2.05]}))}mk(g,rim,mats.rock());
    const mud=new THREE.Mesh(new THREE.CircleGeometry(2.1,28),new THREE.MeshStandardMaterial({color:'#6e5a40',roughness:1}));mud.rotation.x=-Math.PI/2;mud.position.y=.04;mud.receiveShadow=true;g.add(mud);
-   const w=new THREE.Mesh(new THREE.CircleGeometry(1.8,28),new THREE.MeshStandardMaterial({color:'#6b97a1',roughness:.12,metalness:.05}));w.rotation.x=-Math.PI/2;w.position.y=.08;w.userData.water=true;g.add(w);const rd=makeReeds(4,7);rd.position.set(1.4,0,.8);g.add(rd);break}
+   const w=makeWaterDisc(1.8,{color:'#6b97a1'});w.position.y=.08;w.userData.water=true;g.add(w);const rd=makeReeds(4,7);rd.position.set(1.4,0,.8);g.add(rd);break}
   case 'wallow':{const mud=new THREE.Mesh(new THREE.CircleGeometry(2.0,28),new THREE.MeshStandardMaterial({color:'#5a4634',roughness:.4}));mud.rotation.x=-Math.PI/2;mud.position.y=.05;g.add(mud);const mid=new THREE.Mesh(new THREE.CircleGeometry(1.4,24),new THREE.MeshStandardMaterial({color:'#6e5a45',roughness:.12}));mid.rotation.x=-Math.PI/2;mid.position.y=.07;g.add(mid);break}
   case 'shelter':{const wood=[bx(1.9,1.0,1.6,{pos:[0,.5,0],color:[.9,.75,.6]}),bx(.12,1.0,.12,{pos:[-.97,.5,.82],color:[.6,.45,.3]}),bx(.12,1.0,.12,{pos:[.97,.5,.82],color:[.6,.45,.3]}),bx(.9,.1,.1,{pos:[0,.9,.84],color:[.6,.45,.3]})],roof=[...gable(1.9,1.6,.7,{over:.3,y:1,uv:.5})],dark=[bx(.7,.8,.05,{pos:[0,.4,.82],color:[.08,.06,.05]})];
    const eave=[];for(let i=0;i<9;i++){for(const s of [-1,1])eave.push(xform(blobGeo(.2,.07,.16,{seg:6,low:[.55,.45,.25],high:[.9,.78,.45]}),{pos:[-.8+i*.2,.98+(1-Math.abs(i-4)/4)*.02,s*.95],rot:[0,0,0]}))}
