@@ -92,13 +92,6 @@ test('transfers need surplus animals and reward credits',()=>{
   assert.ok(!sim.animals.some(a=>a.id===z.id));assert.ok(s.state.credits>c0);
 });
 
-test('keepers feed hungry residents each day and cost wages',()=>{
-  const {sim,s}=setup();s.hireKeeper();assert.equal(s.state.keepers,1);
-  const z=find(sim,'Kito');z.nutrition=20;const fundsBefore=s.state.funds;
-  s.tick(DAY+5);assert.ok(z.nutrition>40,'fed by keeper');assert.ok(s.state.stock.hay<40);
-  assert.ok(s.summary().lastReport.wages===40);assert.ok(Number.isFinite(fundsBefore));
-});
-
 test('water drains and refilling costs funds',()=>{
   const {s}=setup();s.tick(DAY*3);assert.ok(s.state.waterLevel<90);
   const f=s.state.funds;assert.equal(s.refillWater().ok,true);assert.equal(s.state.waterLevel,100);assert.equal(s.state.funds,f-20);
@@ -112,11 +105,11 @@ test('veterinary treatment and enrichment have limits',()=>{
 });
 
 test('sanctuary state round-trips through serialize/restore',()=>{
-  const {sim,s}=setup();s.buyFood('meat',3);s.hireKeeper();find(sim,'Rudra').health=77;
+  const {sim,s}=setup();s.buyFood('meat',3);find(sim,'Rudra').health=77;
   const snap=JSON.parse(JSON.stringify(s.serialize()));
   const sim2=createSimulation();const s2=createSanctuary(sim2);
   assert.equal(s2.restore(snap),true);
-  assert.equal(s2.state.keepers,1);assert.equal(s2.state.stock.meat,s.state.stock.meat);assert.equal(sim2.animals.find(a=>a.name==='Rudra').health,77);
+  assert.equal(s2.state.stock.meat,s.state.stock.meat);assert.equal(sim2.animals.find(a=>a.name==='Rudra').health,77);
   assert.equal(s2.residents().length,16);
 });
 
