@@ -5,7 +5,7 @@ import { SPECIES } from './sanctuary.js';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const allKinds=()=>[...Object.keys(WOODLAND),...Object.keys(SPECIES)];
 
-export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJournal}){
+export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJournal,portraits}){
  let panel=null,mode=null,openKind=null,photoHud=null,zoom=1;
 
  // ---- shared panel plumbing ----
@@ -25,7 +25,7 @@ export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJo
    return '<button data-j="back" class="s-link">← All species</button><h3>'+inf.emoji+' '+esc(inf.common)+'</h3><div class="j-photos">'+(photos||'<p class="s-muted">No photographs yet. Use the camera to document this species.</p>')+'</div><dl class="j-dl">'+rows.map(([k,v])=>'<dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd>').join('')+'</dl>'+(inf.notes?'<p class="s-muted">'+esc(inf.notes)+'</p>':'');
   }
   const cards=allKinds().map(k=>{const inf=journal.info(k),e=journal.state.entries[k];const found=e&&e.first!==null;const best=e&&e.photos[0];
-   return '<button data-j="open" data-kind="'+k+'" class="j-card'+(found?'':' locked')+'">'+(best&&best.img?'<img alt="" src="'+best.img+'">':'<span class="j-emoji">'+(found?inf.emoji:'?')+'</span>')+'<b>'+(found?esc(inf.common):'Unknown species')+'</b><small>'+(found?esc(inf.status):'Observe or photograph it')+'</small></button>'}).join('');
+   return '<button data-j="open" data-kind="'+k+'" class="j-card'+(found?'':' locked')+'">'+(best&&best.img?'<img alt="" src="'+best.img+'">':found&&portraits?'<img class="j-art" alt="" src="'+portraits.portrait(k)+'">':'<span class="j-emoji">'+(found?inf.emoji:'?')+'</span>')+'<b>'+(found?esc(inf.common):'Unknown species')+'</b><small>'+(found?esc(inf.status):'Observe or photograph it')+'</small></button>'}).join('');
   return '<div class="s-stats"><div><small>DISCOVERED</small><b>'+pr.discovered+'/'+pr.species+'</b></div><div><small>PHOTOGRAPHED</small><b>'+pr.photographed+'</b></div><div><small>PHOTOS TAKEN</small><b>'+pr.photos+'</b></div><div><small>PLACES</small><b>'+pr.landmarks+'/'+pr.landmarkTotal+'</b></div></div><p class="s-muted">Tap an animal with the Observe tool to record it, or use the 📷 camera to photograph it for a journal entry and funds. Photograph new behaviours, young and rare species for bonuses.</p><div class="j-grid">'+cards+'</div>';
  }
  function openJournal(){mount('journal');render()}
