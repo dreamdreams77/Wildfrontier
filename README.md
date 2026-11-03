@@ -17,7 +17,15 @@ A wildlife rescue and conservation simulation with a handcrafted, claymation-ins
 - Seasonal migration status and spring breeding feedback respond to forage, cover, wetland health and disturbance
 - Expanded habitat landmarks: berry thicket, creek boardwalk, sedge margin and pollinator meadow
 - More articulated mammal gaits and proximity-driven social movement
-- Active riparian restoration and nest-box projects visibly change the reserve and improve habitat metrics\n- Critically endangered red wolves and endangered whooping cranes join the managed conservation roster\n- Per-animal daily feeding schedules use species-appropriate rations; direct feeding of free-ranging wildlife remains prohibited\n- Managed endangered-species breeding programme checks habitat readiness and distinct genetic lines, with specialist oversight required\n- Restoration progress visibly matures willow plantings and nest installations\n- Whooping cranes use articulated wing pivots, circling flight paths and tucked-leg flight poses; beavers animate waterline swimming and paddling\n- Wildlife show natural forage and rest cycles, expressive eye blinks, and species-specific head and ear motion\n- Rescue handling animates the ranger approaching a stabilized animal, followed by a careful transfer into the recovery sequence\n- Feeding, quiet-rest and guided-rehabilitation actions trigger visible animal responses
+- Active riparian restoration and nest-box projects visibly change the reserve and improve habitat metrics
+- Critically endangered red wolves and endangered whooping cranes join the managed conservation roster
+- Per-animal daily feeding schedules use species-appropriate rations; direct feeding of free-ranging wildlife remains prohibited
+- Managed endangered-species breeding programme checks habitat readiness and distinct genetic lines, with specialist oversight required
+- Restoration progress visibly matures willow plantings and nest installations
+- Whooping cranes use articulated wing pivots, circling flight paths and tucked-leg flight poses; beavers animate waterline swimming and paddling
+- Wildlife show natural forage and rest cycles, expressive eye blinks, and species-specific head and ear motion
+- Rescue handling animates the ranger approaching a stabilized animal, followed by a careful transfer into the recovery sequence
+- Feeding, quiet-rest and guided-rehabilitation actions trigger visible animal responses
 - Orbit camera, zoom, WASD / arrow-key movement, and clickable animal records
 - Individual animal profiles: health, hydration, nutrition, stress, energy, social comfort, personality and daily routine
 - Ranger-led rescue progression: sighting → assessment → stabilization → transport → rehabilitation → release evaluation
