@@ -20,3 +20,6 @@ export function stepRig(rig, dt, state) {
   rig.__acc = 0;
   rig.update(step, state);
 }
+
+// Shared clock for the clay "boil": surfaces shimmer a little, re-rolled 12 times a second.
+export const clayTime = { value: 0 };

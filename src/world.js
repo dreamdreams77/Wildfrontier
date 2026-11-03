@@ -9,7 +9,7 @@ import { TIERS, detectTier, createGovernor } from './art/quality.js';
 import { createPost } from './art/post.js';
 import { setTextureScale } from './art/paint.js';
 import { setPhysical, mats } from './art/materials.js';
-import { stepRig } from './art/style.js';
+import { stepRig, clayTime } from './art/style.js';
 import { createStaffLayer, createCrowd } from './npcs.js';
 import { createBrain, profileOf, CALLS } from './ai.js';
 import { damp as dampM, approachSpeed, turnToward, avoid } from './motion.js';
@@ -187,7 +187,7 @@ export function createWorld(container){
   stepRig(u.rig,dt,{moving,anim,sleeping:!!resting,alert:!!u.alert||mind.fear>.45,fear:mind.fear,swim,flying,speedScale:run?1.9:Math.max(.5,(u.vel||0)/(u.speed||.45)),run});
  }
  let snapT=0,ptsT=0;
- function update(dt,keys){const t=clock.elapsedTime;snapT-=dt;ptsT-=dt;if(snapT<=0){snapshotOthers();snapT=.25}if(ptsT<=0){cachedPoints=pointsFor();ptsT=1}const px=ranger.position.x,pz=ranger.position.z;updateRanger(dt,keys);rangerMoving=Math.hypot(ranger.position.x-px,ranger.position.z-pz)>.001||!!(keys.forward||keys.back||keys.left||keys.right);for(let i=0;i<animals.length;i++)updateAnimal(animals[i],i,dt,t)}
+ function update(dt,keys){const t=clock.elapsedTime;clayTime.value=t;snapT-=dt;ptsT-=dt;if(snapT<=0){snapshotOthers();snapT=.25}if(ptsT<=0){cachedPoints=pointsFor();ptsT=1}const px=ranger.position.x,pz=ranger.position.z;updateRanger(dt,keys);rangerMoving=Math.hypot(ranger.position.x-px,ranger.position.z-pz)>.001||!!(keys.forward||keys.back||keys.left||keys.right);for(let i=0;i<animals.length;i++)updateAnimal(animals[i],i,dt,t)}
  function nearResearchCentre(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,-7))<7.5}
  function setAnimalStage(id,stage){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.stage=stage;if(stage==='stabilized'){a.userData.rescuePose=true;a.userData.animation='rescue';a.userData.animationTime=2.2;a.userData.destination=null;ranger.userData.rescueTarget=a.position.clone()}else if(stage==='rehabilitating'||stage==='released'){a.userData.rescuePose=false;a.userData.animation='idle';a.rotation.z=0;ranger.userData.rescueTarget=null;ranger.userData.carrying=false}if(stage==='rehabilitating'){a.userData.destination=new THREE.Vector3(-10.3,0,6.1);a.userData.recovery=true;a.userData.animation='rescue';a.userData.animationTime=3.1}else if(stage==='released'){a.userData.destination=a.userData.home.clone();a.userData.recovery=false}else if(stage==='sighted'||stage==='assessed'){a.userData.destination=a.userData.home.clone();a.userData.recovery=false}return true}
  function setAnimalAction(id,action){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.animation=action==='feed'?'feed':action==='quiet'?'rest':'idle';a.userData.animationTime=action==='feed'?2.4:action==='quiet'?5:1.2;if(action==='quiet'){a.userData.sleeping=true;a.rotation.z=.025}return true}

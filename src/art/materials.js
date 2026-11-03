@@ -13,7 +13,7 @@ import {
   plasterTexture,
   clothTexture
 } from './paint.js';
-import { CLAY } from './style.js';
+import { CLAY, clayTime } from './style.js';
 
 const cache = new Map();
 const memo = (key, factory) => {
@@ -59,7 +59,7 @@ function clayPrint() {
   }
   clayPrintTex = new THREE.CanvasTexture(c);
   clayPrintTex.wrapS = clayPrintTex.wrapT = THREE.RepeatWrapping;
-  clayPrintTex.repeat.set(3, 3);
+  clayPrintTex.repeat.set(5, 5);
   return clayPrintTex;
 }
 
@@ -69,19 +69,38 @@ function clayify(material) {
   material.metalness = 0;
   if (material.bumpMap && clayPrint()) {
     material.bumpMap = clayPrint();
-    material.bumpScale = 0.55;
+    material.bumpScale = 0.9;
   }
   const previous = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     if (previous) previous.call(material, shader, renderer);
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <opaque_fragment>',
-      `#include <opaque_fragment>
+    shader.uniforms.uClayT = clayTime;
+
+    // "Boil": vertices breathe a hair along their normals, re-rolled 12 times a second, like handled clay filmed frame by frame.
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uClayT;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
 {
-  float wfRim = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 2.6);
-  gl_FragColor.rgb += wfRim * vec3(0.16, 0.12, 0.07) * 0.8;
-}`
-    );
+  vec3 wfCell = floor(position * 7.0) + floor(uClayT * 12.0);
+  float wfBoil = fract(sin(dot(wfCell, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5;
+  transformed += normal * wfBoil * 0.016;
+}`);
+
+    shader.fragmentShader = shader.fragmentShader
+      // Blur away fine texture detail so surfaces read as smooth modelling clay, not printed fabric.
+      .replace('#include <map_fragment>', `
+#ifdef USE_MAP
+  vec4 sampledDiffuseColor = texture2D(map, vMapUv);
+  vec4 wfSoft = texture2D(map, vMapUv, 4.5);
+  diffuseColor *= mix(sampledDiffuseColor, wfSoft, 0.6);
+#endif`)
+      .replace('#include <opaque_fragment>', `#include <opaque_fragment>
+{
+  float wfRim = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 2.4);
+  gl_FragColor.rgb += wfRim * vec3(0.20, 0.15, 0.09) * 0.8;
+  // Lift the darkest shadows: clay is soft, never pitch black.
+  gl_FragColor.rgb = gl_FragColor.rgb * 0.93 + vec3(0.07, 0.058, 0.04) * 0.55;
+}`);
   };
   material.customProgramCacheKey = () => 'wildfrontier-clay';
   return material;

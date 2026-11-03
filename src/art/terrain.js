@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { fbm, smooth } from './noise.js';
 import { groundTexture, waterNormal, cloudTexture, canPaint } from './paint.js';
+import { CLAY } from './style.js';
 
 // Ground, water, sky and distant landscape. The playable plane is almost flat (animals and people walk at y = 0);
 // hills rise only outside the reserve so the world feels enclosed by real landscape.
@@ -154,10 +155,11 @@ float wfNoise(vec2 p){
 
 // Replaces map_fragment wholesale: it must stay ONE replacement, because a second
 // replace of '#include <map_fragment>' would find nothing and silently never run.
+const GROUND_SOFT = CLAY ? ', 2.5' : '';   // clay look: blur the ground texture a few mip levels
 const GROUND_FRAG_BODY = `
 #ifdef USE_MAP
-  vec4 woodlandSample = texture2D(map, vMapUv);
-  vec4 savannaSample = texture2D(mapB, vMapUv);
+  vec4 woodlandSample = texture2D(map, vMapUv${GROUND_SOFT});
+  vec4 savannaSample = texture2D(mapB, vMapUv${GROUND_SOFT});
   diffuseColor *= mix(woodlandSample, savannaSample, vSav);
 #endif
 
