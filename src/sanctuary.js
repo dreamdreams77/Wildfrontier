@@ -102,9 +102,9 @@ function residentRecord(kind,name,sex,line,x,z,extra={}){
 export function createSanctuary(sim,options={}){
  const rng=options.rng||Math.random;
  const state={
-  minutes:400,day:3,funds:1500,credits:10,reputation:12,waterLevel:90,keepers:0,
+  minutes:400,day:3,funds:1500,credits:10,reputation:12,waterLevel:90,
   stock:{meat:28,hay:40,browse:34,produce:14,aquatic:16,medicine:4},
-  pregnancies:[],familyTree:[],births:0,transfers:0,imports:0,serial:0,keeperFeedsToday:0,lastReport:null,
+  pregnancies:[],familyTree:[],births:0,transfers:0,imports:0,serial:0,lastReport:null,
  };
  const events=[];
  const say=text=>{const entry={time:sim.time,text};events.unshift({day:state.day,text});sim.log.unshift(entry);if(sim.log.length>80)sim.log.length=80};
@@ -114,6 +114,11 @@ export function createSanctuary(sim,options={}){
   if(!sim.animals.some(a=>a.id===kind+'-'+name.toLowerCase()))sim.animals.push(residentRecord(kind,name,sex,line,sp.spawn[0]+ox,sp.spawn[1]+oz));
  }
 
+ // Extension points used by operations (staff, habitat, visitors).
+ const hooks=[];const mods={habitatScore:()=>100,visitorStress:()=>0};
+ const spend=n=>{if(state.funds<n)return false;state.funds-=n;return true};
+ const earn=n=>{state.funds+=n};
+ const extend=h=>{hooks.push(h);return h};
  const residents=()=>sim.animals.filter(a=>a.managed&&SPECIES[a.kind]);
  const byId=id=>sim.animals.find(a=>a.id===id);
  const countOf=kind=>residents().filter(a=>a.kind===kind).length;
@@ -158,12 +163,6 @@ export function createSanctuary(sim,options={}){
   const cost=20;if(state.funds<cost)return {ok:false,message:'Not enough funds to run the pumps ('+cost+').'};
   state.funds-=cost;state.waterLevel=100;return {ok:true,message:'Waterholes and the soda lake refilled with clean water.'};
  }
- function hireKeeper(){
-  if(state.keepers>=4)return {ok:false,message:'Maximum of four keepers.'};
-  const cost=150;if(state.funds<cost)return {ok:false,message:'Hiring a keeper costs '+cost+'.'};
-  state.funds-=cost;state.keepers++;say('A new keeper joined the safari team. Keepers feed hungry residents each day (wage 40/day).');
-  return {ok:true,message:'Keeper hired. They will feed up to 6 hungry residents a day from stock.'};
- }
  function treat(id){
   const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Select a sanctuary resident.'};
   if(a.health>=92)return {ok:false,message:a.name+' is in good health; no treatment needed.'};
@@ -198,6 +197,7 @@ export function createSanctuary(sim,options={}){
   if(shared.length)issues.push('Too closely related (shared line '+shared.join(', ')+'). Import an unrelated founder.');
   if(countOf(m.kind)>=sp.capacity)issues.push('The '+sp.common.toLowerCase()+' habitat is at capacity ('+countOf(m.kind)+'/'+sp.capacity+'). Transfer surplus animals first.');
   if(state.waterLevel<25)issues.push('Water supply is too low for a pregnancy.');
+  if(mods.habitatScore(m.kind)<50)issues.push('The '+sp.common.toLowerCase()+' habitat is not suitable for raising young yet (score '+Math.round(mods.habitatScore(m.kind))+'%). Improve it in Build mode.');
   const total=[...new Set(residents().filter(a=>a.kind===m.kind).flatMap(lineageOf))].length;
   notes.push('Genetic diversity: '+total+' founder line'+(total===1?'':'s')+' in this population.');
   return {ok:issues.length===0,issues,notes};
@@ -263,14 +263,12 @@ export function createSanctuary(sim,options={}){
  function dailyReport(){
   const list=residents();const avg=list.length?Math.round(list.reduce((n,a)=>n+welfareOf(a),0)/list.length):0;
   const grant=Math.round(45+state.reputation*1.6+(avg>=75?40:0));
-  const wages=state.keepers*40;
-  state.funds=Math.max(0,state.funds+grant-wages);
+  state.funds+=grant;
   if(avg>=75)state.reputation+=1;
   const neglected=list.filter(a=>a.health<25);
   if(neglected.length){state.reputation=Math.max(0,state.reputation-3);say('Warning: '+neglected.map(a=>a.name).join(', ')+' in poor health. Reputation suffers until they receive care.')}
-  state.keeperFeedsToday=0;
-  state.lastReport={day:state.day,avg,grant,wages};
-  say('Day '+state.day+' report: average welfare '+avg+'%. Grants +'+grant+(wages?', keeper wages −'+wages:'')+'.');
+  state.lastReport={day:state.day,avg,grant};
+  say('Day '+state.day+' report: average welfare '+avg+'%. Grants +'+grant+'.');
  }
  function tick(delta=1){
   if(!Number.isFinite(delta)||delta<=0)return;
@@ -285,6 +283,8 @@ export function createSanctuary(sim,options={}){
     if(a.ageDays!==undefined){a.ageDays+=d/DAY;const was=a.young;a.young=a.ageDays<sp.matureDays;if(was&&!a.young){a.breedingEligible=true;a.condition='Managed sanctuary resident';say(a.name+' has grown up and is now an adult '+sp.common.toLowerCase()+'.')}}
     a.scale=scaleOf(a);
     if(state.waterLevel>8)a.hydration=clamp(a.hydration+.07*d);else a.hydration=clamp(a.hydration-.03*d);
+    const hs=mods.habitatScore(a.kind);if(hs<60)a.stress=clamp(a.stress+.03*d*(60-hs)/60);else if(hs>=85)a.stress=clamp(a.stress-.004*d);
+    a.stress=clamp(a.stress+mods.visitorStress(a.kind)*d);
     const crowd=(counts[a.kind]||0)>sp.capacity;
     if(crowd)a.stress=clamp(a.stress+.03*d);
     if(a.nutrition<18)a.health=clamp(a.health-.012*d);
@@ -295,10 +295,9 @@ export function createSanctuary(sim,options={}){
     a.mood=a.pregnant?'Expecting':a.nutrition<30?'Hungry':a.stress>60?'Stressed':a.mood==='Delighted'||a.mood==='Playful'?a.mood:'Content';
     if(a.pregnant&&state.minutes>=a.pregnant.dueMinute){giveBirth(a)}
    }
+   for(const h of hooks)h.tick&&h.tick(d);
    if(state.minutes>=(state.day-2)*DAY){
-    state.day++;dailyReport();
-    // Keepers feed hungry residents, most hungry first, up to their daily capacity.
-    if(state.keepers>0){let budget=state.keepers*6;const hungry=residents().filter(a=>a.nutrition<55).sort((x,y)=>x.nutrition-y.nutrition);for(const a of hungry){if(budget<=0)break;const sp=SPECIES[a.kind];for(const f of sp.foods.filter(x=>!(sp.treat||[]).includes(x)))if(feed(a.id,f).ok){budget--;state.keeperFeedsToday++;break}}}
+    state.day++;dailyReport();for(const h of hooks)h.day&&h.day();
    }
   }
  }
@@ -307,24 +306,25 @@ export function createSanctuary(sim,options={}){
   const list=residents();const species=Object.keys(SPECIES).map(kind=>{
    const members=list.filter(a=>a.kind===kind);
    return {kind,common:SPECIES[kind].common,emoji:SPECIES[kind].emoji,count:members.length,capacity:SPECIES[kind].capacity,
-    founders:[...new Set(members.flatMap(lineageOf))].length,welfare:members.length?Math.round(members.reduce((n,a)=>n+welfareOf(a),0)/members.length):0};
+    habitat:Math.round(mods.habitatScore(kind)),founders:[...new Set(members.flatMap(lineageOf))].length,welfare:members.length?Math.round(members.reduce((n,a)=>n+welfareOf(a),0)/members.length):0};
   });
   const avg=list.length?Math.round(list.reduce((n,a)=>n+welfareOf(a),0)/list.length):0;
   const hungry=list.filter(a=>a.nutrition<45).length;
-  return {funds:Math.round(state.funds),credits:state.credits,reputation:Math.round(state.reputation),stock:{...state.stock},waterLevel:Math.round(state.waterLevel),keepers:state.keepers,
+  return {funds:Math.round(state.funds),credits:state.credits,reputation:Math.round(state.reputation),stock:{...state.stock},waterLevel:Math.round(state.waterLevel),
    residents:list.length,avgWelfare:avg,hungry,species,pregnancies:list.filter(a=>a.pregnant).map(a=>({name:a.name,kind:a.kind,sire:a.pregnant.sireName,daysLeft:Math.max(0,Math.ceil((a.pregnant.dueMinute-state.minutes)/DAY))})),
-   births:state.births,transfers:state.transfers,familyTree:state.familyTree.slice(),day:state.day,lastReport:state.lastReport,events:events.slice(0,6)};
+   births:state.births,transfers:state.transfers,familyTree:state.familyTree.slice(),day:state.day,lastReport:state.lastReport,events:events.slice(0,6),ext:Object.assign({},...hooks.map(h=>h.summary?h.summary():{}))};
  }
 
  function serialize(){
-  return {v:1,state:{...state,stock:{...state.stock},pregnancies:state.pregnancies.slice(),familyTree:state.familyTree.slice()},animals:residents().map(a=>({...a}))};
+  return {v:1,state:{...state,stock:{...state.stock},pregnancies:state.pregnancies.slice(),familyTree:state.familyTree.slice()},animals:residents().map(a=>({...a})),ext:Object.fromEntries(hooks.filter(h=>h.key&&h.serialize).map(h=>[h.key,h.serialize()]))};
  }
  function restore(data){
   if(!data||data.v!==1)return false;
   Object.assign(state,data.state);
+  for(const h of hooks)if(h.key&&h.restore&&data.ext&&data.ext[h.key])h.restore(data.ext[h.key]);
   const keep=sim.animals.filter(a=>!a.managed);sim.animals.length=0;sim.animals.push(...keep,...data.animals.map(a=>({...a})));
   return true;
  }
 
- return {state,SPECIES,FOODS,residents,feed,feedAllHungry,buyFood,refillWater,hireKeeper,treat,enrich,pairStatus,startBreeding,transferOut,importFounder,tick,summary,serialize,restore,welfareOf,stageOf,scaleOf,preferredFood};
+ return {state,mods,extend,spend,earn,say,sim,SPECIES,FOODS,residents,feed,feedAllHungry,buyFood,refillWater,treat,enrich,pairStatus,startBreeding,transferOut,importFounder,tick,summary,serialize,restore,welfareOf,stageOf,scaleOf,preferredFood};
 }

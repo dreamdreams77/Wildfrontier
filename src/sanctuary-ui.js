@@ -1,17 +1,20 @@
 import { SPECIES, FOODS, stageOf, welfareOf, MEDICINE_PRICE } from './sanctuary.js';
+import { ROLES } from './operations.js';
 
 // Safari sanctuary management panel: overview, residents, supplies and the breeding programme.
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const bar=(v,cls='')=>'<i class="sbar '+cls+'"><em style="width:'+Math.max(0,Math.min(100,Math.round(v)))+'%"></em></i>';
 const welfareClass=v=>v>=75?'good':v>=50?'ok':'bad';
 
-export function mountSanctuaryUI({sim,sanct,world,toast,afterChange,focusAnimal,openRecord}){
+export function mountSanctuaryUI({sim,sanct,ops,world,toast,afterChange,focusAnimal,openRecord,openBuild}){
  let panel=null,pointerDown=false,lastRender=0,tab='overview',pairKind='africanLion',maleId='',femaleId='';
 
  function goals(sum){
   const founders=Math.max(...sum.species.map(s=>s.founders));
   return [
-   {text:'Hire a keeper to share the daily feeding',done:sum.keepers>0},
+   {text:'Hire a keeper to share the daily feeding',done:(sum.ext.staff||[]).some(m=>m.role==='keeper')},
+   {text:'Build a complete habitat (100%) for one species',done:sum.species.some(x=>x.habitat>=100)},
+   {text:'Welcome 100 visitors in total',done:(sum.ext.visitors?.total||0)>=100},
    {text:'Keep average welfare at 80% or higher',done:sum.avgWelfare>=80},
    {text:'Welcome the first birth through the breeding programme',done:sum.births>0},
    {text:'Build a diverse population: 3+ founder lines in one species',done:founders>=3},
@@ -24,9 +27,8 @@ export function mountSanctuaryUI({sim,sanct,world,toast,afterChange,focusAnimal,
   const g=goals(sum);
   return '<div class="s-stats"><div><small>FUNDS</small><b>'+sum.funds+'</b></div><div><small>CONSERVATION CREDITS</small><b>'+sum.credits+'</b></div><div><small>REPUTATION</small><b>'+sum.reputation+'</b></div><div><small>AVG WELFARE</small><b class="'+welfareClass(sum.avgWelfare)+'">'+sum.avgWelfare+'%</b></div></div>'
    +'<div class="s-row"><span>Water supply</span>'+bar(sum.waterLevel,sum.waterLevel<30?'low':'')+'<button data-act="water">REFILL · 20</button></div>'
-   +'<div class="s-row"><span>Keepers ('+sum.keepers+'/4)</span><small class="s-muted">Feed up to 6 hungry residents daily · wage 40/day</small><button data-act="keeper">HIRE · 150</button></div>'
    +'<div class="s-row"><span>'+sum.hungry+' hungry resident'+(sum.hungry===1?'':'s')+'</span><small class="s-muted">Nutrition under 45%</small><button data-act="feedAll">FEED ALL HUNGRY</button></div>'
-   +'<h3>Species</h3><div class="s-species">'+sum.species.map(s=>'<button data-act="species" data-kind="'+s.kind+'"><span>'+s.emoji+'</span><b>'+esc(s.common)+'</b><small>'+s.count+'/'+s.capacity+' · '+s.founders+' line'+(s.founders===1?'':'s')+' · welfare '+s.welfare+'%</small></button>').join('')+'</div>'
+   +'<h3>Species</h3><div class="s-species">'+sum.species.map(s=>'<button data-act="species" data-kind="'+s.kind+'"><span>'+s.emoji+'</span><b>'+esc(s.common)+'</b><small>'+s.count+'/'+s.capacity+' · '+s.founders+' line'+(s.founders===1?'':'s')+' · welfare '+s.welfare+'% · habitat '+s.habitat+'%</small></button>').join('')+'</div>'
    +'<h3>Sanctuary goals</h3><ul class="s-goals">'+g.map(x=>'<li class="'+(x.done?'done':'')+'"><span>'+(x.done?'✓':'○')+'</span>'+esc(x.text)+'</li>').join('')+'</ul>'
    +'<h3>Recent events</h3><ul class="s-events">'+(sum.events.length?sum.events.map(e=>'<li><b>Day '+e.day+'</b> '+esc(e.text)+'</li>').join(''):'<li>No events yet.</li>')+'</ul>'
    +'<div class="s-foot"><button data-act="travel">GO TO SAFARI GATE</button><button data-act="reset" class="s-danger">START A NEW SANCTUARY</button></div>';
@@ -66,15 +68,36 @@ export function mountSanctuaryUI({sim,sanct,world,toast,afterChange,focusAnimal,
    +'<h3>Transfers to partner reserves</h3><div class="s-list">'+(adults.length?adults.map(a=>'<div class="s-supply"><span>'+sp.emoji+'</span><div><b>'+esc(a.name)+'</b><small>welfare '+welfareOf(a)+'% · line '+esc(a.geneticLine)+'</small></div><button data-act="transfer" data-id="'+a.id+'">TRANSFER</button></div>').join(''):'<p class="s-muted">No adults of this species.</p>')+'</div>';
  }
 
+ function staffTab(sum){
+  const x=sum.ext;const rows=(x.staff||[]).map(m=>'<article class="s-res"><div class="s-res-head"><span>'+ROLES[m.role].emoji+' <b>'+esc(m.name)+'</b></span><small>'+ROLES[m.role].label+' · skill '+m.skill+' · '+m.tasksDone+' tasks</small><span class="s-w ok">'+({idle:'resting',walk:'on the way',work:'working',return:'returning'}[m.state]||m.state)+'</span></div><div class="s-acts"><button data-act="focusStaff" data-id="'+m.id+'">FOLLOW</button><button data-act="dismiss" data-id="'+m.id+'" class="s-danger">DISMISS</button></div></article>').join('');
+  const hire=Object.entries(ROLES).map(([k,r])=>{const n=(x.staff||[]).filter(m=>m.role===k).length;return '<div class="s-supply"><span>'+r.emoji+'</span><div><b>'+r.label+' ('+n+'/'+r.max+')</b><small>'+esc(r.blurb)+' Wage '+r.wage+'/day.</small></div><button data-act="hire" data-role="'+k+'" '+(n>=r.max?'disabled':'')+'>HIRE · '+r.cost+'</button></div>'}).join('');
+  return '<p class="s-muted">Staff really walk the safari. They work 06:00–20:00 and rest at the supply shed otherwise. Daily wages: <b>'+(x.wagesPerDay||0)+'</b>'+(x.unpaid?' · <b class="bad">unpaid: work has stopped</b>':'')+'.</p>'+hire+'<h3>Team</h3><div class="s-list">'+(rows||'<p class="s-muted">No staff yet.</p>')+'</div>';
+ }
+ function habitatTab(sum){
+  const x=sum.ext;const rows=sum.species.map(s=>{const h=x.habitat[s.kind];return '<article class="s-res"><div class="s-res-head"><button data-act="species" data-kind="'+s.kind+'" class="s-link">'+s.emoji+' <b>'+esc(s.common)+'</b></button><small>'+s.count+'/'+s.capacity+' animals</small><span class="s-w '+welfareClass(h.score)+'">'+h.score+'%</span></div>'+bar(h.score,h.score<60?'low':'')+'<p class="s-muted">'+(h.missing.length?'Missing: '+esc(h.missing.join(', ')):'Everything this species needs is within reach.')+'</p></article>'}).join('');
+  return '<p class="s-muted">Habitat quality depends on what each species actually needs nearby, not on how pretty it looks. Below 60% animals become stressed; below 50% breeding is blocked.</p><div class="s-foot"><button data-act="build">OPEN BUILD MODE</button></div><div class="s-list">'+rows+'</div>';
+ }
+ function stars(r){const full=Math.floor(r);return '★'.repeat(full)+(r-full>=.5?'½':'')+'☆'.repeat(Math.max(0,5-Math.ceil(r)))}
+ function visitorsTab(sum){
+  const v=sum.ext.visitors;
+  const sens={cheetah:'very sensitive',bengalTiger:'sensitive',indianRhino:'sensitive',flamingo:'moderate',africanLion:'moderate',plainsZebra:'tolerant',africanElephant:'tolerant',giraffe:'tolerant'};
+  const rows=sum.species.map(s=>{const r=!!v.restricted[s.kind];return '<div class="s-supply"><span>'+s.emoji+'</span><div><b>'+esc(s.common)+'</b><small>'+(sens[s.kind]||'')+' · '+(r?'closed to visitors':'open to visitors')+'</small></div><button data-act="restrict" data-kind="'+s.kind+'" data-on="'+(r?'0':'1')+'">'+(r?'OPEN':'CLOSE')+'</button></div>'}).join('');
+  return '<div class="s-stats"><div><small>TODAY</small><b>'+v.today+'</b></div><div><small>ON SITE</small><b>'+v.onSite+'/'+v.capacity+'</b></div><div><small>RATING</small><b>'+v.rating.toFixed(1)+'★</b></div><div><small>AWARENESS</small><b>'+Math.round(v.awareness)+'</b></div></div>'
+   +'<div class="s-row"><span>'+(v.open?'Open to visitors':'Closed to visitors')+'</span><small class="s-muted">Rating '+stars(v.rating)+' · appeal '+v.appeal+'</small><button data-act="vopen" data-on="'+(v.open?'0':'1')+'">'+(v.open?'CLOSE SANCTUARY':'OPEN SANCTUARY')+'</button></div>'
+   +'<div class="s-row"><span>Ticket price: '+v.price+'</span><small class="s-muted">Lower prices bring more visitors; higher prices earn more per head.</small><span class="s-acts"><button data-act="price" data-d="-2">−</button><button data-act="price" data-d="2">+</button></span></div>'
+   +'<p class="s-muted">Yesterday: tickets +'+v.lastIncome+', donations +'+v.lastDonation+'. Educators give talks at the viewing platform when visitors are present. More visitors mean more disturbance for sensitive species: close their habitats to protect them.</p>'
+   +'<h3>Access by habitat</h3>'+rows;
+ }
+
  function render(){
   if(!panel)return;lastRender=Date.now();
   const sum=sanct.summary();
-  const tabs=[['overview','OVERVIEW'],['residents','RESIDENTS'],['supplies','SUPPLIES'],['breeding','BREEDING']];
+  const tabs=[['overview','OVERVIEW'],['residents','RESIDENTS'],['supplies','SUPPLIES'],['breeding','BREEDING'],['staff','STAFF'],['habitat','HABITAT'],['visitors','VISITORS']];
   const scroll=panel.querySelector('.s-body')?.scrollTop||0;
   panel.innerHTML='<header><div><small>SAFARI SANCTUARY · DAY '+sum.day+'</small><h2>Wildlife care &amp; conservation</h2></div><button id="closeSanct" aria-label="Close">×</button></header>'
    +'<nav class="s-tabs">'+tabs.map(([k,l])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+l+'</button>').join('')+'</nav>'
    +'<div class="s-top"><span>🪙 '+sum.funds+'</span><span>🌍 '+sum.credits+' cr</span><span>⭐ '+sum.reputation+'</span><span>❤ '+sum.avgWelfare+'%</span></div>'
-   +'<div class="s-body">'+(tab==='overview'?overview(sum):tab==='residents'?residents():tab==='supplies'?supplies(sum):breeding(sum))+'</div>';
+   +'<div class="s-body">'+(tab==='overview'?overview(sum):tab==='residents'?residents():tab==='supplies'?supplies(sum):tab==='staff'?staffTab(sum):tab==='habitat'?habitatTab(sum):tab==='visitors'?visitorsTab(sum):breeding(sum))+'</div>';
   const body=panel.querySelector('.s-body');if(body)body.scrollTop=scroll;
  }
 
@@ -90,7 +113,13 @@ export function mountSanctuaryUI({sim,sanct,world,toast,afterChange,focusAnimal,
   else if(a==='treat')run(sanct.treat(id));
   else if(a==='feedAll')run(sanct.feedAllHungry());
   else if(a==='water')run(sanct.refillWater());
-  else if(a==='keeper')run(sanct.hireKeeper());
+  else if(a==='hire')run(ops.hire(t.dataset.role));
+  else if(a==='dismiss')run(ops.dismiss(id));
+  else if(a==='focusStaff'){const m=ops.state.staff.find(x=>x.id===id);if(m){close();world.focus(m.x,m.z)}}
+  else if(a==='build'){close();openBuild()}
+  else if(a==='vopen')run(ops.setOpen(t.dataset.on==='1'));
+  else if(a==='price')run(ops.setPrice(ops.summary().visitors.price+Number(t.dataset.d)));
+  else if(a==='restrict'){const r=ops.setRestricted(t.dataset.kind,t.dataset.on==='1');ops.planDay();run(r)}
   else if(a==='buy')run(sanct.buyFood(t.dataset.food,Number(t.dataset.qty)));
   else if(a==='species'){pairKind=t.dataset.kind;focusSpecies(t.dataset.kind)}
   else if(a==='kind'){pairKind=t.dataset.kind;maleId=femaleId='';render()}
