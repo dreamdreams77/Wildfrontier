@@ -84,8 +84,8 @@ export function createWorld(container){
  const roofA=new THREE.Mesh(new THREE.BoxGeometry(5.2,.2,8),lodgeRoof);roofA.position.set(-1.25,3.05,0);roofA.rotation.z=-.42;researchLodge.add(roofA);
  const roofB=new THREE.Mesh(new THREE.BoxGeometry(5.2,.2,8),lodgeRoof);roofB.position.set(1.25,3.05,0);roofB.rotation.z=.42;researchLodge.add(roofB);
  for(const x of [-3.45,3.45]){const win=new THREE.Mesh(new THREE.BoxGeometry(.9,1.15,.08),lodgeGlass);win.position.set(x,1.65,3.43);researchLodge.add(win)}
- const door=new THREE.Mesh(new THREE.BoxGeometry(1.25,2.25,.14),mat('#594735'));door.position.set(0,1.18,3.57);researchLodge.add(door);
- const sign=new THREE.Mesh(new THREE.BoxGeometry(3.8,.62,.15),mat('#d6c69f'));sign.position.set(0,2.55,3.72);researchLodge.add(sign);
+ const researchDoor=new THREE.Mesh(new THREE.BoxGeometry(1.25,2.25,.14),mat('#594735'));researchDoor.position.set(0,1.18,3.57);researchLodge.add(researchDoor);
+ const researchSign=new THREE.Mesh(new THREE.BoxGeometry(3.8,.62,.15),mat('#d6c69f'));researchSign.position.set(0,2.55,3.72);researchLodge.add(researchSign);
  const benchMat=mat('#6c5942'),screenMat=mat('#344e48'),paperMat=mat('#d9d0b4');
  for(const x of [-2.8,0,2.8]){const bench=new THREE.Mesh(new THREE.BoxGeometry(2.25,.16,1.15),benchMat);bench.position.set(x,.92,-.85);researchLodge.add(bench);for(const dx of [-.9,.9]){const leg=new THREE.Mesh(new THREE.BoxGeometry(.09,.86,.09),lodgeTrim);leg.position.set(x+dx,.48,-.85);researchLodge.add(leg)}const monitor=new THREE.Mesh(new THREE.BoxGeometry(1.2,.72,.09),screenMat);monitor.position.set(x,1.48,-2.15);researchLodge.add(monitor);const chart=new THREE.Mesh(new THREE.BoxGeometry(.9,.5,.025),paperMat);chart.position.set(x,1.49,-2.095);researchLodge.add(chart)}
  const mapBoard=new THREE.Mesh(new THREE.BoxGeometry(5.7,1.65,.12),benchMat);mapBoard.position.set(0,2.05,-3.35);researchLodge.add(mapBoard);
