@@ -54,6 +54,17 @@ A second reserve east of the woodland: walk through the gate (or tap **Safari Sa
 - **Saving**: the safari sanctuary is saved in your browser and restored on reload. The woodland rescue missions are not saved yet.
 - **Touch controls**: drag to look, pinch to zoom, tap an animal for its record, on-screen joystick to walk.
 
+## Art direction and rendering (visual overhaul)
+Wild Frontier is a hand-painted 3D world. Nothing in the scene is a flat sprite or a primitive solid any more:
+
+- **Rigged animals**: all 26 species are lofted, skinned meshes on real skeletons with painted coats, bump-mapped fur, blinking eyes and procedural gaits (walk, trot, bound, wade, hop), grazing, drinking-style head poses, sleeping, alert posture, tail and ear life. Specs live in `src/art/creature-specs.js`.
+- **Rigged people**: the ranger, keepers, vets, educators and visitors share a humanoid rig with walk, work, talk, carry and photo animations (`src/art/human.js`).
+- **Handcrafted environment**: bark-textured trees, painted leaf canopies, wind-animated grass, flowers, ferns, reeds, bamboo, acacia and baobab; timber, thatch, shingle and stone buildings with painted signs; reflective animated water; painted terrain with hills, a drifting-cloud sky, a distant treeline and an environment map.
+- **Lighting**: soft-shadowed key sun, sky fill and bounce, time-of-day, weather and season grading; lit windows at night. High quality adds ambient occlusion, soft bloom and a painterly colour grade.
+- **3D interface art**: animal portraits, journal cards and build icons are renders of the real models (`src/art/portraits.js`).
+- **Quality tiers**: Low, Medium and High are chosen from the device, or with `?quality=low|medium|high`. A governor steps down automatically if frames are slow. See `docs/VISUAL_AUDIT.md` for what changed and the measured numbers.
+- Dev tools: `showcase.html` (run `npm run dev`, open `/Wildfrontier/showcase.html?grid=1`) previews every species and person; `tools/visual-audit.cjs` audits the live scene; `tools/smoke-creatures.mjs` builds and animates every model in Node.
+
 ## Run locally
 ```bash
 npm install

@@ -6,7 +6,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const bar=(v,cls='')=>'<i class="sbar '+cls+'"><em style="width:'+Math.max(0,Math.min(100,Math.round(v)))+'%"></em></i>';
 const welfareClass=v=>v>=75?'good':v>=50?'ok':'bad';
 
-export function mountSanctuaryUI({sim,sanct,ops,world,toast,afterChange,focusAnimal,openRecord,openBuild}){
+export function mountSanctuaryUI({sim,sanct,ops,world,toast,afterChange,focusAnimal,openRecord,openBuild,portraits}){
+ const face=(kind,fallback)=>portraits?'<img class="p-img" alt="" src="'+portraits.portrait(kind)+'">':fallback;
  let panel=null,pointerDown=false,lastRender=0,tab='overview',pairKind='africanLion',maleId='',femaleId='';
 
  function goals(sum){
@@ -28,7 +29,7 @@ export function mountSanctuaryUI({sim,sanct,ops,world,toast,afterChange,focusAni
   return '<div class="s-stats"><div><small>FUNDS</small><b>'+sum.funds+'</b></div><div><small>CONSERVATION CREDITS</small><b>'+sum.credits+'</b></div><div><small>REPUTATION</small><b>'+sum.reputation+'</b></div><div><small>AVG WELFARE</small><b class="'+welfareClass(sum.avgWelfare)+'">'+sum.avgWelfare+'%</b></div></div>'
    +'<div class="s-row"><span>Water supply</span>'+bar(sum.waterLevel,sum.waterLevel<30?'low':'')+'<button data-act="water">REFILL · 20</button></div>'
    +'<div class="s-row"><span>'+sum.hungry+' hungry resident'+(sum.hungry===1?'':'s')+'</span><small class="s-muted">Nutrition under 45%</small><button data-act="feedAll">FEED ALL HUNGRY</button></div>'
-   +'<h3>Species</h3><div class="s-species">'+sum.species.map(s=>'<button data-act="species" data-kind="'+s.kind+'"><span>'+s.emoji+'</span><b>'+esc(s.common)+'</b><small>'+s.count+'/'+s.capacity+' · '+s.founders+' line'+(s.founders===1?'':'s')+' · welfare '+s.welfare+'% · habitat '+s.habitat+'%</small></button>').join('')+'</div>'
+   +'<h3>Species</h3><div class="s-species">'+sum.species.map(s=>'<button data-act="species" data-kind="'+s.kind+'"><span>'+face(s.kind,s.emoji)+'</span><b>'+esc(s.common)+'</b><small>'+s.count+'/'+s.capacity+' · '+s.founders+' line'+(s.founders===1?'':'s')+' · welfare '+s.welfare+'% · habitat '+s.habitat+'%</small></button>').join('')+'</div>'
    +'<h3>Sanctuary goals</h3><ul class="s-goals">'+g.map(x=>'<li class="'+(x.done?'done':'')+'"><span>'+(x.done?'✓':'○')+'</span>'+esc(x.text)+'</li>').join('')+'</ul>'
    +'<h3>Recent events</h3><ul class="s-events">'+(sum.events.length?sum.events.map(e=>'<li><b>Day '+e.day+'</b> '+esc(e.text)+'</li>').join(''):'<li>No events yet.</li>')+'</ul>'
    +'<div class="s-foot"><button data-act="travel">GO TO SAFARI GATE</button><button data-act="reset" class="s-danger">START A NEW SANCTUARY</button></div>';
@@ -37,7 +38,7 @@ export function mountSanctuaryUI({sim,sanct,ops,world,toast,afterChange,focusAni
  function residents(){
   const list=sanct.residents().slice().sort((a,b)=>a.kind.localeCompare(b.kind)||a.name.localeCompare(b.name));
   return '<div class="s-list">'+list.map(a=>{const sp=SPECIES[a.kind],w=welfareOf(a);const food=sanct.preferredFood(a);
-   return '<article class="s-res"><div class="s-res-head"><button data-act="open" data-id="'+a.id+'" class="s-link">'+sp.emoji+' <b>'+esc(a.name)+'</b></button><small>'+esc(sp.common)+' · '+stageOf(a)+(a.pregnant?' · expecting':'')+'</small><span class="s-w '+welfareClass(w)+'">'+w+'%</span></div>'
+   return '<article class="s-res"><div class="s-res-head"><button data-act="open" data-id="'+a.id+'" class="s-link">'+face(a.kind,sp.emoji)+' <b>'+esc(a.name)+'</b></button><small>'+esc(sp.common)+' · '+stageOf(a)+(a.pregnant?' · expecting':'')+'</small><span class="s-w '+welfareClass(w)+'">'+w+'%</span></div>'
     +'<div class="s-meters"><label>Food'+bar(a.nutrition,a.nutrition<35?'low':'')+'</label><label>Water'+bar(a.hydration,a.hydration<35?'low':'')+'</label><label>Health'+bar(a.health,a.health<50?'low':'')+'</label><label>Calm'+bar(100-a.stress,a.stress>60?'low':'')+'</label></div>'
     +'<div class="s-acts"><button data-act="feed" data-id="'+a.id+'" data-food="'+food+'">'+FOODS[food].icon+' FEED</button><button data-act="enrich" data-id="'+a.id+'">PLAY</button><button data-act="treat" data-id="'+a.id+'">VET</button></div></article>'}).join('')+'</div>';
  }
