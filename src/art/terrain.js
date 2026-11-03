@@ -14,6 +14,7 @@ export function heightAt(x,z){
  return micro*(1-k)+hills*k*k;
 }
 
+export const groundFx={uCloudT:{value:0},uCloud:{value:0}};   // drifting cloud shadows: time and strength (0 at night or in rain)
 export function buildGround(scene,{tier}){
  const size=130,seg=tier.pixelRatio>1.5?170:120;
  const g=new THREE.PlaneGeometry(size,size,seg,seg);g.rotateX(-Math.PI/2);g.translate(BOUNDS.cx,0,0);
@@ -32,28 +33,51 @@ export function buildGround(scene,{tier}){
  const texB=canPaint?groundTexture('savanna'):null;
  if(mat.map)mat.map.repeat.set(30,30);if(texB)texB.repeat.set(30,30);
  mat.onBeforeCompile=(s)=>{
-  s.uniforms.mapB={value:texB};
-  s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nattribute float aSav;varying float vSav;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSav=aSav;');
-  s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D mapB;varying float vSav;')
-   .replace('#include <map_fragment>','#ifdef USE_MAP\n vec4 sA=texture2D(map,vMapUv);vec4 sB=texture2D(mapB,vMapUv);diffuseColor*=mix(sA,sB,vSav);\n#endif');
+  s.uniforms.mapB={value:texB};s.uniforms.uCloudT=groundFx.uCloudT;s.uniforms.uCloud=groundFx.uCloud;
+  s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nattribute float aSav;varying float vSav;varying vec2 vGW;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSav=aSav;vGW=(modelMatrix*vec4(position,1.)).xz;');
+  s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D mapB;varying float vSav;varying vec2 vGW;uniform float uCloudT;uniform float uCloud;\nfloat ch(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float cn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(ch(i),ch(i+vec2(1,0)),f.x),mix(ch(i+vec2(0,1)),ch(i+vec2(1,1)),f.x),f.y);}')
+   .replace('#include <map_fragment>','#ifdef USE_MAP\n vec4 sA=texture2D(map,vMapUv);vec4 sB=texture2D(mapB,vMapUv);diffuseColor*=mix(sA,sB,vSav);\n#endif\n float cl=cn(vGW*.035+vec2(uCloudT*.012,uCloudT*.006))*.65+cn(vGW*.09-vec2(uCloudT*.02,0.))*.35;diffuseColor.rgb*=1.-uCloud*.30*smoothstep(.48,.72,cl);');
  };
- mat.customProgramCacheKey=()=>'ground2';
+ mat.customProgramCacheKey=()=>'ground3';
  const mesh=new THREE.Mesh(g,mat);mesh.receiveShadow=true;mesh.name='ground';scene.add(mesh);return mesh;
 }
 
-// Water: reflective, slightly translucent, with scrolling painted normals.
-const water={mat:null,tex:null};
-export function waterMaterial(color='#4f8e98'){
- if(!water.mat){
-  const n=canPaint?waterNormal():null;water.tex=n;
-  water.mat=new THREE.MeshStandardMaterial({color,roughness:.1,metalness:.08,transparent:true,opacity:.86,normalMap:n,normalScale:new THREE.Vector2(.9,.9),envMapIntensity:1.6});
-  if(n)n.repeat.set(3,3);
- }
- return water.mat;
+// Water: depth-graded, soft-edged, with animated foam, glints and ripples where people and animals move.
+const water={tex:null,cache:new Map(),uT:{value:0},uAct:{value:Array.from({length:8},()=>new THREE.Vector4(0,0,0,0))}};
+const WATER_CHUNK={
+ vert:'varying vec2 vWU;varying vec3 vWP;',
+ frag:`varying vec2 vWU;varying vec3 vWP;uniform float uT;uniform vec4 uAct[8];uniform float uDisc;uniform vec3 uDeep;
+ float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+ float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}`,
+};
+export function waterMaterial(color='#4f8e98',disc=false){
+ const key=color+(disc?'d':'p');if(water.cache.has(key))return water.cache.get(key);
+ if(!water.tex&&canPaint){water.tex=waterNormal();water.tex.repeat.set(3,3)}
+ const mat=new THREE.MeshStandardMaterial({color,roughness:.1,metalness:.08,transparent:true,opacity:.9,normalMap:water.tex,normalScale:new THREE.Vector2(.9,.9),envMapIntensity:1.6,depthWrite:false});
+ mat.onBeforeCompile=sh=>{
+  sh.uniforms.uT=water.uT;sh.uniforms.uAct=water.uAct;sh.uniforms.uDisc={value:disc?1:0};sh.uniforms.uDeep={value:new THREE.Color(color).multiplyScalar(.45)};
+  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\n'+WATER_CHUNK.vert).replace('#include <begin_vertex>','#include <begin_vertex>\nvWU=uv;vWP=(modelMatrix*vec4(position,1.)).xyz;');
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\n'+WATER_CHUNK.frag)
+   .replace('#include <color_fragment>',`#include <color_fragment>
+   vec2 q=vWU-.5;float r=uDisc>.5?length(q)*2.:max(abs(q.x),abs(q.y))*2.;
+   float depth=1.-smoothstep(.15,.95,r);
+   diffuseColor.rgb=mix(diffuseColor.rgb*1.25,uDeep*1.5,depth*.8);
+   float wob=vn(vWP.xz*3.+uT*.6)*.06+vn(vWP.xz*9.-uT*.9)*.03;
+   float foam=smoothstep(.80,.93,r+wob)*(1.-smoothstep(.95,1.,r+wob*.5));
+   float ripple=0.;
+   for(int i=0;i<8;i++){vec4 a=uAct[i];if(a.w>0.){float d=distance(vWP.xz,a.xy);ripple+=sin(d*13.-uT*6.)*exp(-d*1.7)*a.w;}}
+   float glint=pow(max(vn(vWP.xz*14.+uT*1.3)-.72,0.)*3.5,2.);
+   diffuseColor.rgb+=vec3(.9,.95,.9)*(foam*.4+glint*.3)+ripple*.10;
+   diffuseColor.a*=mix(.62,.94,depth)*(1.-smoothstep(.93,1.,r))+foam*.2;`);
+ };
+ mat.customProgramCacheKey=()=>'water2'+(disc?'d':'p');
+ water.cache.set(key,mat);return mat;
 }
-export function updateWater(t){if(water.tex){water.tex.offset.set(t*.012,t*.02)}}
-export function makeWaterPlane(w,d,{color}={}){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d,1,1),waterMaterial(color));m.rotation.x=-Math.PI/2;m.receiveShadow=true;return m}
-export function makeWaterDisc(r,{color,sx=1,sz=1}={}){const m=new THREE.Mesh(new THREE.CircleGeometry(r,40),waterMaterial(color));m.rotation.x=-Math.PI/2;m.scale.set(sx,sz,1);m.receiveShadow=true;return m}
+export function updateWater(t){water.uT.value=t;groundFx.uCloudT.value=t;if(water.tex){water.tex.offset.set(t*.012,t*.02)}}
+// movers near water make ripples: [{x,z,speed(0-1)}]
+export function setWaterActors(list){const u=water.uAct.value;for(let i=0;i<8;i++){const a=list[i];if(a)u[i].set(a.x,a.z,0,Math.min(1,a.speed));else u[i].set(0,0,0,0)}}
+export function makeWaterPlane(w,d,{color}={}){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d,1,1),waterMaterial(color,false));m.rotation.x=-Math.PI/2;m.receiveShadow=true;m.renderOrder=1;return m}
+export function makeWaterDisc(r,{color,sx=1,sz=1}={}){const m=new THREE.Mesh(new THREE.CircleGeometry(r,48),waterMaterial(color,true));m.rotation.x=-Math.PI/2;m.scale.set(sx,sz,1);m.receiveShadow=true;m.renderOrder=1;return m}
 
 // Sky dome, sun, clouds
 export function buildSky(scene){

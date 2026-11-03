@@ -6,6 +6,8 @@ import { makeCabin, makeRecoveryYard, makeClinic, makeResearchLodge, makeSafariG
 import { blobGeo, xform, paintColor, loft } from './meshkit.js';
 import { wind, mats } from './materials.js';
 import { rng } from './noise.js';
+import { buildSavannaDetail } from './detail.js';
+import { createAtmosphere } from './atmosphere.js';
 
 // Lays out the whole reserve: woodland, creek, savanna and every building, using the coordinates the game logic expects.
 export function buildWorldArt(scene,{tier,onHandle}={}){
@@ -76,6 +78,7 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
 
  // ----- savanna -----
  buildSavannaArt(scene,art,{F,G});
+ buildSavannaDetail(scene,art,{F,G});
 
  // ----- ambient life: butterflies, fireflies, rain -----
  art.butterflies=[];
@@ -91,7 +94,8 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.BufferAttribute(rp,3));
  art.rain=new THREE.LineSegments(rg,new THREE.LineBasicMaterial({color:'#cfe0ea',transparent:true,opacity:.35}));art.rain.visible=false;art.rain.frustumCulled=false;scene.add(art.rain);
 
- art.update=(t,dt,env)=>{
+ art.atmosphere=createAtmosphere(scene,{tier});
+ art.update=(t,dt,env,focus={x:24,z:0})=>{art.atmosphere.update(t,dt,env,focus);
   wind.uTime.value=t;wind.uStrength.value=env.wind;updateWater(t);art.sky.update(dt);
   art.butterflies.forEach(({group,wings},i)=>{group.visible=(env.season==='Spring'||env.season==='Summer')&&!env.rain&&!env.night;const ph=t*.72+group.userData.phase;group.position.set(group.userData.home.x+Math.sin(ph)*.72,.65+Math.sin(ph*1.7)*.2+(i%4)*.22,group.userData.home.z+Math.cos(ph*.83)*.58);group.rotation.y=Math.sin(ph)*.65+Math.PI/2*0;wings.forEach(({mesh,side})=>{mesh.rotation.z=side*(.2+Math.abs(Math.sin(t*13+i))*1.05)})});
   art.fireflies.visible=env.glow;if(env.glow){art.fireflies.material.opacity=.5+Math.sin(t*2)*.3;const p=art.fireflies.geometry.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,.45+((t*.12+i*.17)%1)*.9);p.needsUpdate=true}

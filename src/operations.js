@@ -1,6 +1,8 @@
 // Sanctuary operations: visible staff with tasks and shifts, buildable habitat with per-species needs,
 // and visitors/education. Pure logic (no rendering); it plugs into the sanctuary through its extension hooks.
 
+import { ENRICHMENT } from './enrichment.js';
+
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
 const DAY=1440;
 
@@ -13,12 +15,16 @@ export const OPEN_HOURS={start:540,end:1020}; // 09:00-17:00
 export const ROLES={
  keeper:{label:'Keeper',cost:150,wage:40,max:4,emoji:'🧑‍🌾',color:'#6f8f4e',hat:'#b49b68',blurb:'Walks to hungry residents and feeds them from stock.'},
  vet:{label:'Veterinarian',cost:320,wage:70,max:2,emoji:'🩺',color:'#e6ebe0',hat:'#e6ebe0',blurb:'Treats residents in poor health using veterinary supplies.'},
+ cleaner:{label:'Groundskeeper',cost:130,wage:35,max:3,emoji:'🧹',color:'#8a7a4a',hat:'#6a5a30',blurb:'Cleans enclosures and repairs worn habitat features.'},
+ researcher:{label:'Researcher',cost:380,wage:80,max:2,emoji:'🔬',color:'#4a6a8a',hat:'#4a6a8a',blurb:'Runs research projects that unlock vaccines, diagnostics and better habitat care.'},
  educator:{label:'Educator',cost:240,wage:50,max:2,emoji:'🎓',color:'#b5603f',hat:'#7a4a22',blurb:'Gives talks at the viewing platform: awareness, donations and credits.'},
 };
 const NAMES={
  keeper:['Baraka Otieno','Asha Mwangi','Kofi Mensah','Zola Dube','Arun Pillai','Lindiwe Khumalo'],
  vet:['Dr. Priya Nair','Dr. Amara Okafor','Dr. Rohan Mehta','Dr. Tendai Moyo'],
  educator:['Neema Kamau','Anand Rao','Imani Wafula','Kavya Iyer'],
+ cleaner:['Themba Ndlovu','Salma Hassan','Joseph Kiprop','Mwajuma Ali','Dev Patel'],
+ researcher:['Dr. Naledi Sithole','Dr. Vikram Rao','Dr. Wanjiru Njoroge'],
 };
 
 export const BUILD_ITEMS={
@@ -32,6 +38,9 @@ export const BUILD_ITEMS={
  platform:{label:'Viewing platform',icon:'🔭',cost:260,r:1.9,tags:['viewing'],appeal:3,capacity:12,blurb:'Lets more visitors watch animals from a safe distance.'},
  path:{label:'Boardwalk',icon:'🪵',cost:30,r:.9,tags:['path'],appeal:.5,blurb:'Guides visitors along a set route.'},
  flowers:{label:'Wildflower bed',icon:'🌼',cost:40,r:1.1,tags:['decor'],appeal:1,blurb:'Pretty, but animals do not need it.'},
+ ...Object.fromEntries(Object.entries(ENRICHMENT).map(([k,e])=>[k,{label:e.label,icon:e.icon,cost:e.cost,r:e.r,tags:['enrich',k],blurb:e.blurb}])),
+ cafe:{label:'Visitor café',icon:'☕',cost:220,r:1.8,tags:['service'],appeal:1.5,capacity:6,spend:3,blurb:'Earns extra from every visitor and keeps guests longer.'},
+ giftShop:{label:'Gift shop',icon:'🎁',cost:180,r:1.6,tags:['service'],appeal:1,spend:2,blurb:'Souvenirs fund conservation: extra income per visitor.'},
  education:{label:'Education centre',icon:'🏫',cost:500,r:2.5,tags:['education'],appeal:4,capacity:20,blurb:'Exhibits and classes: more visitors, more awareness.'},
 };
 
@@ -71,7 +80,7 @@ export function createOperations(sanct,options={}){
 
  // ---- Habitat ---------------------------------------------------------------------------------------------
  const featureTags=type=>BUILD_ITEMS[type]?.tags||[];
- const allFeatures=()=>[...BASELINE,...state.items];
+ const allFeatures=()=>[...BASELINE,...state.items.filter(i=>(i.cond??100)>=25)];   // badly worn features stop counting until repaired
  function habitatDetail(kind){
   const sp=SPECIES[kind],need=NEEDS[kind];if(!sp||!need)return {score:100,missing:[],have:{}};
   const have={};
@@ -89,8 +98,9 @@ export function createOperations(sanct,options={}){
   const def=BUILD_ITEMS[type];if(!def)return {ok:false,message:'Unknown item.'};
   if(!inZone(x,z))return {ok:false,message:'Build inside the safari grounds.'};
   for(const o of state.items){const od=BUILD_ITEMS[o.type];if(Math.hypot(o.x-x,o.z-z)<(def.r+od.r)*.75)return {ok:false,message:'Too close to another structure.'}}
-  if(!sanct.spend(def.cost))return {ok:false,message:'Not enough funds ('+def.cost+' needed).'};
-  const item={id:'b'+(++state.itemSerial),type,x:Math.round(x*10)/10,z:Math.round(z*10)/10,rot};
+  const cost=Math.round(def.cost*(sanct.mods.costMul||1));
+  if(!sanct.spend(cost,'building'))return {ok:false,message:'Not enough funds ('+cost+' needed).'};
+  const item={id:'b'+(++state.itemSerial),type,x:Math.round(x*10)/10,z:Math.round(z*10)/10,rot,cond:100};
   state.items.push(item);
   return {ok:true,message:def.label+' built.',item};
  }
@@ -104,20 +114,20 @@ export function createOperations(sanct,options={}){
  function rotate(id,delta=Math.PI/4){const it=state.items.find(i=>i.id===id);if(!it)return {ok:false,message:'Nothing selected.'};it.rot=(it.rot+delta)%(Math.PI*2);return {ok:true,message:'Rotated.',item:it}}
  function remove(id){
   const i=state.items.findIndex(x=>x.id===id);if(i<0)return {ok:false,message:'Nothing selected.'};
-  const [it]=state.items.splice(i,1);const refund=Math.floor(BUILD_ITEMS[it.type].cost/2);sanct.earn(refund);
+  const [it]=state.items.splice(i,1);const refund=Math.floor(BUILD_ITEMS[it.type].cost/2);sanct.earn(refund,'building');
   return {ok:true,message:BUILD_ITEMS[it.type].label+' removed. Refunded '+refund+'.',removedId:id};
  }
 
  // ---- Visitors & education -------------------------------------------------------------------------------
  const V=state.visitors;
  const staffOf=role=>state.staff.filter(m=>m.role===role);
- const appeal=()=>1+state.items.reduce((n,i)=>n+(BUILD_ITEMS[i.type].appeal||0),0)+3;
+ const appeal=()=>1+state.items.reduce((n,i)=>n+(BUILD_ITEMS[i.type].appeal||0)*((i.cond??100)>=50?1:.4),0)+3;
  const capacity=()=>6+6+state.items.reduce((n,i)=>n+(BUILD_ITEMS[i.type].capacity||0),0);
  function computeRating(){
   const list=resList().filter(a=>!V.restricted[a.kind]);if(!list.length)return 0;
   const w=list.reduce((n,a)=>n+sanct.welfareOf(a),0)/list.length;
   const kinds=new Set(list.map(a=>a.kind)).size;
-  let r=1+3.2*(w/100)*Math.pow(kinds/8,.7)+(staffOf('educator').length?.4:0)+Math.min(.4,(appeal()-4)*.04);
+  let r=(sanct.mods.ratingAdjust?sanct.mods.ratingAdjust():0)+1+3.2*(w/100)*Math.pow(kinds/8,.7)+(staffOf('educator').length?.4:0)+Math.min(.4,(appeal()-4)*.04);
   const stressed=list.filter(a=>a.stress>60).length;if(stressed)r-=Math.min(.8,stressed*.15);
   return Math.round(clamp(r,0,5)*10)/10;
  }
@@ -130,7 +140,7 @@ export function createOperations(sanct,options={}){
  }
  function settleDay(){
   const income=V.today*V.price;const donation=Math.round(V.awareness*.6);
-  sanct.earn(income+donation);V.lastIncome=income;V.lastDonation=donation;V.total+=V.today;
+  const extra=sanct.mods.visitorSpend?sanct.mods.visitorSpend(V.today):0;sanct.earn(income,'tickets');if(donation)sanct.earn(donation,'donations');if(extra)sanct.earn(extra,'shop & café');V.lastExtra=extra;V.lastIncome=income;V.lastDonation=donation;V.total+=V.today;
   V.awareness+=V.today*.05*(staffOf('educator').length?2:1);
   if(V.rating>=4&&V.today>0)sanct.state.reputation+=1;
   if(V.today>0)say('Visitors: '+V.today+' came today (rating '+V.rating+'★). Tickets +'+income+(donation?', donations +'+donation:'')+'.');
@@ -139,7 +149,7 @@ export function createOperations(sanct,options={}){
  function setPrice(p){V.price=clamp(Math.round(p),0,30);return {ok:true,message:'Ticket price set to '+V.price+'.'}}
  function setRestricted(kind,on){if(!SPECIES[kind])return {ok:false,message:'Unknown species.'};if(on)V.restricted[kind]=true;else delete V.restricted[kind];return {ok:true,message:SPECIES[kind].common+(on?' habitat closed to visitors.':' habitat open to visitors.')}}
  function talk(m){
-  const gain=4+m.skill*2;V.awareness+=gain;V.talks++;const donation=10+V.onSite*3;sanct.earn(donation);
+  const gain=4+m.skill*2;V.awareness+=gain;V.talks++;const donation=10+V.onSite*3;sanct.earn(donation,'donations');
   if(V.talks%3===0){sanct.state.credits+=1}
   say(m.name+' gave a talk to '+V.onSite+' visitors. Awareness +'+gain+', donations +'+donation+'.');
  }
@@ -148,24 +158,28 @@ export function createOperations(sanct,options={}){
  function hire(role){
   const def=ROLES[role];if(!def)return {ok:false,message:'Unknown role.'};
   if(staffOf(role).length>=def.max)return {ok:false,message:'You already have the maximum number of '+def.label.toLowerCase()+'s ('+def.max+').'};
-  if(!sanct.spend(def.cost))return {ok:false,message:'Hiring a '+def.label.toLowerCase()+' costs '+def.cost+'.'};
+  if(!sanct.spend(def.cost,'staff'))return {ok:false,message:'Hiring a '+def.label.toLowerCase()+' costs '+def.cost+'.'};
   const pool=NAMES[role];const name=pool.find(n=>!state.staff.some(s=>s.name===n))||pool[0]+' '+(state.staffSerial+2);
-  const m={id:'staff-'+(++state.staffSerial),role,name,skill:1,xp:0,x:HUB.x+(state.staffSerial%3)*.7,z:HUB.z,heading:0,state:'idle',task:null,timer:0,tasksDone:0};
+  const m={id:'staff-'+(++state.staffSerial),role,name,skill:1,xp:0,energy:100,morale:70,x:HUB.x+(state.staffSerial%3)*.7,z:HUB.z,heading:0,state:'idle',task:null,timer:0,tasksDone:0};
   state.staff.push(m);say(name+' joined the team as a '+def.label.toLowerCase()+' (wage '+def.wage+'/day).');
   return {ok:true,message:name+' hired. '+def.blurb,member:m};
  }
  function dismiss(id){const i=state.staff.findIndex(m=>m.id===id);if(i<0)return {ok:false,message:'No such staff member.'};const [m]=state.staff.splice(i,1);say(m.name+' left the team.');return {ok:true,message:m.name+' has left the team.',removedId:id}}
- const wagesPerDay=()=>state.staff.reduce((n,m)=>n+ROLES[m.role].wage,0);
+ const wagesPerDay=()=>state.staff.reduce((n,m)=>n+ROLES[m.role].wage+(m.skill-1)*8,0);
  function step(m,tx,tz,dt){
-  const dx=tx-m.x,dz=tz-m.z,d=Math.hypot(dx,dz),sp=(2.4+m.skill*.5)*dt;
+  const dx=tx-m.x,dz=tz-m.z,d=Math.hypot(dx,dz),sp=(2.4+m.skill*.5)*effort(m)*dt;
   if(d<=sp+.01){m.x=tx;m.z=tz;return true}
   m.x+=dx/d*sp;m.z+=dz/d*sp;m.heading=Math.atan2(dx,dz);return false;
  }
+ const effort=m=>.6+.4*Math.min(1,(m.energy??100)/100)*(.75+.25*Math.min(1,(m.morale??70)/70));   // tired or unhappy staff move and work slower
+ const providers=[],finishers={};
  const claimed=()=>new Set(state.staff.filter(m=>m.task&&m.task.animalId).map(m=>m.task.animalId));
  const stockFor=a=>{const sp=SPECIES[a.kind];return sp.foods.filter(f=>!(sp.treat||[]).includes(f)).find(f=>sanct.state.stock[f]>=1)};
  function levelUp(m){m.tasksDone++;m.xp++;const need=m.skill===1?10:m.skill===2?25:Infinity;if(m.xp>=need&&m.skill<3){m.skill++;m.xp=0;say(m.name+' gained experience and is now skill level '+m.skill+'.')}}
  function pickTask(m){
   const taken=claimed();
+  if((m.energy??100)<22)return null;   // needs a break at the supply shed
+  for(const p of providers){const t=p(m,{taken});if(t)return t}
   if(m.role==='keeper'){
    const hungry=resList().filter(a=>a.nutrition<55&&!taken.has(a.id)).sort((a,b)=>a.nutrition-b.nutrition);
    for(const a of hungry){const food=stockFor(a);if(food)return {kind:'feed',animalId:a.id,food,x:a.habitatPosition[0],z:a.habitatPosition[1]-1.3}}
@@ -182,16 +196,18 @@ export function createOperations(sanct,options={}){
   if(t.kind==='feed')sanct.feed(t.animalId,t.food);
   else if(t.kind==='treat')sanct.treat(t.animalId);
   else if(t.kind==='talk'){talk(m);state.nextTalk=sanct.state.minutes+120}
+  else if(finishers[t.kind])finishers[t.kind](m,t);
   levelUp(m);
  }
  // Real-time update (seconds). Called every frame by the game loop.
  function update(dt){
   const mins=sanct.state.minutes%DAY,onShift=mins>=SHIFT.start&&mins<SHIFT.end&&!state.unpaid;
   for(const m of state.staff){
-   if(m.state==='work'){m.timer-=dt;if(m.timer<=0){finishTask(m);m.state='idle'}continue}
+   if(m.state==='work'){m.energy=Math.max(0,(m.energy??100)-dt*.5);m.timer-=dt*effort(m);if(m.timer<=0){finishTask(m);m.state='idle'}continue}
    if(onShift&&(m.state==='idle'||m.state==='return')&&!m.task){const t=pickTask(m);if(t){m.task=t;m.state='walk'}}
-   if(m.state==='walk'&&m.task){if(step(m,m.task.x,m.task.z,dt)){m.state='work';m.timer=m.task.kind==='talk'?6:2.2}continue}
-   if(!m.task){const home=step(m,HUB.x+(state.staff.indexOf(m)%3)*.7,HUB.z,dt);m.state=home?'idle':'return'}
+   if(m.state==='walk'&&m.task){if(step(m,m.task.x,m.task.z,dt)){m.state='work';m.timer=m.task.work||(m.task.kind==='talk'?6:2.2)}continue}
+   if(m.state==='walk')m.energy=Math.max(0,(m.energy??100)-dt*.3);
+   if(!m.task){const home=step(m,HUB.x+(state.staff.indexOf(m)%3)*.7,HUB.z,dt);m.state=home?'idle':'return';if(home)m.energy=Math.min(100,(m.energy??100)+dt*1.6)}
   }
  }
 
@@ -199,7 +215,7 @@ export function createOperations(sanct,options={}){
  function day(){
   settleDay();
   const wages=wagesPerDay();
-  if(wages){if(sanct.state.funds>=wages){sanct.state.funds-=wages;state.unpaid=false;say('Staff wages paid: −'+wages+'.')}else{state.unpaid=true;say('Not enough funds to pay staff ('+wages+'). Work has stopped until you can pay.')}}
+  if(wages){if(sanct.state.funds>=wages){sanct.spend(wages,'wages');state.unpaid=false;say('Staff wages paid: −'+wages+'.')}else{state.unpaid=true;say('Not enough funds to pay staff ('+wages+'). Work has stopped until you can pay.')}}
   if(sanct.state.lastReport)sanct.state.lastReport.wages=wages;
   // Feeding stations top up hungry residents nearby, a few per day.
   for(const f of state.items.filter(i=>i.type==='feeder')){
@@ -208,6 +224,7 @@ export function createOperations(sanct,options={}){
    }
   }
   planDay();
+  for(const m of state.staff){m.energy=Math.min(100,(m.energy??100)+35);m.morale=Math.max(0,Math.min(100,(m.morale??70)+(state.unpaid?-8:2)))}
  }
  function tick(){
   const mins=sanct.state.minutes%DAY;
@@ -232,5 +249,5 @@ export function createOperations(sanct,options={}){
  }
  sanct.extend({key:'ops',tick,day,summary,serialize,restore});
 
- return {state,hire,dismiss,update,place,move,rotate,remove,habitatDetail,habitatScore,setOpen,setPrice,setRestricted,planDay,computeRating,summary,ROLES,BUILD_ITEMS,NEEDS,HUB,PLATFORM_SPOT,capacity,appeal};
+ return {state,providers,finishers,effort,hire,dismiss,update,place,move,rotate,remove,habitatDetail,habitatScore,setOpen,setPrice,setRestricted,planDay,computeRating,summary,ROLES,BUILD_ITEMS,NEEDS,HUB,PLATFORM_SPOT,capacity,appeal};
 }

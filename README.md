@@ -65,6 +65,20 @@ Wild Frontier is a hand-painted 3D world. Nothing in the scene is a flat sprite 
 - **Quality tiers**: Low, Medium and High are chosen from the device, or with `?quality=low|medium|high`. A governor steps down automatically if frames are slow. See `docs/VISUAL_AUDIT.md` for what changed and the measured numbers.
 - Dev tools: `showcase.html` (run `npm run dev`, open `/Wildfrontier/showcase.html?grid=1`) previews every species and person; `tools/visual-audit.cjs` audits the live scene; `tools/smoke-creatures.mjs` builds and animates every model in Node.
 
+## Animal minds and enrichment
+- **Needs-driven AI** (`src/ai.js`): every animal decides what to do from its hunger, thirst, energy, boredom, fear, social need, personality and trust. Priorities are real: fear beats hunger, rain sends sensitive species to shelter, thirst sends animals to water, and bored captives use enrichment or pace.
+- **Species profiles** for all 26 species: activity pattern, social structure, how easily startled, flee distance, predator/prey relationships. Prey flee predators, herds warn each other (contagion), herd animals regroup, nocturnal animals rest by day.
+- **Individuals**: stable per-animal temperament (bold/shy, sociable, inquisitive, calm) and a bond with people. Trusting, curious animals walk up to keepers; shy ones bolt. Animals keep a short history.
+- **Movement**: smooth acceleration and braking, running when fleeing, drinking, foraging, grooming, scratching and play-bow animations in the rig, plus individual size variation.
+- **Enrichment**: climbing frame, digging pit, puzzle feeder, scratching post and scent station, with species-specific suitability. Boredom is a welfare stat that builds, causes stress and is relieved when animals actually use the objects. Water features count as swimming enrichment for swimmers.
+
+## Rescues and dynamic missions
+- **Rescue cases** (`src/rescue.js`): reports arrive by radio, scaled to reputation, up to two at a time, across four difficulty tiers (stunned songbird to wounded predator to a storm-stranded pair), with deadlines, equipment requirements (net, crate, first aid, sedation) and multi-animal cases such as an orphaned litter.
+- The chain is playable end to end: accept the call, follow a trail of clue markers in the world (the animal is hidden until you find it), get close to assess, choose an approach (quiet, net or sedation, each with different odds, stress and cost), secure each animal, load and transport it, rehabilitate and release. Failures have consequences: a botched capture hurts the animal and it bolts, a missed deadline loses the animal and costs reputation. Good handling pays more.
+- **Equipment** is bought in Supplies; durable gear is kept, consumables are used up. Older saves migrate automatically.
+- **Director** (`src/director.js`): missions raised from real simulation state and completed by real conditions: treat a sick animal, restock supplies, welcome a newborn, improve an inadequate habitat, protect a species from visitors, document a rare species, turn welfare around. They expire if ignored.
+- **Mission journal** with rescues, operations and history, a badge on the HUD, search areas and clues on the 3D world and the map.
+
 ## Run locally
 ```bash
 npm install
@@ -94,3 +108,32 @@ The goal is a tactile miniature world: soft forms, imperfect silhouettes, warm d
 - Passive pine-corridor camera traps unlock a delayed evidence-review assignment after three simulated hours, rewarding patient, non-invasive wildlife monitoring.
 - A prepared meadow can be surveyed for native bees, butterflies and hoverflies; the transect increases pollinator activity, biodiversity and the reserve research score.
 - Long simulation steps now process every crossed weather, season and ecosystem interval rather than silently dropping elapsed cycles.
+
+## Milestone 5: exploration, opening, movement and sound
+
+- **Regions and field activities** (`src/activities.js`): regions unlock by reputation; field spots offer tracks quizzes, planting, water testing and research notes. Research unlocks perks (scope at 20, bulk purchasing at 45, lab at 80, network at 130) and 12 milestones. Everything is saved in the `ext` block.
+- **Movement and camera** (`src/motion.js`): acceleration-limited ranger motion and a damped follow camera with obstacle avoidance.
+- **Procedural sound** (`src/audio.js`): WebAudio ambience (wind, rain, water, day/night), footsteps, animal calls and event cues with distance gain and panning. Starts on the first user gesture.
+- **Opening and tutorial** (`src/intro.js`): a four-card cinematic flyover on first launch (skip anytime; `?intro` replays it, `?nointro` skips it), then an eight-step tutorial driven by real game state (moving, looking, selecting, feeding, building, photos, missions, activities).
+
+Not verified: real phone hardware, audible audio output, or High-tier post-processing. Regions are labels, unlocks and activities rather than new 3D terrain.
+
+## Milestone 4: sanctuary management depth
+
+New pure-logic module `src/management.js` (hooks into the sanctuary and operations; everything is saved in its own `mgmt` block, so old saves load unchanged).
+
+- **Veterinary care:** five conditions (parasites, respiratory infection, digestive upset, injury, mange). Risk rises with stress, dirt, rain and poor diet. Cases are first only *symptoms*; a vet or check-up notices them, a diagnosis names them, and treatment spends veterinary supplies. Treating without a diagnosis can miss. Contagious illness spreads within a species unless the patient is isolated; vaccines protect for 40 days. Sick animals visibly move slower and rest more in the world.
+- **Hygiene and wear:** every enclosure gets dirtier with its residents (elephants most). Dirt raises stress and illness risk. Build items wear down daily; below 25% they stop counting toward habitat needs until repaired.
+- **Staff:** new Groundskeeper (cleans and repairs) and Researcher roles. Staff have energy and morale: tired or unhappy staff walk and work slower and take breaks at the shed. Wages rise with skill; staff can be trained.
+- **Research:** five projects (rapid diagnostics, hygiene protocols, long-lasting vaccines, welfare science, conservation outreach) funded with money and advanced by researchers studying at the supply shed.
+- **Visitors:** four segments (families, photographers, school groups, conservation donors) with different tastes, a daily feedback summary, and new Café and Gift shop buildings that earn extra per visitor.
+- **Resource management:** a categorised ledger (tickets, donations, grants, wages, supplies, building, upkeep, research), a 7-day chart and a runway warning. New Health, Budget and Research tabs plus staff energy/morale and visitor segments in the sanctuary panel.
+
+## Milestone 2 and graphics pass: water, shorelines and atmosphere
+
+- **Water** is now a depth-graded, soft-edged shader with animated foam, glints and ripples where the ranger, animals and visitors move through it.
+- **Savanna detail** (`src/art/detail.js`): wet shorelines, lily pads, reeds and stones around pools, trampled earth trails, bare dust patches, termite mounds, pebbles, thorn scrub and dead branches, merged so they add very few draw calls. Visitors no longer walk through the ponds.
+- **Atmosphere** (`src/art/atmosphere.js`): drifting cloud shadows across the ground, sunlit pollen and dust motes that follow the ranger, and birds soaring over the reserve. All fade out at night and in rain.
+- New models for the Café and Gift shop, and looks for the two new staff roles.
+
+Not verified: real phone hardware, the High tier's post-processing, or audible audio. Animal species, buildings and vegetation were already rebuilt in the earlier visual overhaul; this pass did not remodel them.

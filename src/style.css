@@ -187,3 +187,34 @@ body.photo .topbar{display:none}
 .s-res-head .p-img{width:28px;height:28px}
 .b-palette .p-icon{width:44px;height:44px;border-radius:8px;background:#cfe0c0;object-fit:cover}
 .j-card .j-art{width:100%;aspect-ratio:1;object-fit:cover;border-radius:50%;background:#cfe0c0;max-width:96px}
+
+.s-meters{grid-template-columns:repeat(5,1fr)}
+@media(max-width:560px){.s-meters{grid-template-columns:1fr 1fr}}
+
+/* Mission journal */
+.quick-btn .badge{background:#d9534f;color:#fff;border-radius:999px;font:700 9px 'DM Mono';padding:2px 6px;margin-left:5px}
+.m-card{border:1px solid var(--line);background:#ffffff07;border-radius:8px;padding:12px;margin:10px 0}.m-card.urgent{border-color:#d9534f88}
+.m-card header{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:0;margin-bottom:4px}.m-card header b{font-size:14px}.m-diff{color:#e4c98a;letter-spacing:1px;font-size:11px}
+.m-steps{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}.m-steps span{font:8px 'DM Mono';letter-spacing:.6px;padding:4px 6px;border:1px solid var(--line);border-radius:999px;color:#8f9a86}.m-steps span.done{color:#bfe08a;border-color:#bfe08a55}.m-steps span.now{background:#c0ce98;color:#1c2b20;border-color:#c0ce98}
+.m-need{font-size:11px;color:#c9cdbd;margin:6px 0}.m-eq{display:inline-flex;gap:5px;align-items:center;margin-right:10px}.m-eq.ok{color:#bfe08a}.m-eq.bad{color:#e8a08a}
+.m-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}.m-acts button,.m-eq button,.m-ap button{background:#c0ce98;color:#1c2b20;border:0;border-radius:4px;padding:7px 10px;font:600 9px 'DM Mono';letter-spacing:.8px}
+.m-acts button:disabled,.m-ap button:disabled{opacity:.35}.m-an{display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:100%;font-size:12px;padding:6px 0;border-top:1px solid #ffffff10}.m-ap{display:inline-flex;gap:6px;flex-wrap:wrap}
+
+.action-prompt{position:absolute;z-index:5;left:50%;bottom:118px;transform:translateX(-50%);background:#c0ce98;color:#1c2b20;border:0;border-radius:999px;padding:12px 20px;font:700 11px 'DM Mono',monospace;letter-spacing:1px;box-shadow:0 10px 30px #0008;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.05)}}
+.quiz-panel{width:min(520px,calc(100% - 16px))}
+
+/* Opening sequence and tutorial */
+#intro{position:fixed;inset:0;z-index:20;display:grid;place-items:end center;padding:0 16px 8vh;background:linear-gradient(0deg,rgba(8,14,10,.92),rgba(8,14,10,.35) 55%,transparent);animation:fadein 1.2s ease-out}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.intro-card{max-width:640px;text-align:center;color:#eef0e2}.intro-card small{font:10px 'DM Mono',monospace;letter-spacing:2.4px;color:#c0ce98}.intro-card h1{font:600 clamp(28px,6vw,52px)/1.1 'Playfair Display',Georgia,serif;margin:10px 0 12px}.intro-card p{font-size:clamp(14px,2.4vw,17px);line-height:1.6;color:#d6dac9;margin:0 0 20px}
+.intro-actions{display:flex;gap:10px;justify-content:center}.intro-actions button{background:#c0ce98;color:#1c2b20;border:0;border-radius:999px;padding:12px 26px;font:700 11px 'DM Mono',monospace;letter-spacing:1.4px}.intro-actions .ghost{background:transparent;color:#c9cdbd;border:1px solid #ffffff44}
+.intro-dots{display:flex;gap:6px;justify-content:center;margin-top:16px}.intro-dots i{width:7px;height:7px;border-radius:50%;background:#ffffff33}.intro-dots i.on{background:#c0ce98}
+body.intro .left-rail,body.intro .right-panel,body.intro .bottom-hud,body.intro .quickbar,body.intro .topbar,body.intro #joystick,body.intro #tutorial,body.intro .action-prompt{display:none!important}
+#tutorial{position:absolute;z-index:4;left:16px;top:84px;max-width:280px;background:rgba(17,28,21,.92);border:1px solid #b8c68b55;border-radius:10px;padding:10px 12px;backdrop-filter:blur(8px);font-size:12px;line-height:1.5;color:#e5e7da}
+#tutorial header{display:flex;gap:8px;align-items:center;font:600 9px 'DM Mono';letter-spacing:1.3px;color:#aebc8e}#tutorial header span{margin-left:auto}#tutorial header button{background:none;border:0;color:#aebc8e;font-size:16px}
+#tutorial p{margin:6px 0}.t-dots{display:flex;gap:4px}.t-dots i{flex:1;height:3px;border-radius:2px;background:#ffffff22}.t-dots i.on{background:#bdcc91}
+@media(max-width:760px){#tutorial{top:132px;left:8px;right:8px;max-width:none}}
+body.photo #tutorial,body.building #tutorial{display:none}
+
+.s-chart{display:flex;gap:6px;align-items:flex-end;height:66px;margin:8px 0 2px}.s-bar2{display:flex;gap:2px;align-items:flex-end;flex:1}.s-bar2 i{flex:1;min-height:2px;border-radius:2px 2px 0 0}.s-bar2 .in{background:#8bc062}.s-bar2 .out{background:#c9674f}

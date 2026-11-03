@@ -22,8 +22,8 @@ export function createStaffLayer(scene){
  return {sync,figures};
 }
 
-const PATH=[[17.5,.6],[20.5,2.2],[23.5,4.4],[26.5,7.6],[24.6,9.8],[21.2,7.4],[19,3.4],[17.8,-2],[20.2,-4.2],[23,-5.6],[20.6,-1.4]];
-const STOPS=new Set([3,8]);
+const PATH=[[17.5,.6],[20.5,2.2],[23.2,3.8],[27.8,6.0],[28.6,9.8],[24,11.4],[20.6,8.4],[19,3.4],[17.8,-2],[20.2,-4.2],[23,-5.6]];   // keeps clear of the ponds
+const STOPS=new Set([3,10]);
 export function createCrowd(scene){
  const people=[];const root=new THREE.Group();scene.add(root);
  function spawn(i){

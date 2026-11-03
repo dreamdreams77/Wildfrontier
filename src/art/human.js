@@ -16,6 +16,8 @@ export const LOOKS={
  ranger:{shirt:'#4f6a4a',pants:'#6d6a4a',boots:'#4a3626',skin:'#c99a74',hair:'#4a3626',hairStyle:'short',hat:'wide',hatColor:'#b8a06a',pack:true,belt:true,scarf:'#a8512f',radio:true},
  keeper:{shirt:'#6f8f4e',pants:'#6a5f45',boots:'#3d2e22',skin:'#8d5a3b',hair:'#1c1612',hairStyle:'short',hat:'wide',hatColor:'#c2ad78',belt:true,bucket:true},
  vet:{shirt:'#e9eee6',pants:'#3f5a6b',boots:'#2f2f33',skin:'#a8714d',hair:'#1c1612',hairStyle:'bun',hat:'none',coat:true,stetho:true},
+ cleaner:{shirt:'#8a7a4a',pants:'#4a4a3a',boots:'#2f2a22',skin:'#6f4a32',hair:'#1c1612',hairStyle:'short',hat:'wide',hatColor:'#6a5a30',belt:true,bucket:true},
+ researcher:{shirt:'#4a6a8a',pants:'#3a4252',boots:'#2f2f33',skin:'#c99a74',hair:'#2a2018',hairStyle:'long',hat:'none',coat:true,lanyard:true,clipboard:true},
  educator:{shirt:'#b5603f',pants:'#4e5566',boots:'#33291f',skin:'#d9aa84',hair:'#6a4a2c',hairStyle:'long',hat:'none',lanyard:true,clipboard:true},
 };
 const SKINS=['#e3b894','#c99a74','#a8714d','#8d5a3b','#6f4a32','#f0cba8'];
