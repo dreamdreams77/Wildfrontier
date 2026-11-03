@@ -131,7 +131,17 @@ export function createSimulation(){
   if(researchScore<project.cost)return {ok:false,message:'This project needs '+project.cost+' research points; '+researchScore+' are available.'};
   researchScore-=project.cost;researchRecords[id]=true;
   if(id==='genetics')add('Population genetics registry compiled. Family lines and provisional endangered-species pair reviews are archived; specialist approval remains mandatory.');
-  if(id==='migration'){populations.migratoryVisitors=clamp(populations.migratoryVisitors+3,0,16);migrationStatus='Telemetry map active · seasonal stopovers charted';add('Migration telemetry map completed. Seasonal visitor routes and wetland stopovers are now charted.');}
+  if(id==='migration'){
+   const arrivals=[
+    {id:'migrant-01',name:'Skylark',species:'Swainson’s thrush · seasonal migrant',notes:'A long-distance migrant using the creekside thickets as a stopover. Observe quietly from the marked trail.',location:'Creekside thicket'},
+    {id:'migrant-02',name:'Drift',species:'Yellow-rumped warbler · seasonal migrant',notes:'A small insect-eating migrant resting in the willow corridor before continuing its journey.',location:'Willow corridor'},
+    {id:'migrant-03',name:'Lumen',species:'American redstart · seasonal migrant',notes:'A canopy-foraging migrant recorded during the seasonal stopover survey. Keep the understory undisturbed.',location:'North woodland edge'}
+   ];
+   for(const visitor of arrivals)if(!animals.some(a=>a.id===visitor.id))animals.push({id:visitor.id,kind:'bird',...visitor,condition:'Seasonal visitor · monitored',health:94,hydration:78,nutrition:76,stress:12,trust:0,stage:'wild',injury:'No visible injury.',energy:78,social:55,mood:'Resting',personality:'Migratory, alert and highly mobile',routine:'Feeds during daylight and rests in sheltered vegetation between flights',sleeping:false,feedings:0,seasonalVisitor:true});
+   populations.migratoryVisitors=clamp(populations.migratoryVisitors+3,0,16);migrationStatus='Telemetry active · three seasonal visitors recorded';
+   if(!missions.some(m=>m.id==='migration-flock'))missions.push({id:'migration-flock',title:'Seasonal visitor stopover',detail:'Observe the newly arrived migrant flock from the creekside trail.',animalId:'migrant-01',status:'available',kind:'survey'});
+   add('Migration telemetry map completed. Three seasonal bird visitors arrived at mapped stopover habitat; field observation is now available.');
+  }
   if(id==='habitat'){habitat.health=clamp(habitat.health+8);habitat.connectivity=clamp(habitat.connectivity+5);add('Habitat health model completed. Water, forage, cover and connectivity indicators are now available to the reserve team.');}
   if(id==='wetland'){habitat.wetland=clamp(habitat.wetland+16);habitat.water=clamp(habitat.water+8);habitat.biodiversity=clamp(habitat.biodiversity+9);habitat.connectivity=clamp(habitat.connectivity+7);populations.waterbirds=clamp(populations.waterbirds+2,0,20);restoration=Math.min(3000,restoration+120);recalc();add('Creekside wetland expansion established with shallow-water refuge and native sedge margins.');}
   if(id==='meadow'){habitat.cover=clamp(habitat.cover+10);habitat.food=clamp(habitat.food+7);habitat.pollinators=clamp(habitat.pollinators+12);habitat.connectivity=clamp(habitat.connectivity+9);habitat.biodiversity=clamp(habitat.biodiversity+8);restoration=Math.min(3000,restoration+100);recalc();add('North meadow wildlife corridor planted with connected native forage and pollinator shelter.');}
