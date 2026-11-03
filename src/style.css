@@ -92,3 +92,11 @@
         touch-action: manipulation;
     }
 }
+
+/* Phone layout: keep the 3D world visible. Panels become collapsible sheets above the toolbar. */
+@media(max-width:760px){
+ .left-rail{display:none;top:70px;bottom:auto;left:8px;right:8px;width:auto;max-height:calc(100vh - 190px)}
+ body.rail-open .left-rail{display:block}
+ .right-panel{top:auto;bottom:112px;left:8px;right:8px;width:auto;max-height:42vh}
+ .brand{cursor:pointer}
+}
