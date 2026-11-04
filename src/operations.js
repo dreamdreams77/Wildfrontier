@@ -146,7 +146,7 @@ export function createOperations(sanct,options={}){
   if(V.today>0)say('Visitors: '+V.today+' came today (rating '+V.rating+'★). Tickets +'+income+(donation?', donations +'+donation:'')+'.');
  }
  function setOpen(open){V.open=!!open;return {ok:true,message:V.open?'The sanctuary is open to visitors.':'The sanctuary is closed to visitors.'}}
- function setPrice(p){V.price=clamp(Math.round(p),0,30);return {ok:true,message:'Ticket price set to '+V.price+'.'}}
+ function setPrice(p){if(!Number.isFinite(p))return {ok:false,message:'Enter a ticket price.'};V.price=clamp(Math.round(p),0,30);return {ok:true,message:'Ticket price set to '+V.price+'.'}}
  function setRestricted(kind,on){if(!SPECIES[kind])return {ok:false,message:'Unknown species.'};if(on)V.restricted[kind]=true;else delete V.restricted[kind];return {ok:true,message:SPECIES[kind].common+(on?' habitat closed to visitors.':' habitat open to visitors.')}}
  function talk(m){
   const gain=4+m.skill*2;V.awareness+=gain;V.talks++;const donation=10+V.onSite*3;sanct.earn(donation,'donations');

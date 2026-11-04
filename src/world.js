@@ -41,7 +41,7 @@ export function createWorld(container){
  const staffLayer=createStaffLayer(scene),crowd=createCrowd(scene);
  const ranger=makeHuman(LOOKS.ranger);ranger.position.set(-5,0,11);ranger.userData.isRanger=true;scene.add(ranger);
  const animals=[];
- const clock=new THREE.Clock();let walk=0;
+ const clock=new THREE.Clock();
  const brain=createBrain();
  // points of interest animals navigate to (static scenery plus whatever the player has built)
  const creekPts=[];for(let t=-18;t<=18;t+=3)creekPts.push({x:7+t*.276,z:t*.96});
@@ -49,7 +49,7 @@ export function createWorld(container){
  let dynamicPoints={water:[],shelter:[],food:[],enrich:[]};
  const hooks={stats:null,onEnrich:null,onNeed:null,onCall:null};
  const wx={rain:false,storm:false};let phaseNow='Dawn',nightNow=false;
- const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let target=new THREE.Vector3(ranger.position.x,0,ranger.position.z),yaw=.72,pitch=.48,distance=19,distGoal=19,following=true,selected=null;
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let target=new THREE.Vector3(ranger.position.x,0,ranger.position.z),yaw=.72,pitch=.48,distance=19,distGoal=19,following=true;
  let cine=null;
  function playCinematic(frames,duration,onDone){const P=new THREE.CatmullRomCurve3(frames.map(f=>new THREE.Vector3(...f.pos)),false,'catmullrom',.4),Lk=new THREE.CatmullRomCurve3(frames.map(f=>new THREE.Vector3(...f.look)),false,'catmullrom',.4);cine={P,Lk,duration,t:0,onDone}}
  function stopCinematic(){if(!cine)return;const d=cine.onDone;cine=null;cameraUpdate();d&&d()}
@@ -66,7 +66,7 @@ export function createWorld(container){
  const endPointer=(e,cancelled)=>{const was=tapStart;pointers.delete(e.pointerId);if(pointers.size<2)pinchBase=0;if(pointers.size===0)tapStart=null;if(!cancelled&&was&&!was.moved&&performance.now()-was.t<600){if(photoMode)return;if(buildMode){const bid=pickBuild(e.clientX,e.clientY);if(bid)window.dispatchEvent(new CustomEvent('wildfrontier:builditem',{detail:{id:bid}}));else{const g=pickGround(e.clientX,e.clientY);if(g)window.dispatchEvent(new CustomEvent('wildfrontier:ground',{detail:{x:g.x,z:g.z}}))}return}const a=pick(e.clientX,e.clientY);if(a)window.dispatchEvent(new CustomEvent('wildfrontier:select',{detail:a.userData}))}};
  el.addEventListener('pointerup',e=>endPointer(e,false));el.addEventListener('pointercancel',e=>endPointer(e,true));el.addEventListener('contextmenu',e=>e.preventDefault());
  el.addEventListener('wheel',e=>{distGoal=THREE.MathUtils.clamp(distGoal+e.deltaY*.012,7,44)},{passive:true});
- function pick(clientX,clientY){pointer.x=clientX/innerWidth*2-1;pointer.y=-(clientY/innerHeight)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(animals,true);if(!hits.length)return null;let obj=hits[0].object;while(obj.parent&&!obj.userData.kind)obj=obj.parent;selected=obj;return obj}
+ function pick(clientX,clientY){pointer.x=clientX/innerWidth*2-1;pointer.y=-(clientY/innerHeight)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(animals,true);if(!hits.length)return null;let obj=hits[0].object;while(obj.parent&&!obj.userData.kind)obj=obj.parent;return obj}
  // ---- Build mode, photography and crowd helpers ----
  let buildMode=false,photoMode=false;const buildGroup=new THREE.Group();scene.add(buildGroup);const buildItems=new Map();
  const ring=new THREE.Mesh(new THREE.RingGeometry(1,1.12,40),new THREE.MeshBasicMaterial({color:'#f4e9a8',transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.12;ring.visible=false;scene.add(ring);
@@ -112,7 +112,7 @@ export function createWorld(container){
  function setPlantings(list){for(const p of list){let o=plantMap.get(p.id);if(!o){o=makeOak(p.id.length*7+Math.round(p.x),{scale:.3,detail:.4});o.position.set(p.x,0,p.z);plantGroup.add(o);plantMap.set(p.id,o)}o.scale.setScalar(.25+p.growth*1.0)}}
  function removeAnimal(id){const i=animals.findIndex(a=>a.userData.id===id);if(i<0)return false;const [a]=animals.splice(i,1);scene.remove(a);return true}
 
- const _v=new THREE.Vector3(),_d=new THREE.Vector3();const damp=(c,tg,r,dt)=>c+(tg-c)*(1-Math.exp(-r*dt));
+ const _d=new THREE.Vector3();const damp=(c,tg,r,dt)=>c+(tg-c)*(1-Math.exp(-r*dt));
  function turnTo(obj,heading,rate,dt){obj.rotation.y+=Math.atan2(Math.sin(heading-obj.rotation.y),Math.cos(heading-obj.rotation.y))*Math.min(1,dt*rate)}
  function updateRanger(dt,keys){
   let moving=false;const rv=ranger.userData.vel||(ranger.userData.vel=new THREE.Vector3());

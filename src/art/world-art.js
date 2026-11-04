@@ -1,10 +1,9 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { buildGround, buildSky, buildHorizon, makeWaterPlane, makeWaterDisc, updateWater, heightAt } from './terrain.js';
+import { buildGround, buildSky, buildHorizon, makeWaterPlane, makeWaterDisc, updateWater } from './terrain.js';
 import { makeOak, makePine, makeAcacia, makeBaobab, makeBush, makeBamboo, makeRock, makeLog, makeGrass, makeFlowers, makeFern, makeMushroom, makeReeds, makeWillow, scatterMerged } from './vegetation.js';
 import { makeCabin, makeRecoveryYard, makeClinic, makeResearchLodge, makeSafariGate, makeDeck, makeTrough, makeSignpost, makeBoardwalk, makeNestBox, makeCameraTrap, makeHighlandReserve, makeWetland, makeMeadowPatch } from './structures.js';
-import { blobGeo, xform, paintColor, loft } from './meshkit.js';
-import { wind, mats } from './materials.js';
+import { blobGeo } from './meshkit.js';
+import { wind } from './materials.js';
 import { rng } from './noise.js';
 import { buildSavannaDetail } from './detail.js';
 import { createAtmosphere } from './atmosphere.js';

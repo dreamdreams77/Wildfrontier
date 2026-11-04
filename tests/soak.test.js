@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSimulation } from '../src/simulation.js';
 import { createSanctuary, SPECIES } from '../src/sanctuary.js';
-import { createOperations, BUILD_ITEMS } from '../src/operations.js';
+import { createOperations } from '../src/operations.js';
 import { createManagement } from '../src/management.js';
 import { createJournal } from '../src/journal.js';
 import { createRescue } from '../src/rescue.js';

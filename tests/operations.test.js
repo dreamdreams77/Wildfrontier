@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSimulation } from '../src/simulation.js';
 import { createSanctuary, SPECIES } from '../src/sanctuary.js';
-import { createOperations, BUILD_ITEMS, NEEDS, ROLES, HUB } from '../src/operations.js';
+import { createOperations, BUILD_ITEMS, ROLES, HUB } from '../src/operations.js';
 
 const setup=()=>{let n=0;const rng=()=>[.1,.9,.3,.7,.5][n++%5];const sim=createSimulation();const s=createSanctuary(sim,{rng});const ops=createOperations(s,{rng});return {sim,s,ops}};
 const find=(sim,name)=>sim.animals.find(a=>a.name===name);

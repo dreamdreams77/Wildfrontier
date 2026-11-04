@@ -149,3 +149,9 @@ I first tried the Kenney cliff and waterfall blocks as well, but next to the res
 ## Milestone 6: QA and polish
 
 Save loading is now defensive (damaged or older saves are repaired, never crash the game), layout was fixed for phones and tablets, and there is an end-to-end QA script (`node tools/qa.cjs <url> <outdir>`) plus a two-year soak test. See [`docs/QA_REPORT.md`](docs/QA_REPORT.md) for what was found, fixed and still unverified.
+
+### Testing tools
+
+* `npm test`: all logic tests, including the two-year soak test, save-compatibility tests and a randomised action fuzz test (`FUZZ_SEEDS=50 npm test` for a longer hunt).
+* `node tools/qa.cjs <url> <outdir>`: scripted end-to-end pass on desktop, phone and tablet sizes.
+* `node tools/monkey.cjs <url> [seconds] [phone]`: random taps, drags and key presses against the real UI, failing on any page error.

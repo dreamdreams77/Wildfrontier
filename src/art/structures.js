@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { loft, blobGeo, lathe, xform, paintColor, V } from './meshkit.js';
+import { loft, blobGeo, lathe, xform, paintColor } from './meshkit.js';
 import { mats } from './materials.js';
 import { signTexture, mapTexture, canPaint } from './paint.js';
-import { makeAcacia, makeBamboo, makeRock, makeReeds, makeWillow, makeOak, makeBush } from './vegetation.js';
+import { makeAcacia, makeBamboo, makeRock, makeReeds, makeOak, makeBush } from './vegetation.js';
 import { rng } from './noise.js';
 import { makeWaterDisc } from './terrain.js';
 
@@ -29,7 +29,7 @@ function gable(w,d,rise,{over=.35,thick=.12,y=0,color=[1,1,1],uv=.5}={}){
  out.push(bx(.16,.14,d+over*2,{pos:[0,y+rise+.02,0],color:[.7,.6,.5]}));
  return out;
 }
-const stoneFoot=(w,d,n=24)=>{const r=rng(5),out=[];for(let i=0;i<n;i++){const t=i/n*2,side=Math.floor(t*2)%4;let x,z;const per=(w+d)*2,pp=i/n*per;if(pp<w){x=pp-w/2;z=-d/2}else if(pp<w+d){x=w/2;z=pp-w-d/2}else if(pp<2*w+d){x=w/2-(pp-w-d);z=d/2}else{x=-w/2;z=d/2-(pp-2*w-d)}
+const stoneFoot=(w,d,n=24)=>{const r=rng(5),out=[];for(let i=0;i<n;i++){let x,z;const per=(w+d)*2,pp=i/n*per;if(pp<w){x=pp-w/2;z=-d/2}else if(pp<w+d){x=w/2;z=pp-w-d/2}else if(pp<2*w+d){x=w/2-(pp-w-d);z=d/2}else{x=-w/2;z=d/2-(pp-2*w-d)}
  const b=blobGeo(.3+r()*.15,.16,.28+r()*.1,{seg:8,noise:.25,seed:i,low:[.45,.44,.42],high:[.75,.73,.68]});out.push(xform(b,{pos:[x,.1,z],rot:[0,r()*3,0]}))}return out};
 function signMesh(text,w,h,{bg,fg}={}){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,.06),[null,null,null,null,null,null].map(()=>new THREE.MeshStandardMaterial({color:bg||'#d9c595',roughness:.9})));const tex=canPaint?signTexture(text,{bg,fg,w:Math.round(w*180),h:Math.round(h*180)}):null;if(tex){m.material[4]=new THREE.MeshStandardMaterial({map:tex,roughness:.85});m.material[5]=m.material[4]}m.castShadow=true;return m}
 const lampGlobe=(x,y,z,r=.1)=>{const g=new THREE.SphereGeometry(r,10,8);g.translate(x,y,z);return g};
@@ -109,7 +109,7 @@ export function makeClinic(){
 }
 export function makeResearchLodge(){
  return hall({W:9,D:7.4,H:2.8,wall:mats.plank('#8a785a'),trimC:[.3,.36,.26],roofMat:mats.shingle('#4b5945'),sign:'RESEARCH LODGE',interior:(g)=>{
-  const bench=[],board=[],shelf=[],screen=[];
+  const bench=[],shelf=[],screen=[];
   for(const x of [-2.8,0,2.8]){bench.push(bx(2.25,.14,1.0,{pos:[x,.9,.4],color:[.7,.55,.4]}));for(const lx of [-1,1])bench.push(bx(.1,.85,.8,{pos:[x+lx,.5,.4],color:[.5,.4,.3]}));screen.push(bx(.7,.45,.05,{pos:[x,1.35,.1],color:[.15,.3,.3]}))}
   const mb=new THREE.Mesh(new THREE.BoxGeometry(5.7,1.65,.1),[new THREE.MeshStandardMaterial({color:'#6c5942'}),new THREE.MeshStandardMaterial({color:'#6c5942'}),new THREE.MeshStandardMaterial({color:'#6c5942'}),new THREE.MeshStandardMaterial({color:'#6c5942'}),new THREE.MeshStandardMaterial({map:canPaint?mapTexture():null,color:'#ffffff',roughness:.9}),new THREE.MeshStandardMaterial({color:'#6c5942'})]);mb.position.set(0,2.0,-3.4);mb.castShadow=true;g.add(mb);
   shelf.push(bx(1.2,1.7,.55,{pos:[-3.7,.95,-2.5],color:[.55,.42,.3]}));for(let i=0;i<6;i++)shelf.push(xform(lathe([[.05,0],[.06,.04],[.06,.14],[.0,.16]],{seg:8,color:()=>C(['#c2b58c','#9ac7b0','#e0b0a0'][i%3])}),{pos:[-3.9+(i%3)*.3,1.2+Math.floor(i/3)*.45,-2.5]}));
@@ -146,7 +146,7 @@ export function makeBoardwalk(planks=9,len=1.65){const g=new THREE.Group();const
 export function makeNestBox(){const g=new THREE.Group();mk(g,[post(0,0,2.1,.05),bx(.42,.5,.38,{pos:[0,2.2,0],color:[.85,.7,.55]}),bx(.55,.06,.5,{pos:[0,2.5,0],rot:[.12,0,0],color:[.6,.45,.3]}),bx(.1,.1,.02,{pos:[0,2.25,.19],color:[.1,.07,.05]})],mats.plank('#8b6947'));g.traverse(o=>{if(o.isMesh)o.castShadow=false});return g}
 export function makeCameraTrap(){const g=new THREE.Group();mk(g,[post(0,0,1.4,.06),bx(.34,.26,.2,{pos:[0,1.3,.08],color:[.25,.28,.22]})],mats.plank('#5a6a4a'));mk(g,[xform(lathe([[.04,0],[.05,.04],[.03,.05]],{seg:8,color:()=>[.02,.02,.05]}),{pos:[0,1.32,.19],rot:[Math.PI/2,0,0]})],mats.plain());g.traverse(o=>{if(o.isMesh)o.castShadow=false});return g}
 export function makeHighlandReserve(){
- const g=new THREE.Group();const rocks=[];const r=rng(3);
+ const g=new THREE.Group();const r=rng(3);
  for(let i=0;i<8;i++){const m=makeRock(i+40,{size:1.3+(i%3)*.28});m.position.set(-3+(i%4)*1.8+(i>3?1:0),0,-2+Math.floor(i/4)*-1.5+r()*.4);m.scale.y=1.2;g.add(m)}
  const pool=new THREE.Mesh(new THREE.CircleGeometry(2.15,24),new THREE.MeshStandardMaterial({color:'#5f8b94',roughness:.15}));pool.rotation.x=-Math.PI/2;pool.position.set(2.4,.12,2.3);g.add(pool);
  const reeds=makeReeds(3,10);for(let i=0;i<7;i++){const rd=reeds.clone();rd.position.set(2+Math.cos(i*.9)*2.3,0,2.3+Math.sin(i*.9)*2.1);g.add(rd)}
@@ -155,7 +155,7 @@ export function makeHighlandReserve(){
  const sg=signMesh('HIGHLAND MARSH',2.2,.5);sg.position.set(-2.2,1.5,3);g.add(sg);return g;
 }
 export function makeWetland(){const g=new THREE.Group();const pool=new THREE.Mesh(new THREE.CircleGeometry(2.6,20),new THREE.MeshStandardMaterial({color:'#5f8b94',roughness:.15}));pool.rotation.x=-Math.PI/2;pool.position.y=.1;g.add(pool);for(let i=0;i<18;i++){const a=i*Math.PI*2/18;const rd=makeReeds(i,6);rd.position.set(Math.cos(a)*2.7,0,Math.sin(a)*2.7);g.add(rd)}return g}
-export function makeMeadowPatch(){const g=new THREE.Group();const r=rng(9);for(let i=0;i<22;i++){const b=makeBush(i,{scale:.35});b.position.set((i%6)*.52-1.3,0,Math.floor(i/6)*.72-1.2);g.add(b)}return g}
+export function makeMeadowPatch(){const g=new THREE.Group();for(let i=0;i<22;i++){const b=makeBush(i,{scale:.35});b.position.set((i%6)*.52-1.3,0,Math.floor(i/6)*.72-1.2);g.add(b)}return g}
 
 // ---------------- Buildable items ----------------
 export function makeBuildModel(type){
@@ -174,7 +174,7 @@ export function makeBuildModel(type){
   case 'feeder':mk(g,[post(-.4,0,.6,.05),post(.4,0,.6,.05),bx(1.1,.2,.5,{pos:[0,.65,0],color:[.7,.55,.4]})],mats.plank('#7a5a3a'));mk(g,Array.from({length:7},(_,i)=>xform(blobGeo(.1,.07,.12,{seg:6,low:C('#b0924a'),high:C('#e8d08a')}),{pos:[-.42+i*.14,.8,0]})),mats.plain());break;
   case 'platform':{const d=makeDeck();d.scale.setScalar(.9);g.add(d);break}
   case 'path':mk(g,[0,1,2].map(i=>bx(1.6,.08,.42,{pos:[0,.05,(i-1)*.5],color:[.9+.04*i,.8,.7]})),mats.plank('#9b7951'));break;
-  case 'flowers':{const list=[];const rr=rng(5);list.push(xform(new THREE.CircleGeometry(1.1,14),{rot:[-Math.PI/2,0,0],pos:[0,.04,0]}));paintColor(list[0],C('#5f8a3e'));const cols=['#d9a0b4','#e5c879','#c98fd0','#f0e0b0'];for(let i=0;i<20;i++){const a=i*2.4,rad=.2+(i%5)*.17;const s=new THREE.CylinderGeometry(.012,.016,.32,4);paintColor(s,C('#5a7a3a'));list.push(xform(s,{pos:[Math.cos(a)*rad,.16,Math.sin(a)*rad]}));const h=blobGeo(.075,.05,.075,{seg:7,low:C(cols[i%4]).map(c=>c*.7),high:C(cols[i%4])});list.push(xform(h,{pos:[Math.cos(a)*rad,.34,Math.sin(a)*rad]}))}mk(g,list,mats.plain(),{shadow:false});break}
+  case 'flowers':{const list=[];list.push(xform(new THREE.CircleGeometry(1.1,14),{rot:[-Math.PI/2,0,0],pos:[0,.04,0]}));paintColor(list[0],C('#5f8a3e'));const cols=['#d9a0b4','#e5c879','#c98fd0','#f0e0b0'];for(let i=0;i<20;i++){const a=i*2.4,rad=.2+(i%5)*.17;const s=new THREE.CylinderGeometry(.012,.016,.32,4);paintColor(s,C('#5a7a3a'));list.push(xform(s,{pos:[Math.cos(a)*rad,.16,Math.sin(a)*rad]}));const h=blobGeo(.075,.05,.075,{seg:7,low:C(cols[i%4]).map(c=>c*.7),high:C(cols[i%4])});list.push(xform(h,{pos:[Math.cos(a)*rad,.34,Math.sin(a)*rad]}))}mk(g,list,mats.plain(),{shadow:false});break}
   case 'climbing':{const logs=[post(-.8,0,2.4,.13,[.5,.38,.27]),post(.8,0,2.4,.13,[.5,.38,.27]),xform(loft([{p:[-.8,1.1,0],rx:.1},{p:[.8,1.1,0],rx:.1}],{radial:8,rings:6,cap0:1,cap1:1,color:()=>[.55,.42,.3]}),{}),xform(loft([{p:[-.8,2.1,0],rx:.09},{p:[.8,2.1,0],rx:.09}],{radial:8,rings:6,cap0:1,cap1:1,color:()=>[.55,.42,.3]}),{}),xform(loft([{p:[.8,.1,.1],rx:.12},{p:[1.7,1.15,.1],rx:.1}],{radial:8,rings:8,cap0:1,cap1:1,color:()=>[.5,.38,.27]}),{})];logs.push(bx(1.9,.12,.9,{pos:[0,2.45,0],color:[.9,.78,.65]}));mk(g,logs,mats.bark());break}
   case 'digging':{const mound=xform(blobGeo(1.5,.28,1.5,{seg:12,noise:.12,low:C('#6a5238'),high:C('#9a7a54'),squash:.7}),{pos:[0,.12,0]});const rim=[];for(let i=0;i<10;i++){const a=i/10*6.28;rim.push(xform(blobGeo(.22,.14,.2,{seg:6,low:[.4,.4,.38],high:[.75,.72,.66]}),{pos:[Math.cos(a)*1.55,.08,Math.sin(a)*1.55]}))}mk(g,[mound],mats.plain());mk(g,rim,mats.rock());break}
   case 'puzzle':{const b=[post(0,0,1.2,.07),bx(.7,.55,.55,{pos:[0,1.4,0],color:[.85,.7,.55]}),bx(.12,.12,.04,{pos:[-.2,1.45,.29],color:[.1,.07,.05]}),bx(.12,.12,.04,{pos:[.2,1.45,.29],color:[.1,.07,.05]})];const balls=[];for(let i=0;i<3;i++){balls.push(xform(blobGeo(.12,.12,.12,{seg:8,low:C(['#b0413a','#3a6ab0','#d9b040'][i]).map(c=>c*.6),high:C(['#d9605a','#5a8ad0','#f0d060'][i])}),{pos:[-.3+i*.3,.95-i%2*.1,.35]}))}mk(g,b,mats.plank('#8b6947'));mk(g,balls,mats.plain());break}

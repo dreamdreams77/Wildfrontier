@@ -76,7 +76,7 @@ export function createBrain({rng=Math.random}={}){
   if(env.ranger){const d=dist(me,env.ranger);const notice=prof.fleeAt*trustF*boldF*stressF*(env.ranger.moving?1.25:.8);if(d<notice)push(env.ranger,(1-d/notice)*prof.skit*(.6+.4*trustF)*1.5)}
   let crowd=0;for(const v of env.visitors||[]){const d=dist(me,v);if(d<5.5*prof.skit+1.5)crowd++}
   if(crowd)push(env.visitors[0],Math.min(.7,crowd*.14)*prof.skit*trustF*1.5);
-  const isPred=PREDATORS.has(agent.kind);let kin=[],alarm=0,nearestKin=null;
+  const isPred=PREDATORS.has(agent.kind);let kin=[],alarm=0;
   for(const o of env.others||[]){if(o.id===agent.id)continue;const d=dist(me,o);
    if(!isPred&&PREDATORS.has(o.kind)&&o.kind!==agent.kind&&d<9*prof.skit+3&&o.behaviour!=='rest'&&((agent.kind!=='owl'&&agent.kind!=='greatBlueHeron')))push(o,(1-d/(9*prof.skit+3))*.9);
    if(o.kind===agent.kind){kin.push(o);if(d<12&&o.behaviour==='flee'&&o.fear>.5)alarm=Math.max(alarm,.55*(1-d/12)+.2)}

@@ -1,6 +1,6 @@
 import { SPECIES, FOODS, stageOf, welfareOf, MEDICINE_PRICE } from './sanctuary.js';
 import { ROLES, BUILD_ITEMS } from './operations.js';
-import { CONDITIONS, PROJECTS, SEGMENTS } from './management.js';
+import { PROJECTS, SEGMENTS } from './management.js';
 import { EQUIPMENT } from './equipment.js';
 
 // Safari sanctuary management panel: overview, residents, supplies and the breeding programme.

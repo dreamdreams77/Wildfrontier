@@ -1,7 +1,7 @@
 import './style.css';
 import { createWorld } from './world.js';
 import { createSimulation } from './simulation.js';
-import { createSanctuary, SPECIES, FOODS, stageOf, welfareOf } from './sanctuary.js';
+import { createSanctuary, SPECIES, FOODS, stageOf } from './sanctuary.js';
 import { mountSanctuaryUI } from './sanctuary-ui.js';
 import { createOperations } from './operations.js';
 import { createManagement } from './management.js';
@@ -55,20 +55,20 @@ addEventListener('keydown',e=>{if(keyMap[e.code]){keys[keyMap[e.code]]=true;e.pr
 addEventListener('keyup',e=>{if(keyMap[e.code])keys[keyMap[e.code]]=false});
 // Touch walking: press and hold the ground and the ranger walks toward your finger; slide to steer, lift to stop.
 // A quick tap still selects, a quick drag still looks around, and two fingers still pinch to zoom.
-(function touchWalk(){const el=$('world'),HOLD=230,SLOP=10,DEAD=26;let id=null,t0=0,x0=0,y0=0,walking=false,timer=0,fx=0,fy=0;
+(function touchWalk(){const el=$('world'),HOLD=230,SLOP=10,DEAD=26;let id=null,x0=0,y0=0,walking=false,timer=0,fx=0,fy=0;
  const ring=document.createElement('div');ring.className='walk-ring';document.body.appendChild(ring);
  const clear=()=>{keys.left=keys.right=keys.forward=keys.back=false};
  function steer(){const p=world.ranger.position.clone();p.y=.9;p.project(world.camera);const sx=(p.x*.5+.5)*innerWidth,sy=(-p.y*.5+.5)*innerHeight,dx=fx-sx,dy=fy-sy,len=Math.hypot(dx,dy);
   if(len<DEAD){clear();return}const nx=dx/len,ny=dy/len,t=.38;keys.left=nx<-t;keys.right=nx>t;keys.forward=ny<-t;keys.back=ny>t}
  function show(){ring.style.transform='translate('+fx+'px,'+fy+'px)';ring.classList.add('on')}
  function stop(){clearTimeout(timer);if(walking){walking=false;window.__wildWalking=false;clear();ring.classList.remove('on')}id=null}
- el.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;if(id!==null){stop();return}id=e.pointerId;x0=fx=e.clientX;y0=fy=e.clientY;t0=performance.now();clearTimeout(timer);
+ el.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;if(id!==null){stop();return}id=e.pointerId;x0=fx=e.clientX;y0=fy=e.clientY;clearTimeout(timer);
   timer=setTimeout(()=>{if(id===null||document.body.classList.contains('intro'))return;walking=true;window.__wildWalking=true;show();steer()},HOLD)},{passive:true});
  el.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;fx=e.clientX;fy=e.clientY;if(walking){show();steer();return}if(Math.abs(fx-x0)+Math.abs(fy-y0)>SLOP)clearTimeout(timer)},{passive:true});
  for(const ev of['pointerup','pointercancel'])el.addEventListener(ev,e=>{if(e.pointerId===id)stop()},{passive:true});
  setInterval(()=>{if(walking)steer()},120);
 })();
-const panel=$('inspectPanel');let tool='observe',selectedId='fawn-01',lastTick=performance.now();
+const panel=$('inspectPanel');let tool='observe';
 function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2600)}
 
 let researchPanel=null;
@@ -84,7 +84,7 @@ function renderResearchPanel(){
  researchPanel.querySelectorAll('[data-project]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.project;const r=sim.runResearchProject(id);toast(r.message);if(r.ok){if(id==='wetland')world.setConservationProject('wetlandExpansion');if(id==='meadow')world.setConservationProject('meadowCorridor');if(id==='highland')world.setConservationProject('highlandReserve');renderHud()}renderResearchPanel()}));
 }
 function statusFor(a){if(a.managed)return 'SANCTUARY · '+stageOf(a).toUpperCase();const stage={sighted:'FIELD SIGHTING',assessed:'RANGER ASSESSED',stabilized:'STABILIZED',rehabilitating:'IN RECOVERY',released:'RELEASED',wild:'WILD RESIDENT'};return stage[a.stage]||'FIELD RECORD'}
-function renderAnimal(a){selectedId=a.id;$('speciesTag').textContent=a.species.toUpperCase();$('animalName').textContent=a.name;{const hs=(a.history||[]).slice(-2).map(h=>'Day '+h.day+': '+h.text).join(' ');$('animalDesc').dataset.hist=hs}$('animalDesc').textContent=(a.history&&a.history.length?'History · '+a.history.slice(-2).map(h=>'Day '+h.day+': '+h.text).join(' ')+' — ':'')+(a.managed?a.notes+' Age '+Math.floor(a.ageDays||0)+' days · '+a.heritage+' naming · line '+a.geneticLine+(a.parents?' · parents '+a.parents.join(' & '):'')+'.':a.notes);$('condition').textContent=a.condition.toUpperCase();$('location').textContent=a.location.toUpperCase();{const url=portraits.portrait(a.kind,{sex:a.sex,young:!!(a.young||a.juvenile)});const box=$('animalPortrait'),gl=box.querySelector('span');if(url){box.style.backgroundImage='url('+url+')';box.classList.add('has-art');if(gl)gl.style.display='none'}else{if(gl){gl.style.display='';gl.textContent=a.kind==='deer'?'♧':'◌'}box.style.backgroundImage='';box.classList.remove('has-art')}}$('animalStage').textContent=statusFor(a);$('injuryText').textContent=a.injury;{const mm=world.minds().find(x=>x.id===a.id);const lbl={flee:'fleeing danger',shelter:'seeking shelter',drink:'drinking',eat:'foraging',rest:'resting',socialize:'seeking company',herd:'rejoining the group',enrich:'playing with enrichment',investigate:'curious about you',patrol:'pacing restlessly',explore:'exploring',groom:'grooming'};$('behaviorText').textContent=sim.behavior(a)+(mm&&mm.behaviour?' · now: '+(lbl[mm.behaviour]||mm.behaviour):'')}ensureProfile(a);$('personalityText').textContent=a.personality+' · '+temperamentLabel(a.traits)+' · '+bondLabel(a.trust||0)+(a.boredom>70?' · bored':'');$('routineText').textContent=a.routine;$('energyText').textContent=Math.round(a.energy)+'%';$('socialText').textContent=Math.round(a.social)+'%';
+function renderAnimal(a){$('speciesTag').textContent=a.species.toUpperCase();$('animalName').textContent=a.name;{const hs=(a.history||[]).slice(-2).map(h=>'Day '+h.day+': '+h.text).join(' ');$('animalDesc').dataset.hist=hs}$('animalDesc').textContent=(a.history&&a.history.length?'History · '+a.history.slice(-2).map(h=>'Day '+h.day+': '+h.text).join(' ')+' — ':'')+(a.managed?a.notes+' Age '+Math.floor(a.ageDays||0)+' days · '+a.heritage+' naming · line '+a.geneticLine+(a.parents?' · parents '+a.parents.join(' & '):'')+'.':a.notes);$('condition').textContent=a.condition.toUpperCase();$('location').textContent=a.location.toUpperCase();{const url=portraits.portrait(a.kind,{sex:a.sex,young:!!(a.young||a.juvenile)});const box=$('animalPortrait'),gl=box.querySelector('span');if(url){box.style.backgroundImage='url('+url+')';box.classList.add('has-art');if(gl)gl.style.display='none'}else{if(gl){gl.style.display='';gl.textContent=a.kind==='deer'?'♧':'◌'}box.style.backgroundImage='';box.classList.remove('has-art')}}$('animalStage').textContent=statusFor(a);$('injuryText').textContent=a.injury;{const mm=world.minds().find(x=>x.id===a.id);const lbl={flee:'fleeing danger',shelter:'seeking shelter',drink:'drinking',eat:'foraging',rest:'resting',socialize:'seeking company',herd:'rejoining the group',enrich:'playing with enrichment',investigate:'curious about you',patrol:'pacing restlessly',explore:'exploring',groom:'grooming'};$('behaviorText').textContent=sim.behavior(a)+(mm&&mm.behaviour?' · now: '+(lbl[mm.behaviour]||mm.behaviour):'')}ensureProfile(a);$('personalityText').textContent=a.personality+' · '+temperamentLabel(a.traits)+' · '+bondLabel(a.trust||0)+(a.boredom>70?' · bored':'');$('routineText').textContent=a.routine;$('energyText').textContent=Math.round(a.energy)+'%';$('socialText').textContent=Math.round(a.social)+'%';
   for(const key of ['health','hydration','nutrition','stress']){$('meter-'+key).style.width=a[key]+'%';$('value-'+key).textContent=Math.round(a[key])+'%'}
   const actions=actionSet(a);$('actionButtons').innerHTML=actions.map(x=>'<button class="care-action '+(x.primary?'primary-action':'secondary-action')+'" data-action="'+x.id+'">'+x.label+' <span>↗</span></button>').join('');
   $('actionButtons').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>perform(b.dataset.action)));
@@ -105,7 +105,7 @@ const rescueActions={
 };
 function perform(action){
  {const cur=sim.selected();const cs=cur&&rescue.caseOfAnimal(cur.id);
-  if(cs&&['assess','stabilize','transport'].includes(action)){const r=action==='assess'?rescueActions.assess(cs.id):action==='stabilize'?rescueActions.handle(cs.id,cur.id,null):rescueActions.transport(cs.id,cur.id);renderAnimal(simById(cur.id)||sim.selected());return}}
+  if(cs&&['assess','stabilize','transport'].includes(action)){action==='assess'?rescueActions.assess(cs.id):action==='stabilize'?rescueActions.handle(cs.id,cur.id,null):rescueActions.transport(cs.id,cur.id);renderAnimal(simById(cur.id)||sim.selected());return}}
 if(action.startsWith('s')&&['sfeed:','senrich','streat','sopen'].some(p=>action.startsWith(p))){performManaged(action);return}const result=sim.act(action);const animal=sim.selected();if(result.ok&&action==='release')sim.completeMission(animal.id==='fawn-01'?'fawn':'rescue-'+animal.id);if(result.ok&&action==='observe'&&animal.kind!=='deer'){const mission=sim.missions.find(m=>m.animalId===animal.id);if(mission&&mission.kind==='survey')sim.completeMission(mission.id)}world.setAnimalStage(animal.id,animal.stage);if(result.ok&&(action==='feed'||action==='quiet'||action==='rehab'))world.setAnimalAction(animal.id,action);if(action==='transport'&&result.ok)world.focus(-12,7);if(action==='release'&&result.ok)world.focus(-1,1);toast(result.message);renderAnimal(animal);renderHud()}
 addEventListener('wildfrontier:select',e=>{const id=e.detail.id|| (e.detail.kind==='deer'?'fawn-01':'rabbit-01');const animal=sim.select(id);{const j=journal.sight(animal.kind,sanct.state.day);if(j.first){const inf=journal.info(animal.kind);sanct.say('New journal entry: '+(inf?inf.common:animal.kind)+'.');setTimeout(()=>toast('📖 New journal entry: '+(inf?inf.common:animal.kind)),1800);saveJournal()}}if(tool==='observe'){sim.act('observe');toast('Quiet observation logged for '+animal.name+'.');renderHud()}else if(tool==='track'){const result=sim.act('track');toast(result.message);renderHud()}else{toast('Care protocols opened for '+animal.name+'. Choose an appropriate action in the field record.')}renderAnimal(animal)});
 function selectTool(name){tool=name;document.querySelectorAll('.tool').forEach(el=>el.classList.toggle('active',el.dataset.tool===name));toast(name==='observe'?'Observation lens ready':name==='track'?'Tracking scope ready':'Care kit equipped')}
@@ -149,7 +149,6 @@ for(const ev of ['pointermove'])$('world').addEventListener(ev,e=>{if(e.buttons)
 $('world').addEventListener('wheel',()=>{tctx.looked=true},{passive:true});
 const tutorial=mountTutorial({getCtx:()=>{tctx.fed=sim.animals.reduce((n,a)=>n+(a.feedings||0),0);tctx.built=ops.state.items.length;tctx.photos=journal.state.photos;return tctx}});
 $('missionBtn').addEventListener('click',()=>{tctx.missions=true});
-const _doAct=doActivity;
 let playIntro=false;try{playIntro=shouldPlayIntro({webdriver:!!navigator.webdriver,seen:localStorage.getItem('wildfrontier.intro.v1')==='1',search:location.search})}catch{}
 if(playIntro){mountIntro({world,audio,onDone:()=>{world.focus(world.ranger.position.x,world.ranger.position.z)}})}
 

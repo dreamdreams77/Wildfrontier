@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { makeOak, makePine, makeAcacia, makeBaobab, makeBush, makeBamboo, makeRock, makeFern, makeReeds, makeLog } from '../src/art/vegetation.js';
 import { makeCabin, makeRecoveryYard, makeClinic, makeResearchLodge, makeSafariGate, makeDeck, makeBuildModel } from '../src/art/structures.js';
 const tris=o=>{let t=0;o.traverse(m=>{if(m.isMesh)t+=m.geometry.index?m.geometry.index.count/3:m.geometry.attributes.position.count/3});return Math.round(t)};

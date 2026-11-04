@@ -237,5 +237,3 @@ Object.assign(SPECS.whoopingCrane, {
   }
 });
 
-export const KINDS=Object.keys(SPECS);
-export const specOf=kind=>SPECS[kind]||null;

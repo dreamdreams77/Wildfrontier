@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { makeCreature, creatureKinds } from '../src/art/creature.js';
 import { SPECS } from '../src/art/creature-specs.js';
-import { makeHuman, makeRole, makeVisitor, LOOKS, visitorLook } from '../src/art/human.js';
+import { makeRole, makeVisitor, LOOKS, visitorLook } from '../src/art/human.js';
 import { makeBuildModel } from '../src/art/structures.js';
 import { makeOak, makePine, makeAcacia, makeBaobab, makeBush, makeBamboo, makeRock } from '../src/art/vegetation.js';
 import { TIERS, detectTier, createGovernor } from '../src/art/quality.js';
