@@ -29,7 +29,7 @@ const rescue=createRescue(sim,sanct);
 const director=createDirector(sim,sanct,ops,journal,rescue);
 const activities=createActivities(sim,sanct,journal,rescue,{nearbyKinds:(x,z,r)=>world.animals.filter(a=>!a.userData.hidden&&Math.hypot(a.position.x-x,a.position.z-z)<r).map(a=>a.userData.kind)});
 const JOURNAL_KEY='wildfrontier.journal.v1';
-try{const raw=localStorage.getItem(SAVE_KEY);if(raw)sanct.restore(JSON.parse(raw))}catch{}
+try{const raw=localStorage.getItem(SAVE_KEY);if(raw){let ok=false;try{ok=sanct.restore(JSON.parse(raw))}catch{}if(!ok){try{localStorage.setItem(SAVE_KEY+'.backup',raw)}catch{}console.warn('Saved sanctuary could not be loaded; starting fresh (the old save was kept as a backup).')}}}catch{}
 try{const raw=localStorage.getItem(JOURNAL_KEY);if(raw)journal.restore(JSON.parse(raw))}catch{}
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(sanct.serialize()))}catch{}}
 function saveJournal(){const data=journal.serialize();try{localStorage.setItem(JOURNAL_KEY,JSON.stringify(data))}catch{for(const e of Object.values(data.entries))for(const p of e.photos)p.img=null;try{localStorage.setItem(JOURNAL_KEY,JSON.stringify(data))}catch{}}}

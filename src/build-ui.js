@@ -52,8 +52,10 @@ export function mountBuildUI({sanct,ops,world,toast,afterChange,portraits}){
  function open(){
   if(panel){close();return}
   panel=document.createElement('section');panel.className='build-panel';document.body.appendChild(panel);document.body.classList.add('building');
-  panel.addEventListener('click',onClick);world.setBuildMode(true);world.focus(29,0);toast('Build mode: tap the safari ground to place structures.');render();
+  panel.addEventListener('click',onClick);world.setBuildMode(true);world.focus(29,0);requestAnimationFrame(shiftView);addEventListener('resize',shiftView);toast('Build mode: tap the safari ground to place structures.');render();
  }
- function close(){if(!panel)return;world.setBuildMode(false);world.selectBuildItem(null);panel.remove();panel=null;selectedId=null;moving=false;document.body.classList.remove('building')}
+ // on phones the build panel covers the middle of the screen: move the view so the camera target stays visible above it
+ function shiftView(){if(!panel){world.setViewShift(0);return}const h=panel.getBoundingClientRect().height;world.setViewShift(innerHeight>innerWidth&&h>innerHeight*.3?h/2:0)}
+ function close(){if(!panel)return;removeEventListener('resize',shiftView);world.setViewShift(0);world.setBuildMode(false);world.selectBuildItem(null);panel.remove();panel=null;selectedId=null;moving=false;document.body.classList.remove('building')}
  return {open,close,render,onGround,onItem,isOpen:()=>!!panel};
 }

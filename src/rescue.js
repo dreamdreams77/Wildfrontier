@@ -165,7 +165,7 @@ export function createRescue(sim,sanct,{rng=Math.random}={}){
  // markers for the world and the map
  function markers(){const m=[];for(const c of state.cases){if(c.phase==='closed')continue;if(c.phase==='reported'||c.phase==='tracking')m.push({id:c.id,type:'search',x:c.pos.x,z:c.pos.z,radius:7,label:c.title});if(c.phase==='tracking')for(const cl of c.clues)m.push({id:c.id+'-c',type:'clue',x:cl.x,z:cl.z,found:cl.found,label:cl.kind});}return m}
  const serialize=()=>JSON.parse(JSON.stringify({serial:state.serial,nextReport:state.nextReport,cases:state.cases,stats:state.stats,log:state.log}));
- function restore(d){if(!d)return;Object.assign(state,{serial:d.serial||0,nextReport:d.nextReport||state.nextReport,cases:d.cases||[],stats:{...state.stats,...(d.stats||{})},log:d.log||[]})}
+ function restore(d){if(!d)return;const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);Object.assign(state,{serial:Number.isFinite(d.serial)?d.serial:0,nextReport:Number.isFinite(d.nextReport)?d.nextReport:state.nextReport,cases:(Array.isArray(d.cases)?d.cases:[]).filter(c=>obj(c)&&typeof c.id==='string'&&Array.isArray(c.animalIds)),stats:{...state.stats,...(obj(d.stats)?d.stats:{})},log:Array.isArray(d.log)?d.log.filter(x=>typeof x==='string'||obj(x)):[]})}
  sanct.extend({key:'rescue',tick:()=>{},summary:()=>({}),serialize,restore});
  return {state,report,accept,visit,assess,handle,transport,tick,summary,markers,caseOf,caseOfAnimal,missing,TEMPLATES,APPROACHES,approachFor};
 }
