@@ -405,6 +405,8 @@ vWP = (modelMatrix * vec4(position, 1.0)).xyz;
   return mat;
 }
 
+export const waterTime = water.uT;   // shared clock for other water-like materials (waterfall)
+
 export function updateWater(t) {
   water.uT.value = t;
   groundFx.uCloudT.value = t;
