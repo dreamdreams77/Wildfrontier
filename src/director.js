@@ -50,7 +50,7 @@ export function createDirector(sim,sanct,ops,journal,rescue,{rng=Math.random}={}
  }
  const summary=()=>({active:state.active.map(m=>({id:m.id,rule:m.rule,title:m.title,detail:m.detail,reward:m.reward,daysLeft:Math.max(0,Math.ceil((m.expires-nowM())/DAY)),focus:m.focus,focusSpecies:m.focusSpecies})),done:state.done.slice(0,8),failed:state.failed});
  const serialize=()=>({seen:state.seen,done:state.done,serial:state.serial,failed:state.failed,births:state.births,active:state.active.map(m=>({key:m.key,rule:m.rule,raisedAt:m.raisedAt}))});
- function restore(d){if(!d)return;Object.assign(state,{seen:d.seen||{},done:d.done||[],serial:d.serial||0,failed:d.failed||0});/* active missions are re-derived by scan() from live state */}
+ function restore(d){if(!d)return;Object.assign(state,{seen:d.seen&&typeof d.seen==='object'?d.seen:{},done:Array.isArray(d.done)?d.done:[],serial:Number.isFinite(d.serial)?d.serial:0,failed:Number.isFinite(d.failed)?d.failed:0});/* active missions are re-derived by scan() from live state */}
  sanct.extend({key:'director',tick:()=>{},summary:()=>({}),serialize,restore});
  return {state,scan,summary,RULES};
 }

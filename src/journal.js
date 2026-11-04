@@ -90,6 +90,11 @@ export function createJournal(species={}){
   return {species:kinds.length,discovered:found,photographed,landmarks:LANDMARKS.filter(l=>state.landmarks[l.id]).length,landmarkTotal:LANDMARKS.length,photos:state.photos};
  }
  const serialize=()=>JSON.parse(JSON.stringify(state));
- const restore=d=>{if(!d)return;Object.assign(state,{entries:d.entries||{},photos:d.photos||0,landmarks:{...state.landmarks,...(d.landmarks||{})},explored:d.explored||0})};
+ const restore=d=>{
+  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);if(!obj(d))return;
+  const entries={};if(obj(d.entries))for(const [k,e] of Object.entries(d.entries)){if(!obj(e))continue;entries[k]={kind:k,first:null,sightings:0,behaviours:[],bestScore:0,...e,photos:Array.isArray(e.photos)?e.photos.filter(obj):[],behaviours:Array.isArray(e.behaviours)?e.behaviours:[]}}
+  const landmarks={...state.landmarks};if(obj(d.landmarks))for(const [k,v] of Object.entries(d.landmarks))if(v&&LANDMARKS.some(l=>l.id===k))landmarks[k]=true;
+  Object.assign(state,{entries,photos:Number.isFinite(d.photos)?d.photos:0,landmarks,explored:Number.isFinite(d.explored)?d.explored:0});
+ };
  return {state,info,sight,recordPhoto,discoverLandmark,exploreAt,progress,serialize,restore,entry};
 }

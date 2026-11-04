@@ -293,7 +293,18 @@ export function createManagement(sanct,ops,options={}){
    budget:budget()}};
  }
  function serialize(){return JSON.parse(JSON.stringify(state))}
- function restore(d){Object.assign(state,JSON.parse(JSON.stringify(d||{})));for(const k of ['cases','history'])state[k]=state[k]||[];for(const k of ['dirt','vax','quarantine','done','today'])state[k]=state[k]||{};state.sat=state.sat||{family:.6,photographer:.6,student:.6,donor:.6};state.mix=state.mix||{};}
+ function restore(d){
+  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v),fin=Number.isFinite,src=obj(d)?JSON.parse(JSON.stringify(d)):{};
+  const fresh={serial:0,cases:[],dirt:{},vax:{},vaccines:0,quarantine:{},rp:0,active:null,progress:0,done:{},nextStudy:0,nextRound:{},sat:{family:.6,photographer:.6,student:.6,donor:.6},avgSat:.6,mix:{family:0,photographer:0,student:0,donor:0},feedback:[],lastGift:0,today:{},history:[]};
+  for(const k of Object.keys(fresh))state[k]=fresh[k];
+  for(const k of ['serial','vaccines','rp','progress','nextStudy','avgSat','lastGift'])if(fin(src[k]))state[k]=src[k];
+  for(const k of ['dirt','vax','quarantine','done','nextRound','today'])if(obj(src[k]))state[k]=src[k];
+  for(const k of ['sat','mix'])if(obj(src[k]))state[k]={...fresh[k],...src[k]};
+  state.cases=(Array.isArray(src.cases)?src.cases:[]).filter(c=>obj(c)&&typeof c.animalId==='string'&&CONDITIONS[c.cond]&&fin(c.sev)).map(c=>({id:String(c.id||'case-'+(++state.serial)),animalId:c.animalId,cond:c.cond,sev:clamp(c.sev),day:fin(c.day)?c.day:0,noticed:!!c.noticed,diagnosed:!!c.diagnosed,treated:fin(c.treated)?c.treated:0,sev0:c.sev0,why:c.why}));
+  state.history=(Array.isArray(src.history)?src.history:[]).filter(h=>obj(h)&&obj(h.cats)).slice(-14);
+  state.feedback=Array.isArray(src.feedback)?src.feedback.filter(x=>typeof x==='string').slice(0,4):[];
+  state.active=typeof src.active==='string'&&PROJECTS[src.active]?src.active:null;
+ }
  sanct.extend({key:'mgmt',tick,day,summary,serialize,restore});
 
  return {state,train,CONDITIONS,PROJECTS,SEGMENTS,examine,diagnose,treatCase,setQuarantine,buyVaccines,vaccinate,cleanHabitat,repair,repairCost,startProject,addResearch,caseOf,budget,summary,vaccinePrice,start,dirtOf,has};

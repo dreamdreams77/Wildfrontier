@@ -333,12 +333,51 @@ function useEnrichment(id,type){
  function serialize(){
   return {v:1,state:{...state,stock:{...state.stock},pregnancies:state.pregnancies.slice(),familyTree:state.familyTree.slice()},animals:residents().map(a=>({...a})),ext:Object.fromEntries(hooks.filter(h=>h.key&&h.serialize).map(h=>[h.key,h.serialize()]))};
  }
+ // Load a save. Nothing from the save is trusted: unknown or damaged parts are repaired or dropped, a damaged extension
+ // block falls back to its defaults, and if anything still goes wrong the game is rolled back to how it was.
+ const isObj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+ const num=(v,d)=>typeof v==='number'&&Number.isFinite(v)?v:d;
+ const STAT_KEYS=['health','hydration','nutrition','stress','boredom','social','energy','trust'];
+ function sanitizeAnimal(a){
+  if(!isObj(a)||typeof a.id!=='string'||!SPECIES[a.kind])return null;
+  const sp=SPECIES[a.kind],out={...a,managed:true};
+  for(const k of STAT_KEYS)if(out[k]!==undefined)out[k]=clamp(num(out[k],50));
+  for(const k of ['health','hydration','nutrition','stress'])if(out[k]===undefined)out[k]=k==='stress'?20:70;
+  if(!Array.isArray(out.habitatPosition)||out.habitatPosition.length<2||!out.habitatPosition.every(Number.isFinite))out.habitatPosition=[sp.spawn[0],sp.spawn[1]];
+  if(out.ageDays!==undefined)out.ageDays=Math.max(0,num(out.ageDays,sp.matureDays+10));
+  if(!Array.isArray(out.history))delete out.history;
+  if(typeof out.name!=='string')out.name=a.id;
+  return out;
+ }
+ function applySave(data){
+  const st=data.state;
+  const base={...state};Object.assign(state,st);
+  for(const k of ['minutes','day','funds','credits','reputation','waterLevel','births','transfers']){if(!Number.isFinite(state[k]))state[k]=Number.isFinite(base[k])?base[k]:0}
+  state.stock={meat:0,hay:0,browse:0,produce:0,aquatic:0,medicine:0,...DEFAULT_EQUIPMENT};   // migrate older saves that predate equipment
+  if(isObj(st.stock))for(const [k,v] of Object.entries(st.stock))if(Number.isFinite(v)&&v>=0)state.stock[k]=v;
+  state.pregnancies=Array.isArray(st.pregnancies)?st.pregnancies.filter(isObj):[];
+  state.familyTree=Array.isArray(st.familyTree)?st.familyTree.filter(isObj):[];
+  for(const h of hooks){
+   if(!h.key||!h.restore)continue;
+   const block=data.ext&&data.ext[h.key];
+   if(!isObj(block)){try{h.restore({})}catch{}continue}
+   try{h.restore(block)}catch{try{h.restore({})}catch{}}   // a damaged block resets that system only
+  }
+  const keep=sim.animals.filter(a=>!a.managed);
+  const animals=data.animals.map(sanitizeAnimal).filter(Boolean);
+  sim.animals.length=0;sim.animals.push(...keep,...animals);
+ }
  function restore(data){
-  if(!data||data.v!==1)return false;
-  Object.assign(state,data.state);state.stock={meat:0,hay:0,browse:0,produce:0,aquatic:0,medicine:0,...DEFAULT_EQUIPMENT,...(data.state.stock||{})};   // migrate older saves that predate equipment
-  for(const h of hooks)if(h.key&&h.restore&&data.ext&&data.ext[h.key])h.restore(data.ext[h.key]);
-  const keep=sim.animals.filter(a=>!a.managed);sim.animals.length=0;sim.animals.push(...keep,...data.animals.map(a=>({...a})));
-  return true;
+  if(!isObj(data)||data.v!==1||!isObj(data.state)||!Array.isArray(data.animals))return false;
+  let snapshot=null;try{snapshot=JSON.parse(JSON.stringify(serialize()))}catch{}
+  try{
+   applySave(data);
+   if(!residents().length)throw new Error('save has no resident animals');
+   return true;
+  }catch(e){
+   if(snapshot){try{applySave(snapshot)}catch{}}
+   return false;
+  }
  }
 
  return {state,mods,extend,spend,earn,say,sim,useEnrichment,addHistory:(id,text)=>{const a=byId(id);if(a)addHistory(a,state.day,text)},SPECIES,FOODS,residents,feed,feedAllHungry,buyFood,refillWater,treat,enrich,pairStatus,startBreeding,transferOut,importFounder,tick,summary,serialize,restore,welfareOf,stageOf,scaleOf,preferredFood};

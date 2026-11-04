@@ -119,7 +119,7 @@ export function createActivities(sim,sanct,journal,rescue,{rng=Math.random,nearb
  function markers(){const m=[];for(const s of spots){if(!available(s))continue;m.push({id:s.id,type:'spot',spot:s.type,x:s.x,z:s.z,label:ACTIVITY_LABEL[s.type]})}return m}
  const summary=()=>({research:state.research,perks:PERKS.map(p=>({...p,unlocked:state.research>=p.at})),milestones:MILESTONES.map(m=>({id:m.id,label:m.label,blurb:m.blurb,reward:m.reward,done:!!state.milestones[m.id]})),regions:REGIONS.map(r=>({...r,unlocked:!r.unlock||!!state.unlocked[r.id]})),counts:{...state.counts},planted:state.planted.map(p=>({...p,growth:growth(p)}))});
  const serialize=()=>JSON.parse(JSON.stringify({research:state.research,done:state.done,planted:state.planted,counts:state.counts,milestones:state.milestones,unlocked:state.unlocked,serial:state.serial}));
- function restore(d){if(!d)return;Object.assign(state,{research:d.research||0,done:d.done||{},planted:d.planted||[],counts:{...state.counts,...(d.counts||{})},milestones:d.milestones||{},unlocked:d.unlocked||{},serial:d.serial||0})}
+ function restore(d){if(!d)return;const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);Object.assign(state,{research:Number.isFinite(d.research)?d.research:0,done:obj(d.done)?d.done:{},planted:(Array.isArray(d.planted)?d.planted:[]).filter(p=>obj(p)&&Number.isFinite(p.x)&&Number.isFinite(p.z)),counts:{...state.counts,...(obj(d.counts)?d.counts:{})},milestones:obj(d.milestones)?d.milestones:{},unlocked:obj(d.unlocked)?d.unlocked:{},serial:Number.isFinite(d.serial)?d.serial:0})}
  sanct.extend({key:'activities',tick:()=>{},summary:()=>({}),serialize,restore});
  return {state,spots,nearest,interact,answerTracks,scan,markers,summary,perks,hasPerk,growth,regionUnlocked,available};
 }
