@@ -136,7 +136,7 @@ export function createRescue(sim,sanct,{rng=Math.random}={}){
  }
  const failCase=(c,why)=>{c.phase='closed';c.outcome='lost';state.stats.lost++;sanct.state.reputation=Math.max(0,sanct.state.reputation-3-c.difficulty);note('💔 '+c.title+' lost: '+why+' Reputation suffers.');for(const id of c.animalIds){const a=byId(id);if(a&&a.stage!=='released'&&a.stage!=='rehabilitating'){const i=sim.animals.indexOf(a);if(i>=0){sim.animals.splice(i,1);c.removed=(c.removed||[]).concat(id)}}}};
  function closeSuccess(c){
-  const t=TEMPLATES.find(x=>x.id===c.template);const elapsed=now()-c.reportedAt;const win=c.deadline?c.deadline-c.reportedAt:Infinity;
+  const elapsed=now()-c.reportedAt;const win=c.deadline?c.deadline-c.reportedAt:Infinity;
   const speed=win===Infinity?1:Math.max(0,1-elapsed/win);const gentle=Math.max(0,1-c.stress/(40*c.animalIds.length));
   const score=Math.round(40+speed*30+gentle*30);c.score=score;c.outcome=score>=85?'excellent':score>=65?'good':'fair';
   const funds=Math.round(50*c.difficulty*(.7+score/200)),rep=Math.round(c.difficulty*(score>=85?3:2)),cred=c.difficulty>=3?c.difficulty-1:0;

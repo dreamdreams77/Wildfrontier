@@ -122,8 +122,8 @@ export function createSanctuary(sim,options={}){
 
  // Extension points used by operations (staff, habitat, visitors).
  const hooks=[];const mods={habitatScore:()=>100,visitorStress:()=>0,onMoney:null};
- const spend=(n,cat='other')=>{if(state.funds<n)return false;state.funds-=n;mods.onMoney&&mods.onMoney(-n,cat);return true};
- const earn=(n,cat='other')=>{state.funds+=n;mods.onMoney&&mods.onMoney(n,cat)};
+ const spend=(n,cat='other')=>{if(!Number.isFinite(n)||n<0||state.funds<n)return false;state.funds-=n;mods.onMoney&&mods.onMoney(-n,cat);return true};
+ const earn=(n,cat='other')=>{if(!Number.isFinite(n))return;state.funds+=n;mods.onMoney&&mods.onMoney(n,cat)};
  const extend=h=>{hooks.push(h);return h};
  const residents=()=>sim.animals.filter(a=>a.managed&&SPECIES[a.kind]);
  const byId=id=>sim.animals.find(a=>a.id===id);
@@ -133,17 +133,17 @@ export function createSanctuary(sim,options={}){
  const accepts=(a,food)=>SPECIES[a.kind].foods.includes(food);
 
  function buyFood(food,qty=1){
-  if(!(food in FOODS)&&food!=='medicine'&&!(food in EQUIPMENT))return {ok:false,message:'Unknown supply.'};
-  qty=Math.max(1,Math.floor(qty));const unit=food==='medicine'?MEDICINE_PRICE:food in EQUIPMENT?EQUIPMENT[food].price:FOODS[food].price;const price=unit*qty;
-  if(state.funds<price)return {ok:false,message:'Not enough funds: '+price+' needed.'};
-  spend(price,'supplies');state.stock[food]=(state.stock[food]||0)+qty;
+  if(typeof food!=='string'||(!Object.hasOwn(FOODS,food)&&food!=='medicine'&&!Object.hasOwn(EQUIPMENT,food)))return {ok:false,message:'Unknown supply.'};
+  qty=Number.isFinite(qty)?Math.max(1,Math.min(999,Math.floor(qty))):1;const unit=food==='medicine'?MEDICINE_PRICE:food in EQUIPMENT?EQUIPMENT[food].price:FOODS[food].price;const price=unit*qty;
+  if(!spend(price,'supplies'))return {ok:false,message:'Not enough funds: '+price+' needed.'};
+  state.stock[food]=(state.stock[food]||0)+qty;
   return {ok:true,message:'Bought '+qty+' × '+(food==='medicine'?'veterinary supplies':food in EQUIPMENT?EQUIPMENT[food].label.toLowerCase():FOODS[food].label.toLowerCase())+' for '+price+'.'};
  }
 
  function feed(id,food){
   const a=byId(id);if(!a||!a.managed)return {ok:false,message:'Only sanctuary residents can be hand-fed.'};
   const sp=SPECIES[a.kind];food=food||preferredFood(a);
-  if(!accepts(a,food))return {ok:false,message:a.name+' does not eat '+FOODS[food].short.toLowerCase()+'. A '+sp.common.toLowerCase()+' eats: '+sp.foods.map(f=>FOODS[f].short.toLowerCase()).join(', ')+'.'};
+  if(!accepts(a,food))return {ok:false,message:a.name+' does not eat '+(FOODS[food]?FOODS[food].short.toLowerCase():'that')+'. A '+sp.common.toLowerCase()+' eats: '+sp.foods.map(f=>FOODS[f].short.toLowerCase()).join(', ')+'.'};
   if(state.stock[food]<1)return {ok:false,message:'Out of '+FOODS[food].short.toLowerCase()+'. Buy more supplies.'};
   if(a.nutrition>=96)return {ok:false,message:a.name+' is already well fed.'};
   state.stock[food]-=1;
@@ -228,7 +228,6 @@ function useEnrichment(id,type){
  function giveBirth(dam,sim_){
   const sp=SPECIES[dam.kind],preg=dam.pregnant;dam.pregnant=null;dam.condition='Managed sanctuary resident';dam.mood='Protective';
   state.pregnancies=state.pregnancies.filter(p=>p.damId!==dam.id);
-  const welfare=welfareOf(dam);
   if(dam.health<35||dam.nutrition<20){say(dam.name+' lost her pregnancy; the pregnancy was not supported by her condition. Review diet and welfare before pairing again.');dam.stress=clamp(dam.stress+20);return []}
   const n=sp.litter[0]+Math.floor(rng()*(sp.litter[1]-sp.litter[0]+1));const babies=[];
   const sire=byId(preg.sireId);
@@ -261,7 +260,8 @@ function useEnrichment(id,type){
   return {ok:true,message:a.name+' left for a partner reserve. Credits +6, grant +120.',removedId:a.id};
  }
  function importFounder(kind,sex){
-  const sp=SPECIES[kind];if(!sp)return {ok:false,message:'Unknown species.'};
+  const sp=typeof kind==='string'&&Object.hasOwn(SPECIES,kind)?SPECIES[kind]:null;if(!sp)return {ok:false,message:'Unknown species.'};
+  if(sex!=='male'&&sex!=='female')return {ok:false,message:'Choose male or female.'};
   if(state.credits<10)return {ok:false,message:'Importing a new founder costs 10 conservation credits.'};
   if(countOf(kind)>=sp.capacity)return {ok:false,message:'The habitat is full ('+countOf(kind)+'/'+sp.capacity+').'};
   state.credits-=10;state.imports++;

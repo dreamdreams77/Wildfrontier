@@ -1,4 +1,4 @@
-import { SPECIES, welfareOf } from './sanctuary.js';
+import { SPECIES } from './sanctuary.js';
 
 // The director watches the simulation and raises missions that match what is actually happening: a sick animal,
 // low supplies, a newborn, an unrepaired habitat, visitors disturbing sensitive wildlife, a rare species spotted.
@@ -9,7 +9,6 @@ export function createDirector(sim,sanct,ops,journal,rescue,{rng=Math.random}={}
  const nowM=()=>sanct.state.minutes;
  const residents=()=>sanct.residents();
  const byId=id=>sim.animals.find(a=>a.id===id);
- const STAPLE=k=>({lion:'meat'}[k]);
  // Each rule: find candidates, make a key so the same situation is only raised once, define a done() and optional expiry.
  const RULES=[
   {id:'sick',scan:()=>residents().concat(sim.animals.filter(a=>a.rescueCase&&a.stage==='rehabilitating')).filter(a=>a.health<48).map(a=>({key:'sick:'+a.id,a})),

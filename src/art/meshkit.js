@@ -28,7 +28,6 @@ export function loft(stations,{radial=14,rings=24,cap0=3,cap1=3,color=null,roll=
  const nrm=g.attributes.normal;for(let i=0;i<n;i++){const a=i*(radial+1),b=a+radial;const x=nrm.getX(a)+nrm.getX(b),y=nrm.getY(a)+nrm.getY(b),z=nrm.getZ(a)+nrm.getZ(b);const l=Math.hypot(x,y,z)||1;nrm.setXYZ(a,x/l,y/l,z/l);nrm.setXYZ(b,x/l,y/l,z/l)}
  return g;
 }
-export const tube=(points,r0,r1,opts={})=>{const n=points.length;return loft(points.map((p,i)=>({p,rx:r0+(r1-r0)*i/(n-1)})),{radial:10,rings:Math.max(6,n*4),...opts})};
 
 // A displaced sphere: rocks, leaf clumps, bushes, rounded forms. Vertex colours are lit from above.
 export function blobGeo(rx,ry,rz,{seg=14,noise=0,freq=2,seed=1,low=[.55,.55,.55],high=[1,1,1],squash=0}={}){
@@ -76,7 +75,4 @@ export function autoSkin(geo,segments,{pow=3,eps=.015,top=2}={}){
 }
 // Bind every vertex fully to one bone (rigid parts such as hooves, horns, teeth carried by the head).
 export function bindRigid(geo,boneIdx){const n=geo.attributes.position.count,si=new Uint16Array(n*4),sw=new Float32Array(n*4);for(let i=0;i<n;i++){si[i*4]=boneIdx;sw[i*4]=1}geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(si,4));geo.setAttribute('skinWeight',new THREE.Float32BufferAttribute(sw,4));return geo}
-export function skinnedMesh(geo,material,rig){
- const m=new THREE.SkinnedMesh(geo,material);m.add(rig.root);m.bind(rig.skeleton());m.castShadow=true;m.receiveShadow=true;m.frustumCulled=false;return m;
-}
 export {V};

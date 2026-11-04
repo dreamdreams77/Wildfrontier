@@ -85,3 +85,10 @@ test('damaged rescue, director and activity blocks reset only themselves',()=>{
   assert.doesNotThrow(()=>play(g,3));assertHealthy(g,'damaged blocks');
   assert.ok(g.ops.state.staff.length>0,'untouched systems keep their data');
 });
+
+test('a treated case restored without its starting severity still heals and never goes NaN',()=>{
+  const s=currentSave();const a=s.animals.find(x=>x.kind==='africanLion');
+  s.ext.mgmt.cases=[{id:'case-1',animalId:a.id,cond:'respiratory',sev:50,day:3,noticed:true,diagnosed:true,treated:4}];
+  const g=build();assert.equal(g.sanct.restore(s),true);play(g,6);
+  const c=g.mgmt.summary().mgmt.cases;assert.ok(c.every(x=>Number.isFinite(x.sev)),'severity stays finite');assert.ok(!c.some(x=>x.id==='case-1'),'the restored case heals');
+});

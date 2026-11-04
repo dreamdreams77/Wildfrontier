@@ -135,7 +135,7 @@ export function createManagement(sanct,ops,options={}){
   for(const c of state.cases.slice()){
    const a=byId(c.animalId),cd=CONDITIONS[c.cond];if(!a){state.cases.splice(state.cases.indexOf(c),1);continue}
    if(c.treated>0){
-    c.treated--;c.sev=Math.max(0,c.sev-Math.ceil(c.sev0/cd.days)-3);a.health=clamp(a.health+2);
+    c.treated--;c.sev=Math.max(0,c.sev-Math.ceil((c.sev0||c.sev||10)/cd.days)-3);a.health=clamp(a.health+2);
     if(c.sev<=0){state.cases.splice(state.cases.indexOf(c),1);delete state.quarantine[a.id];sanct.addHistory(a.id,'Recovered from '+cd.label.toLowerCase()+'.');say(a.name+' has recovered from '+cd.label.toLowerCase()+'.');sanct.state.reputation+=.5;continue}
    }else{
     c.sev=Math.min(100,c.sev+cd.rate);a.health=clamp(a.health-cd.drain*c.sev/50);a.stress=clamp(a.stress+c.sev/60);
@@ -279,7 +279,6 @@ export function createManagement(sanct,ops,options={}){
  // ---- Daily hook -----------------------------------------------------------------------------------------------------------
  function day(){
   riskRoll();progressCases();wearDay();visitorsDay();archiveDay();
-  for(const m of staffOf('vet')){/* rounds are scheduled per vet in the provider */}
  }
 
  function summary(){
@@ -300,7 +299,7 @@ export function createManagement(sanct,ops,options={}){
   for(const k of ['serial','vaccines','rp','progress','nextStudy','avgSat','lastGift'])if(fin(src[k]))state[k]=src[k];
   for(const k of ['dirt','vax','quarantine','done','nextRound','today'])if(obj(src[k]))state[k]=src[k];
   for(const k of ['sat','mix'])if(obj(src[k]))state[k]={...fresh[k],...src[k]};
-  state.cases=(Array.isArray(src.cases)?src.cases:[]).filter(c=>obj(c)&&typeof c.animalId==='string'&&CONDITIONS[c.cond]&&fin(c.sev)).map(c=>({id:String(c.id||'case-'+(++state.serial)),animalId:c.animalId,cond:c.cond,sev:clamp(c.sev),day:fin(c.day)?c.day:0,noticed:!!c.noticed,diagnosed:!!c.diagnosed,treated:fin(c.treated)?c.treated:0,sev0:c.sev0,why:c.why}));
+  state.cases=(Array.isArray(src.cases)?src.cases:[]).filter(c=>obj(c)&&typeof c.animalId==='string'&&CONDITIONS[c.cond]&&fin(c.sev)).map(c=>({id:String(c.id||'case-'+(++state.serial)),animalId:c.animalId,cond:c.cond,sev:clamp(c.sev),day:fin(c.day)?c.day:0,noticed:!!c.noticed,diagnosed:!!c.diagnosed,treated:fin(c.treated)?c.treated:0,...(fin(c.sev0)?{sev0:c.sev0}:fin(c.treated)&&c.treated>0?{sev0:Math.max(10,clamp(c.sev))}:{}),...(c.why?{why:c.why}:{})}));
   state.history=(Array.isArray(src.history)?src.history:[]).filter(h=>obj(h)&&obj(h.cats)).slice(-14);
   state.feedback=Array.isArray(src.feedback)?src.feedback.filter(x=>typeof x==='string').slice(0,4):[];
   state.active=typeof src.active==='string'&&PROJECTS[src.active]?src.active:null;

@@ -26,7 +26,7 @@ const weatherCycle=[{name:'Clear',icon:'☀',water:0,stress:-.2},{name:'Cloudy',
 const speciesNeeds={riverOtter:{food:'whole fish and aquatic invertebrates',release:88},bobcat:{food:'whole-prey carnivore ration',release:88},redWolf:{food:'whole-prey conservation ration',release:92},whoopingCrane:{food:'wetland fish and invertebrate ration',release:92},deer:{food:'browse',release:85},rabbit:{food:'greens',release:82},fox:{food:'carnivore diet',release:88},owl:{food:'whole-prey diet',release:88},squirrel:{food:'seeds and nuts',release:82},bird:{food:'insectivore mix',release:82},raccoon:{food:'omnivore recovery ration',release:85},beaver:{food:'aquatic browse',release:86},skunk:{food:'insectivore ration',release:84},turtle:{food:'leafy greens and invertebrates',release:85},cardinal:{food:'seed and fruit mix',release:82}};
 export function createSimulation(){
  const animals=initialAnimals.map(a=>({...a}));
- const familyTree=[];let offspringSerial=0;let springBirthProgress=0;let researchCentreUnlocked=false;const researchRecords={genetics:false,migration:false,habitat:false,wetland:false,meadow:false,highland:false};
+ const familyTree=[];let offspringSerial=0;let researchCentreUnlocked=false;const researchRecords={genetics:false,migration:false,habitat:false,wetland:false,meadow:false,highland:false};
  const habitat={water:61,cover:73,food:68,disturbance:22,health:68,biodiversity:57,wetland:64,connectivity:58,pollinators:46};
  const populations={smallHerbivores:18,predators:5,waterbirds:7,wetlandEngineers:2,breedingPairs:3,migratoryVisitors:4};
  const log=[{time:'06:40',text:'Morning survey started at North Woodland.'},{time:'06:52',text:'Awi sighted near the old oak. Possible leg injury.'}];

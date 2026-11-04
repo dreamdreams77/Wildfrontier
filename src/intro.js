@@ -28,7 +28,6 @@ export const shouldPlayIntro=({webdriver=false,seen=false,search=''})=>{if(webdr
 
 export function mountIntro({world,audio,onDone}){
  let i=0;const root=document.createElement('div');root.id='intro';document.body.appendChild(root);document.body.classList.add('intro');
- const caption=['Hale Station','Recovery yard and clinic','The creek','Creekside wetlands','The safari gate','Open savanna','The soda lake','Your station'];
  function card(){const c=INTRO_CARDS[i];root.innerHTML='<div class="intro-card"><small>'+c.kicker+'</small><h1>'+c.title+'</h1><p>'+c.text+'</p><div class="intro-actions"><button data-a="skip" class="ghost">SKIP</button><button data-a="next">'+(i===INTRO_CARDS.length-1?'BEGIN':'CONTINUE')+'</button></div><div class="intro-dots">'+INTRO_CARDS.map((_,k)=>'<i class="'+(k===i?'on':'')+'"></i>').join('')+'</div></div>'}
  function finish(){world.stopCinematic();root.remove();document.body.classList.remove('intro');try{localStorage.setItem('wildfrontier.intro.v1','1')}catch{}onDone&&onDone()}
  root.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;audio.resume();if(b.dataset.a==='skip'){finish();return}i++;if(i>=INTRO_CARDS.length)finish();else card()});

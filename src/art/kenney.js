@@ -4,7 +4,6 @@ import { waterTime, makeWaterDisc } from './terrain.js';
 import { fallsLayout, ridgeLayout, bridgeLayout } from './kenney-layout.js';
 import { cliffGeos, cliffMesh, placed, fallMaterial, ribbonGeo } from './cliffs.js';
 import { blobGeo, xform } from './meshkit.js';
-import { mats } from './materials.js';
 
 // Creek landmarks. The waterfall and the cliffs are built from our own weathered boulders (the Kenney cliff blocks read
 // as flat cardboard boxes next to the rest of the reserve). The plank bridges are Kenney Nature Kit models (CC0,

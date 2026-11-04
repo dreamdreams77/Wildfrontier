@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { loft, blobGeo, lathe, xform, paintColor, Rig, autoSkin, bindRigid, V } from './meshkit.js';
+import { loft, blobGeo, lathe, xform, paintColor, Rig, autoSkin, bindRigid } from './meshkit.js';
 import { mats } from './materials.js';
-import { smooth } from './noise.js';
 
 // A rigged humanoid: lofted limbs and torso skinned to a 22-bone skeleton, with clothing, hair, hats and gear
 // painted in vertex colours so a whole person is two draw calls. Used by the ranger, staff and visitors.
@@ -56,7 +55,7 @@ function build(look){
  const hy=S(1.64);
  const headG=loft([{p:[0,S(1.545),0],rx:S(.055),ry:S(.06)},{p:[0,hy,S(.005)],rx:S(.082),ry:S(.095)},{p:[0,S(1.72),S(.005)],rx:S(.088),ry:S(.1)},{p:[0,S(1.8),0],rx:S(.07),ry:S(.082)}],{radial:16,rings:16,cap0:1,cap1:3,color:({t})=>t<.18?mixc(skin,[0,0,0],.12):skin});
  hx(headG);add(headG,[rig.seg('neck'),rig.seg('head')],{pow:2.5,top:2});
- for(const [dx,dy,dz,r,sc] of [[0,S(1.665),S(.092),.017,[1,1.2,1.2]]]){const nose=blobGeo(S(r),S(r)*1.2,S(r)*1.3,{seg:8,low:mixc(skin,[0,0,0],.15),high:skin});rigid(xform(nose,{pos:[dx,dy,dz]}),'head')}
+ for(const [dx,dy,dz,r] of [[0,S(1.665),S(.092),.017,[1,1.2,1.2]]]){const nose=blobGeo(S(r),S(r)*1.2,S(r)*1.3,{seg:8,low:mixc(skin,[0,0,0],.15),high:skin});rigid(xform(nose,{pos:[dx,dy,dz]}),'head')}
  for(const s of [-1,1]){const ear=blobGeo(S(.016),S(.03),S(.02),{seg:8,low:skin.map(c=>c*.8),high:skin});rigid(xform(ear,{pos:[s*S(.085),S(1.7),S(0)]}),'head');
   const brow=blobGeo(S(.026),S(.007),S(.012),{seg:6,low:hair.map(c=>c*.7),high:hair});rigid(xform(brow,{pos:[s*S(.036),S(1.725),S(.082)],rot:[0,0,s*-.15]}),'head');
   const mouth=blobGeo(S(.02),S(.004),S(.008),{seg:6,low:[.2,.08,.08],high:[.4,.15,.15]});if(s>0)rigid(xform(mouth,{pos:[0,S(1.625),S(.088)]}),'head')}

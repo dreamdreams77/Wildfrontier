@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBrain, PROFILES, profileOf, ensureProfile, bondLabel, temperamentLabel, CALLS } from '../src/ai.js';
+import { createBrain, PROFILES, ensureProfile, bondLabel, temperamentLabel, CALLS } from '../src/ai.js';
 import { SPECS } from '../src/art/creature-specs.js';
 import { enrichmentFit, ENRICHMENT, SWIMMERS } from '../src/enrichment.js';
 import { createSimulation } from '../src/simulation.js';

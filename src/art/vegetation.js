@@ -1,15 +1,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { loft, blobGeo, lathe, xform, paintColor, tint, V } from './meshkit.js';
-import { mats, wind, addWind } from './materials.js';
+import { loft, blobGeo, lathe, xform, paintColor } from './meshkit.js';
+import { mats, addWind } from './materials.js';
 import { rng } from './noise.js';
-import { grassBladeTexture, flowerTexture, canPaint } from './paint.js';
 
 // Hand-built vegetation. Trees are bark-textured lofted trunks and branches plus displaced, painted leaf clumps,
 // merged so each tree is two draw calls. Grass and flowers are wind-animated instances.
 const C=h=>{const c=new THREE.Color(h);return [c.r,c.g,c.b]};
 const mixc=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
-const bake=(g)=>{g.deleteAttribute('skinIndex');return g};
 function mergeAll(list){
  list=list.filter(Boolean).map(g=>{if(!g.attributes.uv)g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count*2),2));if(!g.attributes.color)paintColor(g,[1,1,1]);return g});
  return list.length?mergeGeometries(list,false):new THREE.BufferGeometry();
@@ -153,7 +151,7 @@ export function makeReeds(seed=1,count=8){
  const m=mesh(mergeAll(parts),addWind(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85}),{amp:.12,freq:1.4,heightRef:1.6}),false);return m;
 }
 export function makeWillow(seed=1,scale=1){
- const r=rng(seed);const g=new THREE.Group();
+ const g=new THREE.Group();
  const trunk=loft([{p:[0,0,0],rx:.07},{p:[.05,.5,0],rx:.05},{p:[.12,1.1,0],rx:.03}],{radial:6,rings:8,cap0:1,cap1:1,color:barkColor});
  const lv=[];for(let i=0;i<5;i++){const a=i*1.3;lv.push(xform(blobGeo(.28,.45,.28,{seg:8,noise:.2,seed:i,low:C('#4f7a3c'),high:C('#9acb5a')}),{pos:[Math.cos(a)*.22+.1,.95-i*.04,Math.sin(a)*.22]}))}
  g.add(mesh(mergeAll([trunk]),mats.bark(),false),mesh(mergeAll(lv),mats.leaf(),false));g.scale.setScalar(scale);return g;

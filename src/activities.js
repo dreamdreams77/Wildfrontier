@@ -1,8 +1,6 @@
-import { SPECIES } from './sanctuary.js';
 
 // Field activities, research, conservation milestones and regions. Every activity changes real state: journal sightings,
 // habitat quality, research points that unlock perks, funds, reputation. Spots refresh over days so they stay worth visiting.
-const DAY=1440;
 const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,n));
 
 export const REGIONS=[
@@ -56,7 +54,7 @@ export function createActivities(sim,sanct,journal,rescue,{rng=Math.random,nearb
   const ok=(u.reputation===undefined||sanct.state.reputation>=u.reputation)&&(!u.landmark||!!journal.state.landmarks[u.landmark]);
   if(ok){state.unlocked[r.id]=true;sanct.say('🗺 New region opened: '+r.label+'.')}return ok;
  }
- const available=s=>{const r=regionOf(s.region);if(!regionUnlocked(r))return false;if(s.type==='plant'&&state.planted.some(p=>p.spot===s.id))return false;const d=state.done[s.id];return d===undefined||day()-d>=(s.type==='litter'?99999:s.type==='plant'?99999:3)};
+ const available=s=>{const r=regionOf(s.region);if(!r||!regionUnlocked(r))return false;if(s.type==='plant'&&state.planted.some(p=>p.spot===s.id))return false;const d=state.done[s.id];return d===undefined||day()-d>=(s.type==='litter'?99999:s.type==='plant'?99999:3)};
  const nearest=(pos,r=2.8)=>{let b=null,bd=r;for(const s of spots){if(!available(s))continue;const d=Math.hypot(s.x-pos.x,s.z-pos.z);if(d<bd){bd=d;b=s}}return b};
  const reward=(r)=>{if(r.funds)sanct.earn(r.funds);if(r.reputation)sanct.state.reputation+=r.reputation;if(r.credits)sanct.state.credits+=r.credits;if(r.research)state.research+=r.research};
  // ---- tracks: pick the animal that made them ----
@@ -66,7 +64,7 @@ export function createActivities(sim,sanct,journal,rescue,{rng=Math.random,nearb
   state.quiz[spot.id]={answer,options};return {type:'footprints',spotId:spot.id,clue:TRACK_CLUE[answer],options:options.map(k=>({kind:k,label:journal.info(k)?.common||k}))};
  }
  function answerTracks(spotId,kind){
-  const q=state.quiz[spotId];if(!q)return {ok:false,message:'Nothing to identify here.'};const spot=spots.find(s=>s.id===spotId);delete state.quiz[spotId];
+  const q=state.quiz[spotId];if(!q)return {ok:false,message:'Nothing to identify here.'};delete state.quiz[spotId];
   state.done[spotId]=day();
   if(kind===q.answer){state.counts.tracksRight++;journal.sight(q.answer,day());reward({funds:25,research:6,reputation:0});return {ok:true,correct:true,message:'Correct: '+(journal.info(q.answer)?.common||q.answer)+' tracks. Journal updated.'}}
   state.counts.tracksWrong++;reward({research:1});return {ok:true,correct:false,message:'Not quite: those were '+(journal.info(q.answer)?.common||q.answer).toLowerCase()+' tracks ('+TRACK_CLUE[q.answer]+').'};

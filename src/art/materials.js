@@ -89,16 +89,6 @@ export const limbMaterial = () => memo(
   }
 );
 
-export const hardMaterial = () => memo(
-  'hard',
-  () => new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    roughness: 0.56,
-    metalness: 0,
-    envMapIntensity: 0.8
-  })
-);
-
 export const eyeMaterial = () => memo(
   `eye:${physical}`,
   () => surfaceMaterial({
@@ -153,9 +143,6 @@ export function addWind(
   material.customProgramCacheKey = () => `wind:${amp}:${freq}:${heightRef}`;
   return material;
 }
-
-export const std = (color, options = {}) =>
-  new THREE.MeshStandardMaterial({ color, roughness: 0.9, ...options });
 
 export const painted = (key, textureFactory, options = {}) => memo(
   `painted:${key}:${physical}`,
@@ -289,11 +276,4 @@ export const mats = {
       map
     });
   })
-};
-
-export const clearMaterialCache = () => {
-  for (const material of cache.values()) {
-    if (material && material.dispose) material.dispose();
-  }
-  cache.clear();
 };

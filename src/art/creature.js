@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { loft, blobGeo, lathe, xform, paintColor, tint, Rig, autoSkin, bindRigid, V, interp } from './meshkit.js';
+import { loft, blobGeo, lathe, xform, paintColor, Rig, autoSkin, bindRigid, V } from './meshkit.js';
 import { bodyMaterial, limbMaterial, eyeMaterial } from './materials.js';
-import { hexToRgb, smooth, mixRgb } from './noise.js';
+import { smooth } from './noise.js';
 import { SPECS } from './creature-specs.js';
 
 // Lofted, skinned, rigged animals. One generator per body plan (quadruped, bird, turtle); every species is data.
@@ -19,7 +19,6 @@ function eyeGeo(r,iris){
  const hl=new THREE.SphereGeometry(r*.17,8,6);paintColor(hl,[1,1,1]);parts.push(xform(hl,{pos:[r*.28,r*.3,r*.9]}));
  return mergeGeometries(parts.map(g=>{g.deleteAttribute('uv');return g}),false);
 }
-const finishGeo=(g)=>{if(!g.attributes.color)paintColor(g,[1,1,1]);return g};
 
 // ---------------------------------------------------------------------------------------------------------------------
 function buildQuad(kind,spec,opts){
@@ -59,7 +58,7 @@ function buildQuad(kind,spec,opts){
  rig.add('neck1','chest',base.toArray(),n1.toArray());
  rig.add('neck2','neck1',n1.toArray(),n2.toArray());
  rig.add('head','neck2',n2.toArray(),hs[4].toArray());
- const parts=[],limbParts=[];
+ const limbParts=[];
 
  // legs
  const mkLeg=(id,front,side)=>{
@@ -113,7 +112,7 @@ function buildQuad(kind,spec,opts){
  }
 
  // head details: ears, nose, eyes, horns, mane, trunk, tusks
- const hc=n2.clone().addScaledVector(hd,hLen*.22);const right=V(1,0,0);
+ const hc=n2.clone().addScaledVector(hd,hLen*.22);
  const head0=rig.idx('head');
  const noseTip=hs[4];
  const noseG=blobGeo(hR*sn*.34,hR*sn*.26,hR*sn*.3,{seg:10,low:rgb(spec.nose).map(c=>c*.7),high:rgb(spec.nose)});const nG=xform(noseG,{pos:[0,noseTip.y+hR*sn*.06,noseTip.z+hR*sn*.08]});bindRigid(nG,head0);limbParts.push(nG);
@@ -155,7 +154,7 @@ function buildQuad(kind,spec,opts){
  }
  // elephant trunk and tusks
  if(spec.trunk){
-  const tb=hs[4].clone();const tl0=S(1.5);const pts=[];const dir=V(0,-.55,.35);
+  const tb=hs[4].clone();const tl0=S(1.5);const pts=[];
   for(let i=0;i<=5;i++){const t=i/5;pts.push([0,tb.y-hR*.2-tl0*Math.pow(t,1.1)*.55+Math.sin(t*3)*0*tl0,tb.z-hR*.05+tl0*t*.2+Math.sin(t*2.2)*tl0*.12])}
   for(let i=0;i<5;i++)rig.add('trunk'+(i+1),i===0?'head':'trunk'+i,pts[i],pts[i+1]);
   const tg=loft(pts.map((p,i)=>({p,rx:hR*(.3-.2*(i/5)),ry:hR*(.3-.2*(i/5))*1.05})),{radial:12,rings:28,cap0:2,cap1:3,color:({t})=>lerpC(rgb(spec.limbs),rgb(spec.coat.dark),smooth(.6,1,t)*.45)});
@@ -166,7 +165,7 @@ function buildQuad(kind,spec,opts){
  if(spec.horns==='ossicones')for(const s of [-1,1]){const top=hc.y+hR*.95;const g1=loft([{p:[s*hR*.35,top-hR*.1,hc.z-hR*.1],rx:hR*.12},{p:[s*hR*.3,top+hR*.8,hc.z-hR*.15],rx:hR*.1}],{radial:8,rings:6,cap0:1,cap1:1,color:()=>rgb('#dcc08a')});const k=blobGeo(hR*.16,hR*.16,hR*.16,{seg:8,low:[.18,.12,.08],high:[.3,.2,.12]});const g2=xform(k,{pos:[s*hR*.3,top+hR*.9,hc.z-hR*.15]});bindRigid(g1,head0);bindRigid(g2,head0);limbParts.push(g1,g2)}
  // eyes (separate meshes so they can blink)
  const eg=eyeGeo(Math.max(hR*.175,.009*k),rgb(spec.eye));
- const eyes=[];const eyeMat=eyeMaterial();
+ const eyeMat=eyeMaterial();
  const eyeBase=hc.clone().addScaledVector(hd,hLen*.3);
  const eyeMeshes=[-1,1].map(s=>{const m=new THREE.Mesh(eg,eyeMat);m.name=s<0?'eyeL':'eyeR';m.position.set(s*hR*.66,eyeBase.y+hR*.28,eyeBase.z+hR*.12).sub(n2);m.rotation.y=s*.6;m.castShadow=false;return m});
 
@@ -184,7 +183,6 @@ function buildQuad(kind,spec,opts){
  return {group,height:Math.max(yR,yC+nd.y*nLen+hd.y*hLen+hR),length:L};
 }
 function autoSkinTorso(g,rig,L,yR,yM,yC,base,n1,n2,nose){
- const A=(p)=>V(...p);
  autoSkin(g,[
   {idx:rig.idx('hips'),a:V(0,yR,-L*.5),b:V(0,yM,-L*.12)},
   {idx:rig.idx('root'),a:V(0,yM,-L*.12),b:V(0,yM,L*.12)},
@@ -214,7 +212,7 @@ function buildBird(kind,spec,opts){
  const rig=new Rig();
  rig.add('root',null,mid.toArray(),tailB.toArray());
  rig.add('chest','root',chest.toArray(),n0.toArray());
- const nb=[];for(let i=0;i<np.length;i++){const nm='neck'+(i+1);rig.add(nm,i===0?'chest':'neck'+i,np[i].toArray(),(np[i+1]||hp[0]).toArray())}
+ for(let i=0;i<np.length;i++){const nm='neck'+(i+1);rig.add(nm,i===0?'chest':'neck'+i,np[i].toArray(),(np[i+1]||hp[0]).toArray())}
  rig.add('head','neck'+np.length,hp[0].toArray(),hp[1].toArray());
  const limbs=[];const cw=rgb(spec.wingColor||spec.coat.back),legC=rgb(spec.leg);
  // legs
@@ -305,7 +303,6 @@ function makeController(root,spec,info){
   const hips=B('hips'),chest=B('chest'),n1=B('neck1'),n2=B('neck2'),head=B('head');
   const drop=(spec.legH-spec.bh*.3)*spec.k;
   const off={walk:[0,.5,.25,.75],trot:[0,.5,.5,0],amble:[0,.5,.25,.75],waddle:[0,.5,.5,0],bound:[0,0,.18,.18]}[g.type]||[0,.5,.25,.75];
-  const order=['FL','FR','HL','HR'];
   return {
    state:st,height:info.height,
    update(dt,ctx={}){
@@ -411,4 +408,3 @@ export function makeCreature(kind,opts={}){
  return group;
 }
 export const creatureKinds=()=>Object.keys(SPECS);
-export function disposeCreatureCache(){cache.clear()}

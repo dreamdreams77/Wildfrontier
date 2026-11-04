@@ -38,3 +38,21 @@ What was checked, what was found and fixed, and what was **not** verified.
 * Audio was exercised for errors only; nobody has listened to it.
 * Safari and Firefox were not tested (Chromium only).
 * The tutorial and opening cinematic were checked lightly.
+
+## Bug check and code clean-up (follow-up)
+
+A lint pass (unused and undefined names, duplicate keys), a randomised action fuzz test (`tests/fuzz.test.js`, `FUZZ_SEEDS=50` for a longer run) and a random-input UI test (`tools/monkey.cjs`) were run over the whole code base.
+
+Real bugs found and fixed:
+
+| Found by | Problem | Fix |
+| --- | --- | --- |
+| Fuzz | Buying supplies with a non-numeric quantity, or setting a non-numeric ticket price, turned the funds into `NaN` and broke the economy permanently | `spend` and `earn` reject non-finite amounts; `buyFood` and `setPrice` validate their input |
+| Fuzz | Importing a founder with an invalid sex charged the credits and then crashed | Input is validated before any credits are spent |
+| Fuzz | Feeding an animal an unknown food, or interacting with an unknown field spot, threw | Both are handled |
+| Lint | The journal restore declared the `behaviours` key twice | Removed the duplicate |
+| Lint | A treated case restored without its starting severity could produce `NaN` severity | Restored with a safe default |
+
+Clean-up: 60 unused imports, variables and write-only variables removed, plus about 10 unused exports (including two unused canvas textures, an unused skinned-mesh helper and a material-cache helper). Lint is now clean for `src/`.
+
+Still not verified: real phones or tablets, Safari and Firefox, and audible audio.

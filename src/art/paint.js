@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { rng, vnoise, fbm, smooth, mix, clamp01, hexToRgb, mixRgb } from './noise.js';
+import { rng, vnoise, fbm, smooth, clamp01, hexToRgb, mixRgb } from './noise.js';
 
 // Procedural hand-painted textures. Everything is drawn with visible brush strokes, soft colour drift and
 // tileable wrap-around so surfaces read as painted rather than flat-shaded. Browser only (uses canvas).
@@ -51,13 +51,6 @@ export const leafTexture=(tint='#5f8a47')=>memo('leaf'+tint,()=>{
   for(const ox of [-w,0,w])for(const oy of [-h,0,h]){x.save();x.translate(px+ox,py+oy);x.rotate(a);x.fillStyle=rgb(col,.5+r()*.4);x.beginPath();x.ellipse(0,0,l,l*.38,0,0,Math.PI*2);x.fill();x.strokeStyle=rgb([20,45,20],.22);x.lineWidth=1;x.beginPath();x.moveTo(-l,0);x.lineTo(l,0);x.stroke();x.restore()}
  }
  return toTex(c);
-});
-export const grassBladeTexture=()=>memo('blade',()=>{
- const w=64,h=128,c=cv(w,h),x=c.getContext('2d');
- const g=x.createLinearGradient(0,h,0,0);g.addColorStop(0,'#3c5a2a');g.addColorStop(.55,'#78a24a');g.addColorStop(1,'#c9de86');
- x.fillStyle=g;x.beginPath();x.moveTo(8,h);x.quadraticCurveTo(w*.42,h*.45,w*.5,0);x.quadraticCurveTo(w*.58,h*.45,w-8,h);x.closePath();x.fill();
- x.strokeStyle='rgba(30,60,20,.35)';x.lineWidth=1.5;x.beginPath();x.moveTo(w/2,h);x.lineTo(w/2,4);x.stroke();
- return toTex(c,{repeat:false});
 });
 // Large painted ground: moss, soil and leaf litter (woodland) or dry grass and earth (savanna).
 export const groundTexture=(kind='woodland')=>memo('ground'+kind,()=>{
@@ -131,11 +124,6 @@ export const cloudTexture=()=>memo('cloud',()=>{
  for(let i=0;i<46;i++){const px=40+r()*(w-80),py=h*.5+(r()-.5)*h*.28,rad=14+r()*26;const g=x.createRadialGradient(px,py,0,px,py,rad);g.addColorStop(0,'rgba(255,255,255,.85)');g.addColorStop(.6,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.beginPath();x.arc(px,py,rad,0,7);x.fill()}
  x.globalCompositeOperation='source-atop';const sh=x.createLinearGradient(0,0,0,h);sh.addColorStop(0,'rgba(255,255,255,0)');sh.addColorStop(1,'rgba(150,170,200,.45)');x.fillStyle=sh;x.fillRect(0,0,w,h);
  return toTex(c,{repeat:false});
-});
-export const flowerTexture=()=>memo('flower',()=>{
- const n=64,c=cv(n,n),x=c.getContext('2d');x.translate(n/2,n/2);
- for(let i=0;i<6;i++){x.rotate(Math.PI/3);x.fillStyle='#ffffff';x.beginPath();x.ellipse(0,-15,8,15,0,0,7);x.fill();x.strokeStyle='rgba(0,0,0,.12)';x.beginPath();x.moveTo(0,-4);x.lineTo(0,-26);x.stroke()}
- x.fillStyle='#f2c94c';x.beginPath();x.arc(0,0,7,0,7);x.fill();return toTex(c,{repeat:false});
 });
 
 // Per-species body painting. u runs around the body ring (0 = spine line, .5 = belly), v runs nose-to-tail

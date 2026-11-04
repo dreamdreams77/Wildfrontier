@@ -10,7 +10,6 @@ export function createStaffLayer(scene){
   for(const m of list){
    live.add(m.id);let f=figures.get(m.id);
    if(!f){f=makeRole(m.role);f.position.set(m.x,0,m.z);scene.add(f);figures.set(m.id,f)}
-   const px=f.position.x,pz=f.position.z;
    f.position.x+=(m.x-f.position.x)*Math.min(1,dt*10);f.position.z+=(m.z-f.position.z)*Math.min(1,dt*10);
    const dh=Math.atan2(Math.sin(m.heading-f.rotation.y),Math.cos(m.heading-f.rotation.y));f.rotation.y+=dh*Math.min(1,dt*8);
    const walking=m.state==='walk'||m.state==='return';
