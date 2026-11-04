@@ -28,6 +28,7 @@ export const LANDMARKS=[
  {id:'lodge',label:'Research lodge',x:-21,z:-7,emoji:'🔬'},
  {id:'oak',label:'Old oak',x:-3,z:-5,emoji:'🌳'},
  {id:'creek',label:'Creek',x:7,z:2,emoji:'💧'},
+ {id:'falls',label:'Creek falls',x:1.1,z:-18.5,emoji:'🌊'},
  {id:'thicket',label:'Berry thicket',x:14,z:-8,emoji:'🫐'},
  {id:'gate',label:'Safari gate',x:17,z:0,emoji:'🚪',safari:true},
  {id:'platform',label:'Waterhole platform',x:26,z:5,emoji:'🔭',safari:true},

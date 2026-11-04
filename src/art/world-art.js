@@ -8,6 +8,7 @@ import { wind, mats } from './materials.js';
 import { rng } from './noise.js';
 import { buildSavannaDetail } from './detail.js';
 import { createAtmosphere } from './atmosphere.js';
+import { buildKenneyLandmarks } from './kenney.js';
 
 // Lays out the whole reserve: woodland, creek, savanna and every building, using the coordinates the game logic expects.
 export function buildWorldArt(scene,{tier,onHandle}={}){
@@ -27,7 +28,8 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
  // ----- woodland trees -----
  const treeAt=[];
  for(let i=0;i<22;i++){const x=-19+(i%6)*7.3,z=-18+Math.floor(i/6)*11.5;if(Math.abs(x)<7&&Math.abs(z)<9)continue;treeAt.push({x,z,s:.8+(i%4)*.17,seed:i,pine:z<-9&&i%2===0})}
- for(const t of treeAt){const tr=t.pine?makePine(t.seed,t.s*1.15):makeOak(t.seed,{scale:t.s,detail:F>.7?1:.6});tr.position.set(t.x,0,t.z);tr.rotation.y=t.seed;scene.add(tr)}
+ for(const t of treeAt){if(Math.hypot(t.x-1.1,t.z+20.4)<7)continue;   // keep the waterfall clear
+  const tr=t.pine?makePine(t.seed,t.s*1.15):makeOak(t.seed,{scale:t.s,detail:F>.7?1:.6});tr.position.set(t.x,0,t.z);tr.rotation.y=t.seed;scene.add(tr)}
  for(const [x,z,s,seed] of [[-10,1,1.5,4],[12,-8,1.35,2],[-15,-13,1.25,8]]){const t=makeOak(seed,{scale:s});t.position.set(x,0,z);scene.add(t)}
  const oak=makeOak(11,{scale:2.0});oak.position.set(-3,0,-5);scene.add(oak);art.oak=oak;
  // framing forest around the reserve, merged into a few meshes
@@ -95,7 +97,8 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
  art.rain=new THREE.LineSegments(rg,new THREE.LineBasicMaterial({color:'#cfe0ea',transparent:true,opacity:.35}));art.rain.visible=false;art.rain.frustumCulled=false;scene.add(art.rain);
 
  art.atmosphere=createAtmosphere(scene,{tier});
- art.update=(t,dt,env,focus={x:24,z:0})=>{art.atmosphere.update(t,dt,env,focus);
+ buildKenneyLandmarks(scene,art,{tier}).catch(e=>console.warn('landmarks',e&&e.message));
+ art.update=(t,dt,env,focus={x:24,z:0})=>{art.atmosphere.update(t,dt,env,focus);if(art.kenney)art.kenney.update(t);
   wind.uTime.value=t;wind.uStrength.value=env.wind;updateWater(t);art.sky.update(dt);
   art.butterflies.forEach(({group,wings},i)=>{group.visible=(env.season==='Spring'||env.season==='Summer')&&!env.rain&&!env.night;const ph=t*.72+group.userData.phase;group.position.set(group.userData.home.x+Math.sin(ph)*.72,.65+Math.sin(ph*1.7)*.2+(i%4)*.22,group.userData.home.z+Math.cos(ph*.83)*.58);group.rotation.y=Math.sin(ph)*.65+Math.PI/2*0;wings.forEach(({mesh,side})=>{mesh.rotation.z=side*(.2+Math.abs(Math.sin(t*13+i))*1.05)})});
   art.fireflies.visible=env.glow;if(env.glow){art.fireflies.material.opacity=.5+Math.sin(t*2)*.3;const p=art.fireflies.geometry.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,.45+((t*.12+i*.17)%1)*.9);p.needsUpdate=true}

@@ -137,3 +137,11 @@ New pure-logic module `src/management.js` (hooks into the sanctuary and operatio
 - New models for the Café and Gift shop, and looks for the two new staff roles.
 
 Not verified: real phone hardware, the High tier's post-processing, or audible audio. Animal species, buildings and vegetation were already rebuilt in the earlier visual overhaul; this pass did not remodel them.
+
+## Creek falls, cliffs and bridges
+
+- **Waterfall** at the head of the creek: a stepped rock cascade with an animated falling-water sheet (streaks, foam), a plunge pool with the shader water and drifting mist. It is a journal landmark ("Creek falls").
+- **Cliff ridges** along the reserve's north and east edges: tiers of weathered boulders with strata colours, built from the same boulder generator as the kopje and merged into one mesh.
+- **Plank bridges** across the creek use the Kenney Nature Kit models (CC0, https://kenney.nl; `src/assets/kenney/`), re-tinted to the reserve's timber.
+
+I first tried the Kenney cliff and waterfall blocks as well, but next to the rest of the art they read as flat cardboard boxes, so only the bridges stayed Kenney. Layout is pure data in `src/art/kenney-layout.js` and is tested.
