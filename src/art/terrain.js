@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fbm, smooth } from './noise.js';
 import { groundTexture, waterNormal, cloudTexture, canPaint } from './paint.js';
 
@@ -397,9 +398,12 @@ vWP = (modelMatrix * vec4(position, 1.0)).xyz;
 
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\n' + WATER_CHUNK.frag)
-      .replace('#include <color_fragment>', WATER_COLOR_BODY);
+      .replace('#include <color_fragment>', WATER_COLOR_BODY)
+      // clay water: soft banded tones and a little extra saturation, like painted plasticine waves
+      .replace('#include <tonemapping_fragment>', `{float wl=dot(gl_FragColor.rgb,vec3(.299,.587,.114));float wq=(floor(wl*7.)+.5)/7.;gl_FragColor.rgb*=mix(1.,wq/max(wl,.001),.5);gl_FragColor.rgb=max(mix(vec3(wl),gl_FragColor.rgb,1.25),0.);}
+#include <tonemapping_fragment>`);
   };
-  mat.customProgramCacheKey = () => 'wildfrontier-water-overhaul-1-' + (disc ? 'disc' : 'plane');
+  mat.customProgramCacheKey = () => 'wildfrontier-water-clay-2-' + (disc ? 'disc' : 'plane');
 
   water.cache.set(key, mat);
   return mat;
@@ -609,8 +613,12 @@ export function buildHorizon(scene, fogColor) {
   group.add(new THREE.Mesh(ridgeGeometry(90, 14, 19, -2), nearMat));
 
   // Distant treeline (seeded so the horizon is identical every load)
-  const treeGeo = new THREE.ConeGeometry(1, 1, 6);
-  treeGeo.translate(0, 0.5, 0);
+  // clay lollipop trees: a lumpy round canopy on a short trunk
+  const canopy = new THREE.IcosahedronGeometry(0.42, 2); canopy.scale(1, .86, 1); canopy.translate(0, 0.66, 0);
+  const trunk = new THREE.CylinderGeometry(0.05, 0.07, 0.36, 6); trunk.translate(0, 0.18, 0);
+  canopy.deleteAttribute('uv'); trunk.deleteAttribute('uv');
+  const treeGeo = mergeGeometries([canopy.toNonIndexed(), trunk.toNonIndexed()]);
+  treeGeo.computeVertexNormals();
 
   const n = 190;
   const trees = new THREE.InstancedMesh(
@@ -647,13 +655,13 @@ export function buildHorizon(scene, fogColor) {
     if (Math.hypot(dx, dz) < 2) continue;
 
     const sc = 2.8 + random() * 4.2;
-    scale.set(sc * (0.40 + random() * 0.12), sc * (1.5 + random() * 0.35), sc * (0.40 + random() * 0.12));
+    scale.set(sc * (0.95 + random() * 0.2), sc * (1.05 + random() * 0.3), sc * (0.95 + random() * 0.2));
     quat.setFromAxisAngle(up, random() * Math.PI * 2);
     pos.set(x, heightAt(x, z) - 0.2, z);
     matrix.compose(pos, quat, scale);
     trees.setMatrixAt(k, matrix);
 
-    color.set('#365f40').offsetHSL((random() - 0.5) * 0.035, 0, (random() - 0.5) * 0.09);
+    color.set('#79a86a').offsetHSL((random() - 0.5) * 0.06, 0, (random() - 0.5) * 0.12);
     trees.setColorAt(k, color);
     k++;
   }
