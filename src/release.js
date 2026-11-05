@@ -46,6 +46,8 @@ export function createRelease(sanct, ops, mgmt, { rng = Math.random } = {}) {
     const p = state.prep[id]; if (!p) return { ok: false, message: a.name + ' has not been prepared in the soft-release pen.' };
     if (p.days < PREP_DAYS) return { ok: false, message: a.name + ' needs ' + (PREP_DAYS - p.days) + ' more day' + (PREP_DAYS - p.days === 1 ? '' : 's') + ' in the pen.' };
     const r = readiness(a); if (r.score < MIN_READINESS) return { ok: false, message: a.name + ' is not ready (readiness ' + r.score + '%, needs ' + MIN_READINESS + '%).' };
+    // things can change during the pen days (paired for breeding, fallen ill, group shrunk by a transfer)
+    const b = blockers(a); if (b.length) return { ok: false, message: a.name + ' cannot be released yet: ' + b.join(' ') };
     delete state.prep[id];
     const i = sanct.sim.animals.indexOf(a); if (i >= 0) sanct.sim.animals.splice(i, 1);
     state.released.unshift({ id: a.id, name: a.name, kind: a.kind, day: sanct.state.day, readiness: r.score, status: 'tracking', daysTracked: 0, reports: [] });
@@ -85,8 +87,9 @@ export function createRelease(sanct, ops, mgmt, { rng = Math.random } = {}) {
   function restore(d) {
     const obj = v => v && typeof v === 'object' && !Array.isArray(v); if (!obj(d)) return;
     state.prep = {}; if (obj(d.prep)) for (const [k, v] of Object.entries(d.prep)) if (obj(v) && Number.isFinite(v.days)) state.prep[k] = { start: v.start, days: v.days };
-    state.released = (Array.isArray(d.released) ? d.released : []).filter(r => obj(r) && typeof r.name === 'string' && Number.isFinite(r.readiness)).map(r => ({ ...r, reports: Array.isArray(r.reports) ? r.reports.filter(x => typeof x === 'string') : [] }));
-    state.stats = { released: 0, established: 0, lost: 0, ...(obj(d.stats) ? d.stats : {}) };
+    state.released = (Array.isArray(d.released) ? d.released : []).filter(r => obj(r) && typeof r.name === 'string' && Number.isFinite(r.readiness)).map(r => ({ ...r, daysTracked: Number.isFinite(r.daysTracked) ? r.daysTracked : 0, reports: Array.isArray(r.reports) ? r.reports.filter(x => typeof x === 'string') : [] }));
+    state.stats = { released: 0, established: 0, lost: 0 };
+    if (obj(d.stats)) for (const k of Object.keys(state.stats)) if (Number.isFinite(d.stats[k])) state.stats[k] = d.stats[k];
   }
   sanct.extend({ key: 'release', day, summary: () => ({}), serialize, restore });
   return { state, readiness, blockers, prepare, cancel, release, summary, hasPen };

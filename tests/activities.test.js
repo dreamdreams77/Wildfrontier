@@ -67,7 +67,7 @@ test('research unlocks perks that change gameplay',()=>{
   assert.deepEqual(a.perks(),['scope','bulk']);assert.ok(PERKS.every(p=>p.blurb));assert.equal(a.hasPerk('lab'),false);
 });
 test('activity progress survives a save',()=>{
-  const {a,s,sim,ops,j,r}=setup();a.interact(a.spots.find(x=>x.type==='plant'));a.state.research=33;a.state.milestones.rescue1=3;
+  const {a,s}=setup();a.interact(a.spots.find(x=>x.type==='plant'));a.state.research=33;a.state.milestones.rescue1=3;
   const snap=JSON.parse(JSON.stringify(s.serialize()));const sim2=createSimulation();const s2=createSanctuary(sim2);createOperations(s2);const r2=createRescue(sim2,s2);const a2=createActivities(sim2,s2,createJournal(SPECIES),r2);s2.restore(snap);
   assert.equal(a2.summary().research,33);assert.equal(a2.summary().planted.length,1);assert.ok(a2.summary().milestones.find(m=>m.id==='rescue1').done);
 });

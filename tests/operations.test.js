@@ -101,7 +101,7 @@ test('feeding stations feed nearby hungry residents each day',()=>{
 });
 
 test('visitors: income, rating, awareness and closing',()=>{
-  const {sim,s,ops}=setup();const v=ops.summary().visitors;assert.ok(v.rating>0&&v.rating<=5);assert.ok(v.today>0);
+  const {s,ops}=setup();const v=ops.summary().visitors;assert.ok(v.rating>0&&v.rating<=5);assert.ok(v.today>0);
   const f=s.state.funds;s.tick(DAY);assert.ok(s.state.funds>f,'tickets and grants add funds');
   ops.setOpen(false);ops.planDay();assert.equal(ops.summary().visitors.today,0);
   ops.setOpen(true);ops.setPrice(40);assert.equal(ops.summary().visitors.price,30);
@@ -110,7 +110,7 @@ test('visitors: income, rating, awareness and closing',()=>{
 });
 
 test('visitors stress sensitive species unless the habitat is closed to them',()=>{
-  const {sim,s,ops}=setup();ops.setPrice(8);ops.planDay();
+  const {s,ops}=setup();ops.setPrice(8);ops.planDay();
   s.state.minutes=DAY+11*60;s.tick(1);assert.ok(ops.summary().visitors.onSite>0);
   const stressOf=()=>s.mods.visitorStress('cheetah');
   assert.ok(stressOf()>0);assert.ok(s.mods.visitorStress('cheetah')>s.mods.visitorStress('giraffe'));
@@ -119,14 +119,14 @@ test('visitors stress sensitive species unless the habitat is closed to them',()
 });
 
 test('educators give talks when visitors are present and award awareness and credits',()=>{
-  const {sim,s,ops}=setup();ops.hire('educator');s.state.minutes=DAY+11*60;s.tick(1);
+  const {s,ops}=setup();ops.hire('educator');s.state.minutes=DAY+11*60;s.tick(1);
   assert.ok(ops.summary().visitors.onSite>=3);const a0=ops.summary().visitors.awareness;
   run(ops,30);assert.ok(ops.summary().visitors.awareness>a0);assert.ok(ops.summary().visitors.talks>=1);
   assert.ok(ops.state.nextTalk>s.state.minutes,'talks have a cooldown');
 });
 
 test('operations state round-trips through the sanctuary save',()=>{
-  const {sim,s,ops}=setup();s.state.funds=3000;ops.hire('keeper');ops.hire('educator');ops.place('pond',24,-6);ops.setPrice(12);ops.setRestricted('cheetah',true);
+  const {s,ops}=setup();s.state.funds=3000;ops.hire('keeper');ops.hire('educator');ops.place('pond',24,-6);ops.setPrice(12);ops.setRestricted('cheetah',true);
   const snap=JSON.parse(JSON.stringify(s.serialize()));
   const sim2=createSimulation();const s2=createSanctuary(sim2);const ops2=createOperations(s2);
   assert.equal(s2.restore(snap),true);

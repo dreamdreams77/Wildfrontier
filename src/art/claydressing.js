@@ -16,7 +16,9 @@ export function createContactShadows(scene,max=96){
   const mat=new THREE.MeshBasicMaterial({map:blobTexture(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
   const mesh=new THREE.InstancedMesh(geo,mat,max);mesh.frustumCulled=false;mesh.renderOrder=1;mesh.count=0;mesh.userData.noClay=true;scene.add(mesh);
   const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),s=new THREE.Vector3(),box=new THREE.Box3(),size=new THREE.Vector3();
-  const radius=o=>{if(o.userData.shadowR===undefined){box.setFromObject(o);box.getSize(size);o.userData.shadowR=Math.max(.25,Math.min(3.2,Math.max(size.x,size.z)*.42))}return o.userData.shadowR};
+  // cached at unit scale (the world box already includes o.scale, which update() applies every frame), so animals that
+  // grow up get a growing shadow instead of keeping a newborn-sized one, and nothing is scaled twice
+  const radius=o=>{if(o.userData.shadowR===undefined){box.setFromObject(o);box.getSize(size);o.userData.shadowR=Math.max(.25,Math.min(3.2,Math.max(size.x,size.z)*.42/(o.scale.x||1)))}return o.userData.shadowR};
   // objects: iterable of Object3D standing on the ground (y is their height above it)
   function update(objects){
     let n=0;

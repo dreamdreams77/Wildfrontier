@@ -9,7 +9,7 @@ const {chromium}=require('playwright');
  const data=await p.evaluate(()=>{
   const w=window.__wild.world,scene=w.scene,r=w.renderer;
   const geo={},mats={textured:0,untextured:0,standard:0,physical:0,basic:0,other:0};const seenMat=new Set();
-  let meshes=0,skinned=0,instanced=0,tris=0,bones=0,vertexColors=0,withNormalMap=0;const seenGeo=new Set();
+  let meshes=0,skinned=0,instanced=0,tris=0,bones=0,vertexColors=0,withNormalMap=0;
   const groups={};
   scene.traverse(o=>{
    if(o.isBone)bones++;

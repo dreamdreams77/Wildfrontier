@@ -90,7 +90,6 @@ async function run(label, ctxOpts) {
   // build mode: place, select, rotate, move, remove with real taps on the ground
   await ev(() => document.getElementById('buildBtn').click()); await page.waitForTimeout(400);
   const items0 = await ev(() => window.__wild.ops.state.items.length);
-  const gp = await ev(() => { const w = window.__wild.world; const v = new (w.camera.position.constructor)(30, 0, -14); v.project(w.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; });
   await ev(() => { window.__wild.world.ranger.position.set(26, 0, -10); window.__wild.world.focus(30, -14); }); await page.waitForTimeout(1800);
   const gp2 = await ev(() => { const w = window.__wild.world; const v = new (w.camera.position.constructor)(30, 0, -14); v.project(w.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; });
   await ev(() => document.querySelector('[data-bt=pond]').click());

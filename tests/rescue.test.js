@@ -37,7 +37,7 @@ test('tracking: the animal stays hidden until you follow the clues',()=>{
 });
 
 test('assessment and handling need proximity and equipment',()=>{
-  const {sim,s,r}=setup();const c=r.report('deer');r.accept(c.id);const aid=c.animalIds[0];const a=sim.animals.find(x=>x.id===aid);
+  const {sim,s,r}=setup();const c=r.report('deer');r.accept(c.id);const aid=c.animalIds[0];
   assert.equal(r.assess(c.id,{x:0,z:0}).ok,false,'not found yet');
   for(const cl of c.clues)r.visit({x:cl.x,z:cl.z});
   assert.equal(r.assess(c.id,{x:-99,z:-99}).ok,false,'too far away');
@@ -59,7 +59,7 @@ test('approach trade-offs: sedation is most reliable, quiet gentlest, failures h
 test('full chain: report, track, assess, secure, transport, rehabilitate, release pays out',()=>{
   const {sim,s,r}=setup(seeded(5));s.state.stock.net=1;s.state.stock.firstAid=3;const f0=s.state.funds,rep0=s.state.reputation;
   const c=r.report('midsize');r.accept(c.id);for(const cl of c.clues)r.visit({x:cl.x,z:cl.z});const aid=c.animalIds[0];const a=sim.animals.find(x=>x.id===aid);const rg=walkTo(r,c,aid,sim);r.assess(c.id,rg);
-  let res;for(let i=0;i<30&&!(res=r.handle(c.id,aid,rg,'net')).ok;i++){for(const cl of c.clues)r.visit({x:cl.x,z:cl.z});walkTo(r,c,aid,sim,rg);r.assess(c.id,rg)}
+  for(let i=0;i<30&&!r.handle(c.id,aid,rg,'net').ok;i++){for(const cl of c.clues)r.visit({x:cl.x,z:cl.z});walkTo(r,c,aid,sim,rg);r.assess(c.id,rg)}
   assert.equal(c.phase,'handled');
   const t=r.transport(c.id,aid,rg);assert.equal(t.ok,true);assert.equal(c.phase,'transport');
   a.stage='rehabilitating';r.tick();assert.equal(c.phase,'rehab');
@@ -83,7 +83,7 @@ test('multi-animal cases need every animal secured; orphans require a crate',()=
 });
 
 test('cases arrive over time, capped at two, scaled by reputation, and survive a save',()=>{
-  const {sim,s,r}=setup();assert.equal(r.state.cases.length,0);
+  const {s,r}=setup();assert.equal(r.state.cases.length,0);
   for(let d=0;d<8;d++){s.state.minutes+=DAY;r.tick()}
   const open=r.state.cases.filter(c=>c.phase!=='closed').length;assert.ok(open>=1&&open<=2,'open cases: '+open);
   s.state.reputation=0;assert.ok(r.state.cases.every(c=>c.difficulty<=4));
@@ -97,7 +97,7 @@ test('older saves without equipment are migrated safely',()=>{
 });
 
 test('director raises missions from real state and completes them when the condition is met',()=>{
-  const {sim,s,ops,r,d}=setup();const lion=sim.animals.find(a=>a.name==='Jabari');lion.health=30;
+  const {sim,s,d}=setup();const lion=sim.animals.find(a=>a.name==='Jabari');lion.health=30;
   d.scan();assert.ok(d.summary().active.some(m=>m.title==='Treat Jabari'));
   const n=d.summary().active.length;d.scan();assert.equal(d.summary().active.length,n,'the same situation is not raised twice');
   const f0=s.state.funds;lion.health=90;d.scan();assert.ok(!d.summary().active.some(m=>m.title==='Treat Jabari'));assert.ok(s.state.funds>f0);assert.equal(d.summary().done[0].result,'complete');

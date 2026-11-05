@@ -67,23 +67,29 @@ function buildQuad(kind,spec,opts){
   const x=side*bw*(front?.72:.74),zS=front?L*.31:-L*.34;
   const top=front?yC+bh*.1:yR+bh*.05;const ground=0;const reach=top-ground;
   const toeY=footH;
-  const pts=front?[
+  const pts=spec.pillar?[   // elephants and rhinos stand on straight columns, not bent dog legs
+   [x,top,zS],[x,top-reach*.45,zS+(front?0:L*.01)],[x,reach*.22+footH,zS],[x,toeY,zS+legR*.15]
+  ]:front?[
    [x,top,zS],[x,top-reach*.42,zS-L*.012],[x,reach*.2+footH,zS+L*.008],[x,toeY,zS+legR*.9]
   ]:[
    [x,top,zS],[x,top-reach*.42,zS+reach*.16*Math.min(hind,1.4)],[x,reach*.24+footH,zS-reach*.1],[x,toeY,zS+legR*.55]
   ];
   const parent=front?'chest':'hips';
   rig.add('up'+id,parent,pts[0],pts[1]);rig.add('lo'+id,'up'+id,pts[1],pts[2]);rig.add('ft'+id,'lo'+id,pts[2],pts[3]);
-  const r0=legR*(front?1.25:1.5),r1=legR*.85,r2=legR*.62,r3=legR*.72;
+  const r0=spec.pillar?legR*1.32:legR*(front?1.25:1.5),r1=legR*(spec.pillar?1.04:.85),r2=legR*(spec.pillar?.96:.62),r3=legR*(spec.pillar?1.04:.72);
   const stn=[{p:pts[0],rx:r0,ry:r0*1.05},{p:pts[1],rx:r1,ry:r1},{p:pts[2],rx:r2,ry:r2},{p:pts[3],rx:r3,ry:r3*.85}];
   const limbC=rgb(spec.limbs),lowC=rgb(spec.lower||spec.limbs);
-  const g=loft(stn,{radial:8,rings:12,cap0:1,cap1:2,color:({t})=>lerpC(limbC,lowC,smooth(.35,.9,t))});
+  const g=loft(stn,{radial:spec.pillar?14:8,rings:spec.pillar?16:12,cap0:1,cap1:2,color:({t})=>lerpC(limbC,lowC,smooth(.35,.9,t))});
   const seg=[rig.seg('up'+id),rig.seg('lo'+id),rig.seg('ft'+id),rig.seg(front?'chest':'hips')];
   autoSkin(g,seg,{pow:3,top:3});limbParts.push(g);
   // foot
   let f;const toe=V(...pts[3]);
   if(spec.foot==='hoof'){f=lathe([[0,0],[legR*.8,0],[legR*.95,footH*1.1],[legR*.7,footH*2.6],[0,footH*2.6]],{seg:10,color:()=>rgb('#26201a')});f=xform(f,{pos:[x,0,toe.z-legR*.1]})}
-  else if(spec.foot==='pad'){f=blobGeo(legR*1.05,footH*1.5,legR*1.2,{seg:10,low:rgb('#3f3c37'),high:rgb('#5d5a53')});f=xform(f,{pos:[x,footH*.9,toe.z-legR*.1]})}
+  else if(spec.foot==='pad'){
+   // a round clay foot in the leg's own colour, with three pale toenails at the front
+   f=blobGeo(legR*1.14,footH*1.25,legR*1.2,{seg:14,low:lowC.map(c=>c*.82),high:lowC});f=xform(f,{pos:[x,footH*.72,toe.z]});
+   for(const n of [-1,0,1]){const nail=blobGeo(legR*.2,footH*.55,legR*.14,{seg:8,low:rgb('#cfc6b2'),high:rgb('#efe8d8')});const nm=xform(nail,{pos:[x+n*legR*.48,footH*.55,toe.z+legR*1.08-Math.abs(n)*legR*.18]});bindRigid(nm,rig.idx('ft'+id));limbParts.push(nm)}
+  }
   else if(spec.foot==='webbed'){f=blobGeo(legR*1.3,footH*.7,legR*2.2,{seg:10,low:lowC.map(c=>c*.6),high:lowC});f=xform(f,{pos:[x,footH*.7,toe.z+legR*.7]})}
   else {f=blobGeo(legR*.95,footH*.9,legR*1.5,{seg:10,low:lowC.map(c=>c*.7),high:lowC});f=xform(f,{pos:[x,footH*.8,toe.z+legR*.4]})}
   bindRigid(f,rig.idx('ft'+id));limbParts.push(f);
@@ -122,6 +128,7 @@ function buildQuad(kind,spec,opts){
  const ear=spec.ears,eS=S(ear.size)*1.7,earC=ear.color?rgb(ear.color):rgb(spec.limbs);
  for(const s of [-1,1]){
   const bp=[s*hR*.6,hc.y+hR*.74,hc.z-hR*.12];
+  const huge=ear.type==='huge';if(huge){bp[0]=s*hR*.78;bp[1]=hc.y+hR*.55;bp[2]=hc.z-hR*.28}   // elephant ears hang from the side of the head
   const id=s<0?'earL':'earR';let tipv,width,len;
   switch(ear.type){
    case 'long':len=eS*1.3;tipv=[s*eS*.35,bp[1]+len,bp[2]-eS*.2];width=eS*.28;break;
@@ -129,13 +136,13 @@ function buildQuad(kind,spec,opts){
    case 'oval':len=eS*1.2;tipv=[s*eS*1.2,bp[1]+len*.55,bp[2]-eS*.3];width=eS*.55;break;
    case 'point':len=eS*1.2;tipv=[s*eS*.35,bp[1]+len,bp[2]-eS*.15];width=eS*.42;break;
    case 'tuft':len=eS*1.2;tipv=[s*eS*.3,bp[1]+len,bp[2]-eS*.1];width=eS*.38;break;
-   case 'huge':len=eS*.7;tipv=[s*(hR*.7+eS*.7),bp[1]-hR*.1-eS*.3,bp[2]-eS*.35];width=eS*.62;break;
+   case 'huge':len=eS*.8;tipv=[s*(hR*.92+eS*.2),bp[1]-eS*.78,bp[2]-eS*.16];width=eS*.5;break;
    default:len=eS*.75;tipv=[s*eS*.5,bp[1]+len*.8,bp[2]-eS*.1];width=eS*.5;
   }
   const mid=[(bp[0]+tipv[0])/2,(bp[1]+tipv[1])/2,(bp[2]+tipv[2])/2];
   rig.add(id,'head',bp,tipv);
-  const thick=ear.type==='huge'?hR*.07:width*.16;
-  const eg=loft([{p:bp,rx:width*.9,ry:thick},{p:mid,rx:width,ry:thick*.9},{p:tipv,rx:width*.28,ry:thick*.5}],{radial:10,rings:10,cap0:1,cap1:3,upRef:ear.type==='huge'?V(0,1,0):V(1,0,0),color:({t})=>lerpC(earC,earC.map(c=>c*.8),t)});
+  const thick=huge?hR*.09:width*.16;
+  const eg=loft(huge?[{p:bp,rx:width*.55,ry:thick*1.3},{p:[(bp[0]*2+tipv[0])/3,(bp[1]*2+tipv[1])/3,(bp[2]*2+tipv[2])/3-width*.18],rx:width*1.02,ry:thick*1.1},{p:[(bp[0]+tipv[0]*2)/3,(bp[1]+tipv[1]*2)/3,(bp[2]+tipv[2]*2)/3-width*.1],rx:width*.9,ry:thick},{p:tipv,rx:width*.34,ry:thick*.8}]:[{p:bp,rx:width*.9,ry:thick},{p:mid,rx:width,ry:thick*.9},{p:tipv,rx:width*.28,ry:thick*.5}],{radial:huge?14:10,rings:huge?14:10,cap0:huge?2:1,cap1:3,upRef:huge?V(s,0,0):V(1,0,0),color:({t})=>lerpC(earC,earC.map(c=>c*.8),t)});
   autoSkin(eg,[rig.seg(id),rig.seg('head')],{top:2,pow:2});limbParts.push(eg);
   if(ear.type==='tuft'){const tf=xform(new THREE.ConeGeometry(width*.22,len*.5,6),{pos:[tipv[0],tipv[1]+len*.15,tipv[2]]});paintColor(tf,[.08,.07,.06]);bindRigid(tf,rig.idx(id));limbParts.push(tf)}
  }
@@ -166,7 +173,7 @@ function buildQuad(kind,spec,opts){
  if(spec.horn){const hg=loft([{p:[0,hs[3].y+hR*.15,hs[3].z-hR*.05],rx:hR*.2},{p:[0,hs[3].y+hR*.5,hs[3].z+hR*.1],rx:hR*.12},{p:[0,hs[3].y+hR*.95,hs[3].z+hR*.2],rx:hR*.02}],{radial:10,rings:12,cap0:2,cap1:2,color:({t})=>lerpC(rgb('#4b463e'),rgb('#8a8272'),t*.6)});bindRigid(hg,head0);limbParts.push(hg)}
  if(spec.horns==='ossicones')for(const s of [-1,1]){const top=hc.y+hR*.95;const g1=loft([{p:[s*hR*.35,top-hR*.1,hc.z-hR*.1],rx:hR*.12},{p:[s*hR*.3,top+hR*.8,hc.z-hR*.15],rx:hR*.1}],{radial:8,rings:6,cap0:1,cap1:1,color:()=>rgb('#dcc08a')});const k=blobGeo(hR*.16,hR*.16,hR*.16,{seg:8,low:[.18,.12,.08],high:[.3,.2,.12]});const g2=xform(k,{pos:[s*hR*.3,top+hR*.9,hc.z-hR*.15]});bindRigid(g1,head0);bindRigid(g2,head0);limbParts.push(g1,g2)}
  // eyes (separate meshes so they can blink)
- const eg=eyeGeo(Math.max(hR*.175,.009*k),rgb(spec.eye));
+ const eg=eyeGeo(Math.max(hR*.175,.009*k)*(spec.eyeScale||1),rgb(spec.eye));
  const eyeMat=eyeMaterial();eyeMat.userData.noClay=true;
  const eyeBase=hc.clone().addScaledVector(hd,hLen*.3);
  const eyeMeshes=[-1,1].map(s=>{const m=new THREE.Mesh(eg,eyeMat);m.name=s<0?'eyeL':'eyeR';m.position.set(s*hR*.66,eyeBase.y+hR*.28,eyeBase.z+hR*.12).sub(n2);m.rotation.y=s*.6;m.castShadow=false;return m});

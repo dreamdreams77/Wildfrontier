@@ -30,6 +30,13 @@ export const PROJECTS={
  conservationMarketing:{label:'Conservation outreach',rp:110,cost:380,blurb:'Visitors spend 30% more in the café and shop, and donations grow.'},
 };
 
+export const FACILITIES={
+ clinic:{label:'Treatment clinic',icon:'🏥',blurb:'Each level shortens every treatment by a day and makes vet check-ups more likely to find hidden illness.'},
+ nursery:{label:'Nursery',icon:'🍼',blurb:'Each level keeps young animals healthier and calmer as they grow.'},
+ lab:{label:'Research lab',icon:'🔬',blurb:'Each level makes research 35% faster.'},
+};
+export const facilityCost=level=>level>=3?null:400*level;
+
 export const SEGMENTS={
  family:{label:'Families',icon:'👨‍👩‍👧',blurb:'Love young animals, a café and clean paths.'},
  photographer:{label:'Photographers',icon:'📷',blurb:'Come for rare, healthy animals and a viewing platform.'},
@@ -44,7 +51,7 @@ export function createManagement(sanct,ops,options={}){
   serial:0,cases:[],dirt:{},vax:{},vaccines:0,quarantine:{},
   rp:0,active:null,progress:0,done:{},nextStudy:0,nextRound:{},
   sat:{family:.6,photographer:.6,student:.6,donor:.6},avgSat:.6,mix:{family:0,photographer:0,student:0,donor:0},feedback:[],lastGift:0,
-  today:{},history:[],
+  today:{},history:[],fac:{clinic:1,nursery:1,lab:1},
  };
  const say=t=>sanct.say(t);
  const residents=()=>sanct.residents();
@@ -78,6 +85,7 @@ export function createManagement(sanct,ops,options={}){
    if(dirt>60)for(const a of list)a.stress=clamp(a.stress+.012*d*(dirt-60)/40);
   }
   for(const c of state.cases){const a=byId(c.animalId);if(a&&state.quarantine[a.id])a.stress=clamp(a.stress+.004*d)}
+  if(state.fac.nursery>1)for(const a of residents())if(a.young){a.health=clamp(a.health+.003*d*(state.fac.nursery-1));a.stress=clamp(a.stress-.003*d*(state.fac.nursery-1))}
  }
  function cleanHabitat(kind,paid=true){
   if(!SPECIES[kind])return {ok:false,message:'Unknown species.'};
@@ -151,7 +159,7 @@ export function createManagement(sanct,ops,options={}){
   const c=caseOf(animalId);
   if(!c)return {ok:true,message:a.name+' checks out healthy.'};
   const skill=by?by.skill:0;
-  if(by&&!has('diagnostics')&&rng()>.7+.1*skill)return {ok:true,message:a.name+' looks a little off but the check-up was inconclusive.'};
+  if(by&&!has('diagnostics')&&rng()>.7+.1*skill+.1*(state.fac.clinic-1))return {ok:true,message:a.name+' looks a little off but the check-up was inconclusive.'};
   notice(c,false);c.diagnosed=true;return {ok:true,message:a.name+' diagnosed: '+CONDITIONS[c.cond].label.toLowerCase()+'.',case:describe(c)};
  }
  function diagnose(caseId,by){
@@ -165,7 +173,7 @@ export function createManagement(sanct,ops,options={}){
   if((sanct.state.stock.medicine||0)<cd.meds)return {ok:false,message:'Needs '+cd.meds+' veterinary supplies; you have '+(sanct.state.stock.medicine||0)+'.'};
   sanct.state.stock.medicine-=cd.meds;
   if(!c.diagnosed&&!has('diagnostics')&&rng()<.5){if(a)sanct.addHistory(a.id,'Treated without a diagnosis; it did not help.');return {ok:true,message:'Treated without a diagnosis; the treatment missed the cause. Diagnose first.'}}
-  c.diagnosed=true;c.noticed=true;c.treated=cd.days;c.sev0=Math.max(10,c.sev);
+  c.diagnosed=true;c.noticed=true;c.treated=Math.max(2,cd.days-(state.fac.clinic-1));c.sev0=Math.max(10,c.sev);
   if(a){sanct.addHistory(a.id,'Treated for '+cd.label.toLowerCase()+'.');a.stress=clamp(a.stress+3)}
   return {ok:true,message:(a?a.name:'Patient')+' is being treated for '+cd.label.toLowerCase()+' ('+cd.days+' days).'};
  }
@@ -188,6 +196,12 @@ export function createManagement(sanct,ops,options={}){
   return {ok:true,message:list.length+' '+SPECIES[kind].common.toLowerCase()+(list.length>1?'s':'')+' vaccinated until day '+until+'.'};
  }
 
+ function upgrade(key){
+  const f=FACILITIES[key];if(!f)return {ok:false,message:'Unknown facility.'};const lv=state.fac[key]||1;const cost=facilityCost(lv);
+  if(cost===null)return {ok:false,message:f.label+' is already at the top level.'};
+  if(!sanct.spend(cost,'building'))return {ok:false,message:'Upgrading the '+f.label.toLowerCase()+' costs '+cost+'.'};
+  state.fac[key]=lv+1;say(f.label+' upgraded to level '+(lv+1)+'.');return {ok:true,message:f.label+' is now level '+(lv+1)+'.'};
+ }
  function train(id){
   const m=ops.state.staff.find(x=>x.id===id);if(!m)return {ok:false,message:'No such staff member.'};
   if(m.skill>=3)return {ok:false,message:m.name+' is already fully trained.'};
@@ -204,7 +218,7 @@ export function createManagement(sanct,ops,options={}){
   state.active=id;state.progress=0;return {ok:true,message:p.label+' started.'};
  }
  function addResearch(amount){
-  if(!state.active)return;state.progress+=amount;state.rp+=amount;const p=PROJECTS[state.active];
+  if(!state.active)return;amount*=1+.35*(state.fac.lab-1);state.progress+=amount;state.rp+=amount;const p=PROJECTS[state.active];
   if(state.progress>=p.rp){state.done[state.active]=true;say('Research complete: '+p.label+'. '+p.blurb);sanct.state.credits+=2;state.active=null;state.progress=0}
  }
 
@@ -287,6 +301,7 @@ export function createManagement(sanct,ops,options={}){
   const protectedCount=residents().filter(a=>isProtected(a.id)).length;
   return {mgmt:{cases,dirt,vaccines:state.vaccines,protectedCount,vaccinePrice:vaccinePrice(),
    items:ops.state.items.map(i=>({id:i.id,type:i.type,cond:Math.round(i.cond??100),cost:repairCost(i)})),
+   facilities:Object.fromEntries(Object.keys(FACILITIES).map(k=>[k,{level:state.fac[k]||1,cost:facilityCost(state.fac[k]||1)}])),
    research:{rp:Math.round(state.rp),active:state.active,progress:Math.round(state.progress),done:{...state.done},researchers:staffOf('researcher').length},
    visitorMix:{...state.mix},satisfaction:Object.fromEntries(Object.entries(state.sat).map(([k,v])=>[k,Math.round(v*100)])),avgSat:Math.round(state.avgSat*100),feedback:state.feedback.slice(),lastGift:state.lastGift,
    budget:budget()}};
@@ -297,14 +312,17 @@ export function createManagement(sanct,ops,options={}){
   const fresh={serial:0,cases:[],dirt:{},vax:{},vaccines:0,quarantine:{},rp:0,active:null,progress:0,done:{},nextStudy:0,nextRound:{},sat:{family:.6,photographer:.6,student:.6,donor:.6},avgSat:.6,mix:{family:0,photographer:0,student:0,donor:0},feedback:[],lastGift:0,today:{},history:[]};
   for(const k of Object.keys(fresh))state[k]=fresh[k];
   for(const k of ['serial','vaccines','rp','progress','nextStudy','avgSat','lastGift'])if(fin(src[k]))state[k]=src[k];
-  for(const k of ['dirt','vax','quarantine','done','nextRound','today'])if(obj(src[k]))state[k]=src[k];
-  for(const k of ['sat','mix'])if(obj(src[k]))state[k]={...fresh[k],...src[k]};
+  const nums=o=>Object.fromEntries(Object.entries(o).filter(([,v])=>fin(v)));   // a damaged number here would turn dirt, ratings or the ledger into NaN
+  for(const k of ['quarantine','done'])if(obj(src[k]))state[k]=src[k];
+  for(const k of ['dirt','vax','nextRound','today'])if(obj(src[k]))state[k]=nums(src[k]);
+  for(const k of ['sat','mix'])if(obj(src[k]))state[k]={...fresh[k],...nums(src[k])};
   state.cases=(Array.isArray(src.cases)?src.cases:[]).filter(c=>obj(c)&&typeof c.animalId==='string'&&CONDITIONS[c.cond]&&fin(c.sev)).map(c=>({id:String(c.id||'case-'+(++state.serial)),animalId:c.animalId,cond:c.cond,sev:clamp(c.sev),day:fin(c.day)?c.day:0,noticed:!!c.noticed,diagnosed:!!c.diagnosed,treated:fin(c.treated)?c.treated:0,...(fin(c.sev0)?{sev0:c.sev0}:fin(c.treated)&&c.treated>0?{sev0:Math.max(10,clamp(c.sev))}:{}),...(c.why?{why:c.why}:{})}));
-  state.history=(Array.isArray(src.history)?src.history:[]).filter(h=>obj(h)&&obj(h.cats)).slice(-14);
+  state.history=(Array.isArray(src.history)?src.history:[]).filter(h=>obj(h)&&obj(h.cats)&&fin(h.income)&&fin(h.spent)).slice(-14);
   state.feedback=Array.isArray(src.feedback)?src.feedback.filter(x=>typeof x==='string').slice(0,4):[];
   state.active=typeof src.active==='string'&&PROJECTS[src.active]?src.active:null;
+  state.fac={clinic:1,nursery:1,lab:1};if(obj(src.fac))for(const k of Object.keys(state.fac))if([1,2,3].includes(src.fac[k]))state.fac[k]=src.fac[k];
  }
  sanct.extend({key:'mgmt',tick,day,summary,serialize,restore});
 
- return {state,train,CONDITIONS,PROJECTS,SEGMENTS,examine,diagnose,treatCase,setQuarantine,buyVaccines,vaccinate,cleanHabitat,repair,repairCost,startProject,addResearch,caseOf,budget,summary,vaccinePrice,start,dirtOf,has};
+ return {state,upgrade,train,CONDITIONS,PROJECTS,SEGMENTS,examine,diagnose,treatCase,setQuarantine,buyVaccines,vaccinate,cleanHabitat,repair,repairCost,startProject,addResearch,caseOf,budget,summary,vaccinePrice,start,dirtOf,has};
 }
