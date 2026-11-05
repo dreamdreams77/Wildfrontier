@@ -1,6 +1,6 @@
 import { SPECIES, FOODS, stageOf, welfareOf, MEDICINE_PRICE } from './sanctuary.js';
 import { ROLES, BUILD_ITEMS } from './operations.js';
-import { PROJECTS, SEGMENTS } from './management.js';
+import { PROJECTS, SEGMENTS, FACILITIES } from './management.js';
 import { EQUIPMENT } from './equipment.js';
 
 // Safari sanctuary management panel: overview, residents, supplies and the breeding programme.
@@ -8,7 +8,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const bar=(v,cls='')=>'<i class="sbar '+cls+'"><em style="width:'+Math.max(0,Math.min(100,Math.round(v)))+'%"></em></i>';
 const welfareClass=v=>v>=75?'good':v>=50?'ok':'bad';
 
-export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,world,toast,afterChange,focusAnimal,openRecord,openBuild,portraits}){
+export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,social,stories,seasons,rating,world,toast,afterChange,focusAnimal,openRecord,openBuild,portraits}){
  const face=(kind,fallback)=>portraits?'<img class="p-img" alt="" src="'+portraits.portrait(kind)+'">':fallback;
  let panel=null,pointerDown=false,lastRender=0,tab='overview',pairKind='africanLion',maleId='',femaleId='';
 
@@ -28,7 +28,7 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,world,toast,afterCh
 
  function overview(sum){
   const g=goals(sum);
-  return '<div class="s-stats"><div><small>FUNDS</small><b>'+sum.funds+'</b></div><div><small>CONSERVATION CREDITS</small><b>'+sum.credits+'</b></div><div><small>REPUTATION</small><b>'+sum.reputation+'</b></div><div><small>AVG WELFARE</small><b class="'+welfareClass(sum.avgWelfare)+'">'+sum.avgWelfare+'%</b></div></div>'
+  return ratingBlock()+'<div class="s-stats"><div><small>FUNDS</small><b>'+sum.funds+'</b></div><div><small>CONSERVATION CREDITS</small><b>'+sum.credits+'</b></div><div><small>REPUTATION</small><b>'+sum.reputation+'</b></div><div><small>AVG WELFARE</small><b class="'+welfareClass(sum.avgWelfare)+'">'+sum.avgWelfare+'%</b></div></div>'
    +'<div class="s-row"><span>Water supply</span>'+bar(sum.waterLevel,sum.waterLevel<30?'low':'')+'<button data-act="water">REFILL · 20</button></div>'
    +'<div class="s-row"><span>'+sum.hungry+' hungry resident'+(sum.hungry===1?'':'s')+'</span><small class="s-muted">Nutrition under 45%</small><button data-act="feedAll">FEED ALL HUNGRY</button></div>'
    +'<h3>Species</h3><div class="s-species">'+sum.species.map(s=>'<button data-act="species" data-kind="'+s.kind+'"><span>'+face(s.kind,s.emoji)+'</span><b>'+esc(s.common)+'</b><small>'+s.count+'/'+s.capacity+' · '+s.founders+' line'+(s.founders===1?'':'s')+' · welfare '+s.welfare+'% · habitat '+s.habitat+'%</small></button>').join('')+'</div>'
@@ -122,7 +122,30 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,world,toast,afterCh
  function researchTab(sum){
   const r=sum.ext.mgmt.research;
   const rows=Object.entries(PROJECTS).map(([k,p])=>{const done=r.done[k],active=r.active===k;return '<div class="s-supply"><span>'+(done?'✓':active?'🔬':'○')+'</span><div><b>'+esc(p.label)+'</b><small>'+esc(p.blurb)+' '+(active?'Progress '+r.progress+'/'+p.rp+'.':done?'Complete.':p.rp+' research · '+p.cost+' to start.')+'</small></div>'+(done||active?'':'<button data-act="research" data-id="'+k+'">START</button>')+'</div>'}).join('');
-  return '<p class="s-muted">Researchers study at the supply shed and add progress through the day. '+(r.researchers?r.researchers+' researcher'+(r.researchers>1?'s':'')+' on staff.':'<b>Hire a researcher in the Staff tab to begin.</b>')+'</p>'+rows;
+  const fac=sum.ext.mgmt.facilities||{};const facs='<h3>Facilities</h3>'+Object.entries(FACILITIES).map(([k,f])=>{const v=fac[k]||{level:1,cost:400};return '<div class="s-supply"><span>'+f.icon+'</span><div><b>'+esc(f.label)+' · level '+v.level+'/3</b><small>'+esc(f.blurb)+'</small></div>'+(v.cost?'<button data-act="upgrade" data-key="'+k+'">UPGRADE · '+v.cost+'</button>':'<span class="s-w good">max</span>')+'</div>'}).join('');
+  return facs+'<p class="s-muted">Researchers study at the supply shed and add progress through the day. '+(r.researchers?r.researchers+' researcher'+(r.researchers>1?'s':'')+' on staff.':'<b>Hire a researcher in the Staff tab to begin.</b>')+'</p>'+rows;
+ }
+ function socialTab(){
+  if(!social)return '';
+  const chip=b=>b>=50?'💛':b<=-40?'⚡':b<0?'·':'○';
+  return '<p class="s-muted">Every pair in a group has a bond. Close companions calm each other; rivals fight and can get hurt; losing a companion causes grief. Sociable, calm animals bond faster; stress, crowding and two bold same-sex adults push them apart. Group sessions help; separating a rival stops fights for a while but leaves it lonely.</p>'
+   +social.groups().map(g=>{const sp=SPECIES[g.kind];return '<article class="s-res"><div class="s-res-head"><span>'+face(g.kind,sp.emoji)+' <b>'+esc(sp.common)+'</b></span><small>'+(g.leader?'led by '+esc(g.leader):'')+'</small><span class="s-w '+(g.harmony===null?'ok':welfareClass(g.harmony))+'">'+(g.harmony===null?'alone':'harmony '+g.harmony+'%')+'</span></div>'
+    +'<ul class="s-bonds">'+g.pairs.map(p=>'<li><span>'+chip(p.bond)+'</span>'+esc(p.an)+' &amp; '+esc(p.bn)+' <i class="sbar '+(p.bond<0?'low':'')+'"><em style="width:'+Math.round((p.bond+100)/2)+'%"></em></i><small>'+p.bond+'</small></li>').join('')+'</ul>'
+    +'<div class="s-acts">'+(g.members.length>1?'<button data-act="session" data-kind="'+g.kind+'">GROUP SESSION · 60</button>':'')+g.members.filter(m=>m.rivals||m.separated).map(m=>m.separated?'<button data-act="reunite" data-id="'+m.id+'">REUNITE '+esc(m.name).toUpperCase()+'</button>':'<button data-act="separate" data-id="'+m.id+'">SEPARATE '+esc(m.name).toUpperCase()+'</button>').join('')+'</div></article>'}).join('')
+   +(social.state.log.length?'<h3>Social news</h3><ul class="s-events">'+social.state.log.slice(0,6).map(l=>'<li><b>Day '+l.day+'</b> '+esc(l.text)+'</li>').join('')+'</ul>':'');
+ }
+ function storiesTab(){
+  if(!stories)return '';
+  const list=stories.summary().filter(s=>s.name);
+  return '<p class="s-muted">Every founding resident has a story that unfolds through real care. Finish a chapter by meeting its goal; the next one opens and the animal\'s record remembers.</p>'
+   +list.map(s=>'<article class="s-res story"><div class="s-res-head"><button data-act="open" data-id="'+s.animal+'" class="s-link">'+face(s.kind,SPECIES[s.kind].emoji)+' <b>'+esc(s.name)+'</b></button><small>'+esc(s.title)+'</small><span class="s-w '+(s.done?'good':'ok')+'">'+(s.done?'complete':'chapter '+(s.chapter+1)+'/3')+'</span></div><p class="s-muted"><i>'+esc(s.blurb)+'</i></p>'
+    +'<ol class="s-chapters">'+s.chapters.map(c=>'<li class="'+c.state+'"><b>'+esc(c.title)+'</b>'+(c.state==='locked'?'':' · '+esc(c.goal))+(c.state==='active'?' <small class="s-muted">(reward: '+Object.entries(c.reward||{}).map(([k,v])=>'+'+v+' '+k).join(', ')+')</small>':'')+'</li>').join('')+'</ol></article>').join('');
+ }
+ function ratingBlock(){
+  if(!rating)return '';const r=rating.summary();const se=seasons?seasons.info():null;
+  return '<div class="s-rating"><div><small>SANCTUARY RATING</small><b>'+'★'.repeat(r.stars)+'<span class="dim">'+'★'.repeat(5-r.stars)+'</span></b><span>'+esc(r.label)+(r.grantBonus?' · grants +'+r.grantBonus+'%':'')+'</span></div>'
+   +(se?'<div><small>SEASON</small><b>'+se.icon+' '+esc(se.season)+'</b><span>'+esc(se.label)+': '+esc(se.note)+'</span></div>':'')+'</div>'
+   +(r.next?'<h3>Next: '+esc(r.next.label)+' '+'★'.repeat(r.next.stars)+'</h3><ul class="s-goals">'+r.next.needs.map(n=>'<li class="'+(n.ok?'done':'')+'"><span>'+(n.ok?'✓':'○')+'</span>'+esc(n.label)+': '+n.have+' / '+n.need+'</li>').join('')+'</ul><p class="s-muted">Reward: '+r.next.reward.funds+' funds, '+r.next.reward.credits+' credits and a permanent rise in daily grants.</p>':'<p class="s-muted">Top rating reached.</p>');
  }
  function releaseTab(){
   if(!release)return '';
@@ -150,12 +173,12 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,world,toast,afterCh
  function render(){
   if(!panel)return;lastRender=Date.now();
   const sum=sanct.summary();
-  const tabs=[['overview','OVERVIEW'],['residents','RESIDENTS'],['supplies','SUPPLIES'],['breeding','BREEDING'],['staff','STAFF'],['habitat','HABITAT'],['visitors','VISITORS'],['health','HEALTH'],['budget','BUDGET'],['research','RESEARCH'],['release','RELEASE']];
+  const tabs=[['overview','OVERVIEW'],['residents','RESIDENTS'],['supplies','SUPPLIES'],['breeding','BREEDING'],['staff','STAFF'],['habitat','HABITAT'],['visitors','VISITORS'],['health','HEALTH'],['budget','BUDGET'],['social','SOCIAL'],['stories','STORIES'],['research','RESEARCH'],['release','RELEASE']];
   const scroll=panel.querySelector('.s-body')?.scrollTop||0;
   panel.innerHTML='<header><div><small>SAFARI SANCTUARY · DAY '+sum.day+'</small><h2>Wildlife care &amp; conservation</h2></div><button id="closeSanct" aria-label="Close">×</button></header>'
    +'<nav class="s-tabs">'+tabs.map(([k,l])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+l+'</button>').join('')+'</nav>'
    +'<div class="s-top"><span>🪙 '+sum.funds+'</span><span>🌍 '+sum.credits+' cr</span><span>⭐ '+sum.reputation+'</span><span>❤ '+sum.avgWelfare+'%</span></div>'
-   +'<div class="s-body">'+(tab==='overview'?overview(sum):tab==='residents'?residents():tab==='supplies'?supplies(sum):tab==='staff'?staffTab(sum):tab==='habitat'?habitatTab(sum):tab==='visitors'?visitorsTab(sum):tab==='health'?healthTab(sum):tab==='budget'?budgetTab(sum):tab==='research'?researchTab(sum):tab==='release'?releaseTab():breeding(sum))+'</div>';
+   +'<div class="s-body">'+(tab==='overview'?overview(sum):tab==='residents'?residents():tab==='supplies'?supplies(sum):tab==='staff'?staffTab(sum):tab==='habitat'?habitatTab(sum):tab==='visitors'?visitorsTab(sum):tab==='health'?healthTab(sum):tab==='budget'?budgetTab(sum):tab==='research'?researchTab(sum):tab==='release'?releaseTab():tab==='social'?socialTab():tab==='stories'?storiesTab():breeding(sum))+'</div>';
   const body=panel.querySelector('.s-body');if(body)body.scrollTop=scroll;
  }
 
@@ -181,6 +204,10 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,world,toast,afterCh
   else if(a==='research')run(mgmt.startProject(id));
   else if(a==='train')run(mgmt.train(id));
   else if(a==='relprep')run(release.prepare(id));
+  else if(a==='session')run(social.groupSession(t.dataset.kind));
+  else if(a==='separate')run(social.separate(id));
+  else if(a==='reunite')run(social.reunite(id));
+  else if(a==='upgrade')run(mgmt.upgrade(t.dataset.key));
   else if(a==='relgo')run(release.release(id));
   else if(a==='relcancel')run(release.cancel(id));
   else if(a==='checkAll'){let found=0;for(const r of sanct.residents()){const x=mgmt.examine(r.id);if(x.case)found++}toast(found?found+' case'+(found>1?'s':'')+' found.':'Everyone checks out healthy.');render()}

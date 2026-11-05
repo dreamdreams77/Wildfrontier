@@ -45,6 +45,17 @@ export function createWorld(container){
  // ----- people and animals -----
  const staffLayer=createStaffLayer(scene),crowd=createCrowd(scene);
  const contact=createContactShadows(scene),lanterns=buildLanterns(scene);
+ // emotes: a little clay-coloured symbol pops above an animal (friendship, fights, grief)
+ const emoteTex=new Map(),emotes=[];
+ function emoteTexture(icon){if(emoteTex.has(icon))return emoteTex.get(icon);const c=document.createElement('canvas');c.width=c.height=96;const g=c.getContext('2d');g.fillStyle='rgba(255,246,230,.92)';g.beginPath();g.arc(48,44,34,0,Math.PI*2);g.fill();g.beginPath();g.moveTo(40,74);g.lineTo(48,90);g.lineTo(56,74);g.fill();g.font='40px serif';g.textAlign='center';g.textBaseline='middle';g.fillText(icon,48,46);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;emoteTex.set(icon,t);return t}
+ function showEmote(id,icon){const a=animals.find(x=>x.userData.id===id);if(!a||a.userData.hidden)return;const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:emoteTexture(icon),transparent:true,depthWrite:false}));sp.userData.noClay=true;scene.add(sp);emotes.push({sp,a,t:0})}
+ function updateEmotes(dt){for(let i=emotes.length-1;i>=0;i--){const e=emotes[i];e.t+=dt;const h=(e.a.userData.shadowR||1)*1.6+1.2;e.sp.position.set(e.a.position.x,e.a.position.y+h+Math.min(.4,e.t*.3),e.a.position.z);const s=Math.min(1,e.t*4)*.9;e.sp.scale.setScalar(s);e.sp.material.opacity=e.t>2.4?Math.max(0,1-(e.t-2.4)*2):1;if(e.t>2.9){scene.remove(e.sp);e.sp.material.dispose();emotes.splice(i,1)}}}
+ // the ranger's torch, switched on after dark
+ const torch=new THREE.SpotLight('#ffe2b0',0,22,.42,.55,1.2);torch.position.set(0,1.5,.2);ranger.add(torch);const torchTarget=new THREE.Object3D();torchTarget.position.set(0,0,6);ranger.add(torchTarget);torch.target=torchTarget;
+ // the autumn migration: a small wild herd walks along the north fence
+ const herd=new THREE.Group();scene.add(herd);let herdOn=false,herdT=0;
+ function setMigration(on){if(on===herdOn)return;herdOn=on;if(on&&!herd.children.length){for(let i=0;i<6;i++){const z=makeCreature('plainsZebra');if(!z)break;z.userData.lane=i;herd.add(z)}}herd.visible=on}
+ function updateHerd(dt){if(!herdOn)return;herdT+=dt;herd.children.forEach((z,i)=>{const x=((herdT*1.3+i*3.6)%70)-12;z.position.set(x,0,-31.2-(i%3)*1.1);z.rotation.y=Math.PI/2;z.userData.rig&&z.userData.rig.update(dt,{moving:true,anim:'walk',speedScale:1})})}
  const shadowCasters=function*(){yield ranger;yield* animals;yield* staffLayer.figures.values();for(const p of crowd.people)yield p.f};
  const ranger=makeHuman(LOOKS.ranger);ranger.position.set(-5,0,11);ranger.userData.isRanger=true;scene.add(ranger);
  const animals=[];
@@ -255,7 +266,7 @@ export function createWorld(container){
  function claySweep(){clayifyTree(scene,clayOpts)}
  function animate(){
   const dt=Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;
-  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env,ranger.position);contact.update(shadowCasters());if(clayOn){updateClay(t);if(t-lastClaySweep>2){lastClaySweep=t;claySweep()}}if((wFrame++&1)===0)rippleUpdate();
+  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env,ranger.position);contact.update(shadowCasters());updateEmotes(dt);updateHerd(dt);torch.intensity+=((env.night?7:0)-torch.intensity)*Math.min(1,dt*3);if(clayOn){updateClay(t);if(t-lastClaySweep>2){lastClaySweep=t;claySweep()}}if((wFrame++&1)===0)rippleUpdate();
   const f=governor.tick();if(f)perf.fps=Math.round(f);
   if(cine){cine.t+=dt;const k=Math.min(1,cine.t/cine.duration);const e=k*k*(3-2*k);camera.position.copy(cine.P.getPoint(e));camera.lookAt(cine.Lk.getPoint(e));if(k>=1)stopCinematic()}
   renderFrame();requestAnimationFrame(animate);
@@ -263,6 +274,6 @@ export function createWorld(container){
  animate();
  return {scene,camera,renderer,animals,ranger,addAnimal,removeAnimal,addBuildItem,updateBuildItem,removeBuildItem,selectBuildItem,setBuildMode,setPhotoMode,setZoom,photoSubjects,capture,syncStaff,setVisitors,nearResearchCentre,focusResearchCentre(){following=false;target.set(-21,0,-7);cameraUpdate()},nearClinic(){return ranger.position.distanceTo(new THREE.Vector3(-21,0,5))<6.5},focus(x,z){following=false;target.set(x,0,z);cameraUpdate()},setAnimalStage,setAnimalState,setAnimalAction,setEnvironment,
   setConservationProject(name){if(name==='nestBoxes')art.nestBoxes.visible=true;if(name==='riparian')art.willow.visible=true;if(name==='cameraTraps')art.cameraTraps.visible=true;if(name==='wetlandExpansion')art.wetland.visible=true;if(name==='meadowCorridor')art.meadow.visible=true;if(name==='highlandReserve')art.highland.visible=true},
-  getYaw:()=>yaw,setViewShift(px){viewShift=Math.max(0,Math.round(px||0));applyViewShift(Math.round(innerWidth),Math.round(innerHeight));camera.updateProjectionMatrix()},playCinematic,stopCinematic,setPlantings,setMarkers,revealAnimal,hideAnimal,setAIPoints(p){dynamicPoints={water:p.water||[],shelter:p.shelter||[],food:p.food||[],enrich:p.enrich||[]};cachedPoints=pointsFor()},setAIHooks(h){Object.assign(hooks,h)},minds:()=>animals.map(a=>({id:a.userData.id,kind:a.userData.kind,behaviour:a.userData.mind&&a.userData.mind.behaviour,fear:a.userData.mind&&a.userData.mind.fear})),
+  getYaw:()=>yaw,showEmote,setMigration,setViewShift(px){viewShift=Math.max(0,Math.round(px||0));applyViewShift(Math.round(innerWidth),Math.round(innerHeight));camera.updateProjectionMatrix()},playCinematic,stopCinematic,setPlantings,setMarkers,revealAnimal,hideAnimal,setAIPoints(p){dynamicPoints={water:p.water||[],shelter:p.shelter||[],food:p.food||[],enrich:p.enrich||[]};cachedPoints=pointsFor()},setAIHooks(h){Object.assign(hooks,h)},minds:()=>animals.map(a=>({id:a.userData.id,kind:a.userData.kind,behaviour:a.userData.mind&&a.userData.mind.behaviour,fear:a.userData.mind&&a.userData.mind.fear})),
   setConservationProgress,pick,perf,get tier(){return governor.tier},setQuality(n){governor.set(n);try{localStorage.setItem('wildfrontier.quality',n)}catch{}},art,renderFrame};
 }

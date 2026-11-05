@@ -134,7 +134,7 @@ export function createSanctuary(sim,options={}){
 
  function buyFood(food,qty=1){
   if(typeof food!=='string'||(!Object.hasOwn(FOODS,food)&&food!=='medicine'&&!Object.hasOwn(EQUIPMENT,food)))return {ok:false,message:'Unknown supply.'};
-  qty=Number.isFinite(qty)?Math.max(1,Math.min(999,Math.floor(qty))):1;const unit=food==='medicine'?MEDICINE_PRICE:food in EQUIPMENT?EQUIPMENT[food].price:FOODS[food].price;const price=unit*qty;
+  qty=Number.isFinite(qty)?Math.max(1,Math.min(999,Math.floor(qty))):1;const unit=food==='medicine'?MEDICINE_PRICE:food in EQUIPMENT?EQUIPMENT[food].price:Math.round(FOODS[food].price*(mods.priceMul?mods.priceMul(food):1));const price=unit*qty;
   if(!spend(price,'supplies'))return {ok:false,message:'Not enough funds: '+price+' needed.'};
   state.stock[food]=(state.stock[food]||0)+qty;
   return {ok:true,message:'Bought '+qty+' × '+(food==='medicine'?'veterinary supplies':food in EQUIPMENT?EQUIPMENT[food].label.toLowerCase():FOODS[food].label.toLowerCase())+' for '+price+'.'};
@@ -212,6 +212,7 @@ function useEnrichment(id,type){
   if(countOf(m.kind)>=sp.capacity)issues.push('The '+sp.common.toLowerCase()+' habitat is at capacity ('+countOf(m.kind)+'/'+sp.capacity+'). Transfer surplus animals first.');
   if(state.waterLevel<25)issues.push('Water supply is too low for a pregnancy.');
   if(mods.habitatScore(m.kind)<50)issues.push('The '+sp.common.toLowerCase()+' habitat is not suitable for raising young yet (score '+Math.round(mods.habitatScore(m.kind))+'%). Improve it in Build mode.');
+  if(mods.pairBond){const b=mods.pairBond(m.id,f.id);if(b<-30)issues.push(m.name+' and '+f.name+' do not get along (bond '+Math.round(b)+'). Try group enrichment, or separate them for a while.');else if(b>=50)notes.push(m.name+' and '+f.name+' are closely bonded, which helps the pregnancy.')}
   const total=[...new Set(residents().filter(a=>a.kind===m.kind).flatMap(lineageOf))].length;
   notes.push('Genetic diversity: '+total+' founder line'+(total===1?'':'s')+' in this population.');
   return {ok:issues.length===0,issues,notes};
@@ -276,7 +277,7 @@ function useEnrichment(id,type){
  // ---- Simulation step ---------------------------------------------------------------------------------------
  function dailyReport(){
   const list=residents();const avg=list.length?Math.round(list.reduce((n,a)=>n+welfareOf(a),0)/list.length):0;
-  const grant=Math.round(45+state.reputation*1.6+(avg>=75?40:0));
+  const grant=Math.round((45+state.reputation*1.6+(avg>=75?40:0))*(mods.grantMul?mods.grantMul():1));
   earn(grant,'grants');
   if(avg>=75)state.reputation+=1;
   const neglected=list.filter(a=>a.health<25);
@@ -290,7 +291,7 @@ function useEnrichment(id,type){
   for(let s=0;s<steps;s++){
    state.minutes+=d;
    const list=residents();
-   state.waterLevel=clamp(state.waterLevel-(.003+list.length*.0002)*d);
+   state.waterLevel=clamp(state.waterLevel-(.003+list.length*.0002)*d*(mods.waterDrain?mods.waterDrain():1));
    const counts={};for(const a of list)counts[a.kind]=(counts[a.kind]||0)+1;
    for(const a of list){
     const sp=SPECIES[a.kind];

@@ -37,6 +37,14 @@ export const EVENTS = {
       { id: 'asis', label: 'Show the sanctuary as it is', text: 'Free. They will see exactly what you have.' },
     ],
   },
+  escape: {
+    label: 'Escaped animal', icon: '🔦', days: [1, 1], weight: 0, minDay: 5, atNight: true,
+    text: 'A gap in the fence: one of the residents slipped out of its habitat after dark.',
+    choices: [
+      { id: 'search', label: 'Find it with your torch', text: 'Walk to the marked spot and guide it home before dawn. It comes back calm and you earn reputation.' },
+      { id: 'wait', label: 'Wait for daylight', text: 'Free, but a night out alone leaves it stressed and possibly hurt.' },
+    ],
+  },
   poachers: {
     label: 'Poachers sighted', icon: '🔦', days: [1, 1], weight: 2, minDay: 6, atDusk: true,
     text: 'A vehicle with no lights has been seen along the fence line.',
@@ -46,6 +54,7 @@ export const EVENTS = {
     ],
   },
 };
+export const ESCAPE_SPOTS = [[42, -17], [46, 2], [38, 18.5], [19, 15], [44, 13]];
 export const PATROL_POINTS = [[44.5, -15.5], [45.5, 9], [31, 19]];
 export const PATROL_RADIUS = 2.6;
 
@@ -61,6 +70,7 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
     if (state.active.some(e => e.type === type)) return null;
     const len = def.days[0] + Math.floor(rng() * (def.days[1] - def.days[0] + 1));
     const ev = { id: 'ev' + (++state.serial), type, startDay: day(), endsAt: sanct.state.minutes + len * DAY, choice: null, seen: false };
+    if (type === 'escape') { const list = residents().filter(a => !a.young); const a = list[Math.floor(rng() * list.length)]; if (!a) return null; const [x, z] = ESCAPE_SPOTS[Math.floor(rng() * ESCAPE_SPOTS.length)]; ev.animalId = a.id; ev.animalName = a.name; ev.endsAt = Math.floor(sanct.state.minutes / DAY) * DAY + (hour() < 6 ? 6 * 60 : DAY + 6 * 60); ev.points = [{ id: ev.id + '-e', x, z, done: false }]; }
     if (type === 'poachers') { ev.endsAt = (Math.floor(sanct.state.minutes / DAY) + 1) * DAY + 6 * 60; ev.points = PATROL_POINTS.map(([x, z], i) => ({ id: ev.id + '-p' + i, x, z, done: false })); }
     if (type === 'storm' || type === 'vip') ev.endsAt = (Math.floor(sanct.state.minutes / DAY) + 1) * DAY + 8 * 60;
     state.active.push(ev);
@@ -104,6 +114,11 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
       state.nextRoll = (Math.floor(sanct.state.minutes / DAY) + 1) * DAY;
       if (rng() < .12) start('poachers');
     }
+    // an occasional night-time escape
+    if (sanct.state.minutes >= (state.nextNight || 0) && (hour() >= 21 || hour() < 2) && !state.active.some(e => e.type === 'escape') && day() >= EVENTS.escape.minDay) {
+      state.nextNight = (Math.floor(sanct.state.minutes / DAY) + 1) * DAY + 20 * 60;
+      if (rng() < .1) start('escape');
+    }
   }
   function resolve(ev) {
     state.active.splice(state.active.indexOf(ev), 1);
@@ -128,6 +143,10 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
         sanct.state.reputation = Math.max(0, sanct.state.reputation - 2);
         outcome = 'The fence was not fully patrolled.' + (victim ? ' ' + victim.name + ' was injured.' : '');
       }
+    } else if (ev.type === 'escape') {
+      const a = residents().find(x => x.id === ev.animalId);
+      if (ch === 'search' && ev.points.every(p => p.done)) { if (a) { a.stress = clamp(a.stress - 5); sanct.addHistory(a.id, 'Found at night and guided home by the ranger.'); } sanct.state.reputation += 2; outcome = (ev.animalName || 'The animal') + ' was guided safely home. Reputation +2.'; }
+      else { if (a) { a.stress = clamp(a.stress + 22); a.health = clamp(a.health - 6); sanct.addHistory(a.id, 'Spent a frightening night outside the habitat.'); } outcome = (ev.animalName || 'The animal') + ' spent a frightening night outside and came back shaken.'; }
     } else outcome = def.label + ' is over.';
     state.history.unshift({ type: ev.type, day: day(), choice: ch, outcome }); if (state.history.length > 12) state.history.pop();
     say(def.icon + ' ' + outcome);
@@ -136,7 +155,7 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
   function day_() {
     if (day() < 4 || state.active.some(e => e.type !== 'poachers')) return;
     if (rng() > .3) return;
-    const pool = Object.entries(EVENTS).filter(([k, e]) => k !== 'poachers' && (!e.minReputation || sanct.state.reputation >= e.minReputation));
+    const pool = Object.entries(EVENTS).filter(([k, e]) => k !== 'poachers' && k !== 'escape' && (!e.minReputation || sanct.state.reputation >= e.minReputation));
     const total = pool.reduce((n, [, e]) => n + e.weight, 0); let x = rng() * total;
     for (const [k, e] of pool) { x -= e.weight; if (x <= 0) { start(k); break; } }
   }
@@ -144,12 +163,12 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
   function visit(pos) {
     const out = [];
     for (const ev of state.active) {
-      if (ev.type !== 'poachers' || choiceOf(ev) !== 'patrol' || !ev.points) continue;
-      for (const p of ev.points) if (!p.done && Math.hypot(p.x - pos.x, p.z - pos.z) < PATROL_RADIUS) { p.done = true; out.push({ type: 'patrol', left: ev.points.filter(q => !q.done).length }); }
+      if (!ev.points || !['patrol', 'search'].includes(choiceOf(ev))) continue;
+      for (const p of ev.points) if (!p.done && Math.hypot(p.x - pos.x, p.z - pos.z) < PATROL_RADIUS) { p.done = true; out.push({ type: ev.type === 'escape' ? 'escape' : 'patrol', name: ev.animalName, left: ev.points.filter(q => !q.done).length }); }
     }
     return out;
   }
-  const markers = () => state.active.filter(e => e.type === 'poachers' && choiceOf(e) === 'patrol').flatMap(e => e.points.map(p => ({ id: p.id, type: 'search', x: p.x, z: p.z, radius: PATROL_RADIUS, found: p.done }))).filter(m => !m.found);
+  const markers = () => state.active.filter(e => e.points && ['patrol', 'search'].includes(choiceOf(e))).flatMap(e => e.points.map(p => ({ id: p.id, type: 'search', x: p.x, z: p.z, radius: PATROL_RADIUS, found: p.done }))).filter(m => !m.found);
   const pending = () => state.active.filter(e => !e.seen);
   const markSeen = id => { const e = byId(id); if (e) e.seen = true; };
   function summary() {
@@ -158,7 +177,7 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
   function serialize() { return JSON.parse(JSON.stringify(state)); }
   function restore(d) {
     const obj = v => v && typeof v === 'object' && !Array.isArray(v); if (!obj(d)) return;
-    state.serial = Number.isFinite(d.serial) ? d.serial : 0; state.nextRoll = Number.isFinite(d.nextRoll) ? d.nextRoll : 0;
+    state.serial = Number.isFinite(d.serial) ? d.serial : 0; state.nextRoll = Number.isFinite(d.nextRoll) ? d.nextRoll : 0; state.nextNight = Number.isFinite(d.nextNight) ? d.nextNight : 0;
     state.active = (Array.isArray(d.active) ? d.active : []).filter(e => obj(e) && EVENTS[e.type] && Number.isFinite(e.endsAt)).map(e => ({ ...e, points: Array.isArray(e.points) ? e.points.filter(obj) : e.type === 'poachers' ? PATROL_POINTS.map(([x, z], i) => ({ id: e.id + '-p' + i, x, z, done: false })) : undefined }));
     state.history = (Array.isArray(d.history) ? d.history : []).filter(obj).slice(0, 12);
   }
