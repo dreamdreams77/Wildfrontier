@@ -4,6 +4,7 @@ import { makeOak } from './art/vegetation.js';
 import { makeHuman, LOOKS } from './art/human.js';
 import { buildWorldArt } from './art/world-art.js';
 import { clayifyTree, updateClay, setClayMood, mountFilmFinish, setClayLite } from './art/clay.js';
+import { skyFor } from './art/claydiorama.js';
 import { setWaterActors } from './art/terrain.js';
 import { makeBuildModel, setNight } from './art/structures.js';
 import { TIERS, detectTier, createGovernor } from './art/quality.js';
@@ -69,7 +70,10 @@ export function createWorld(container){
  const endPointer=(e,cancelled)=>{const was=tapStart;pointers.delete(e.pointerId);if(pointers.size<2)pinchBase=0;if(pointers.size===0)tapStart=null;if(!cancelled&&was&&!was.moved&&performance.now()-was.t<600){if(photoMode)return;if(buildMode){const bid=pickBuild(e.clientX,e.clientY);if(bid)window.dispatchEvent(new CustomEvent('wildfrontier:builditem',{detail:{id:bid}}));else{const g=pickGround(e.clientX,e.clientY);if(g)window.dispatchEvent(new CustomEvent('wildfrontier:ground',{detail:{x:g.x,z:g.z}}))}return}const a=pick(e.clientX,e.clientY);if(a)window.dispatchEvent(new CustomEvent('wildfrontier:select',{detail:a.userData}))}};
  el.addEventListener('pointerup',e=>endPointer(e,false));el.addEventListener('pointercancel',e=>endPointer(e,true));el.addEventListener('contextmenu',e=>e.preventDefault());
  el.addEventListener('wheel',e=>{distGoal=THREE.MathUtils.clamp(distGoal+e.deltaY*.012,7,44)},{passive:true});
- function pick(clientX,clientY){pointer.x=clientX/innerWidth*2-1;pointer.y=-(clientY/innerHeight)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(animals,true);if(!hits.length)return null;let obj=hits[0].object;while(obj.parent&&!obj.userData.kind)obj=obj.parent;return obj}
+ function pick(clientX,clientY){pointer.x=clientX/innerWidth*2-1;pointer.y=-(clientY/innerHeight)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(animals,true);if(!hits.length)return nearTap(clientX,clientY);let obj=hits[0].object;while(obj.parent&&!obj.userData.kind)obj=obj.parent;return obj}
+ // small animals are hard to hit with a finger: if the ray misses, take the nearest animal drawn within ~36 px of the tap
+ const _tp=new THREE.Vector3();
+ function nearTap(cx,cy){let best=null,bd=36;for(const a of animals){if(!a.visible||a.userData.hidden)continue;_tp.copy(a.position);_tp.y+=.35*(a.scale.y||1);_tp.project(camera);if(_tp.z>1)continue;const d=Math.hypot((_tp.x+1)/2*innerWidth-cx,(1-_tp.y)/2*innerHeight-cy);if(d<bd){bd=d;best=a}}return best}
  // ---- Build mode, photography and crowd helpers ----
  let buildMode=false,photoMode=false;const buildGroup=new THREE.Group();scene.add(buildGroup);const buildItems=new Map();
  const ring=new THREE.Mesh(new THREE.RingGeometry(1,1.12,40),new THREE.MeshBasicMaterial({color:'#f4e9a8',transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.12;ring.visible=false;scene.add(ring);
@@ -204,16 +208,16 @@ export function createWorld(container){
   const night=phase==='Night',dusk=phase==='Dusk',dawn=phase==='Dawn';phaseNow=phase;nightNow=night;wx.rain=weather==='Light rain';wx.storm=false;env.night=night;env.glow=night||dusk;env.season=season;env.rain=weather==='Light rain';env.wind=weather==='Breezy'?1.8:weather==='Light rain'?1.25:.7;
   const S=SEASON[season]||SEASON.Spring;mats.leaf().color.set(S.leaf);mats.leafDry().color.set(S.leaf);
   art.grass.material.color.set(S.grass);art.savannaGrass.material.color.set(season==='Winter'?'#e0d8c0':'#ffffff');
-  sun.intensity=night?.9:dusk?1.5:dawn?2.2:season==='Winter'?2.5:3.1;
+  sun.intensity=night?.9:dusk?1.7:dawn?2.4:season==='Winter'?2.7:3.4;
   sun.color.set(night?'#8ea6c8':dusk?'#f0a068':dawn?'#ffc890':season==='Winter'?'#d7e2ed':'#ffe5bd');
   const ang=night?[0,28,6]:dusk?[34,8,10]:dawn?[-34,8,10]:[-8,22,12];sun.position.set(ang[0]+14,ang[1],ang[2]);
-  hemi.intensity=night?1.5:dusk?1.4:2.0;hemi.color.set(night?'#7f93bb':dusk?'#f0c8a0':'#f3f1dc');hemi.groundColor.set(night?'#352f5c':dusk?'#6a4a6e':'#6a5a7e');setClayMood({night,dusk});
+  hemi.intensity=night?1.4:dusk?1.3:1.7;hemi.color.set(night?'#7f93bb':dusk?'#f0c8a0':'#f3f1dc');hemi.groundColor.set(night?'#352f5c':dusk?'#6a4a6e':'#6a5a7e');setClayMood({night,dusk});
   fill.intensity=night?1.0:.55;fill.color.set(night?'#6a86c8':'#a8c4ff');
-  const sky=night?'#2f3f55':dusk?'#c9a58c':dawn?'#d9b9a0':weather==='Light rain'?'#879a9a':S.sky;
+  const P=skyFor(phase,weather),sky=P.fog;
   scene.fog.color.set(sky);scene.background.set(sky);scene.fog.density=weather==='Light rain'?.017:night?.012:.011;
-  const U=art.sky.uniforms;U.horizon.value.set(sky);U.top.value.set(night?'#0b1424':dusk?'#5d6aa0':dawn?'#7a96c8':weather==='Light rain'?'#7c8c98':'#5f94cf');U.sunDir.value.set(sun.position.x-14,sun.position.y,sun.position.z).normalize();U.sunColor.value.copy(sun.color);U.night.value=night?1:0;
-  art.sky.cmats.forEach(m=>{m.color.set(night?'#44546e':dusk?'#f0c0a0':dawn?'#ffd8c0':weather==='Light rain'?'#9aa6ae':'#ffffff');m.opacity=night?.35:weather==='Light rain'?.95:.85});
-  art.horizon.ridgeMat.color.set(sky);setNight(night||dusk);
+  const U=art.sky.uniforms;U.horizon.value.set(P.horizon);U.top.value.set(P.top);U.sunDir.value.set(sun.position.x-14,sun.position.y,sun.position.z).normalize();U.sunColor.value.copy(sun.color);U.night.value=night?1:0;
+  art.sky.cmats.forEach(m=>{m.color.set(night?'#3e3866':dusk?'#ffb8a6':dawn?'#ffd8c8':weather==='Light rain'?'#a6a6b8':'#ffffff');m.opacity=night?.35:weather==='Light rain'?.95:.85});
+  art.horizon.ridgeMat.color.set(P.horizon).lerp(new THREE.Color(P.top),.35);art.diorama.setTime({night,dusk,sunDir:U.sunDir.value});setNight(night||dusk);
   if(phase!==lastPhase){lastPhase=phase;refreshEnv()}
  }
  function renderFrame(){if(post)post.render();else renderer.render(scene,camera)}

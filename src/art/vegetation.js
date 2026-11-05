@@ -97,19 +97,24 @@ export function makeLog(seed=1,len=2.2){
 // ---- wind-animated instanced grass / flowers / reeds ----
 let _grassGeo=null;
 function grassTuftGeo(){
+ // clay grass: three fat, rounded leaves pinched from one lump, with normals bent outward so they look puffy
  if(_grassGeo)return _grassGeo;
- const parts=[];const r=rng(5);
- for(let b=0;b<4;b++){
-  const a=b/4*Math.PI*2+r(),h=.3+r()*.28,w=.05+r()*.03,bend=(r()-.2)*.18;
-  const segs=2;const pos=[],uv=[],idx=[],col=[];
-  for(let i=0;i<=segs;i++){const t=i/segs;const wd=w*(1-t*.88);const x0=Math.cos(a)*(r()*.05),z0=Math.sin(a)*(r()*.05);const yy=h*t;const off=bend*t*t*h;
-   for(const sx of [-1,1]){pos.push(x0+Math.cos(a+Math.PI/2)*wd*sx+Math.cos(a)*off,yy,z0+Math.sin(a+Math.PI/2)*wd*sx+Math.sin(a)*off);uv.push(sx>0?1:0,t);const k=.55+.45*t;col.push(k,k,k)}}
-  for(let i=0;i<segs;i++){const q=i*2;idx.push(q,q+1,q+2,q+1,q+3,q+2)}
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();
-  // make blades two-sided cheaply by pointing normals up so they shade like turf
-  const n=g.attributes.normal;for(let i=0;i<n.count;i++)n.setXYZ(i,0,1,0);parts.push(g);
+ const r=rng(5),pos=[],nrm=[],col=[],idx=[];
+ for(let b=0;b<3;b++){
+  const a=b/3*Math.PI*2+r()*.6,h=.24+r()*.16,w=.075+r()*.03,bend=.08+r()*.1;
+  const dx=Math.cos(a),dz=Math.sin(a),sx=Math.cos(a+Math.PI/2),sz=Math.sin(a+Math.PI/2);const base=pos.length/3;const segs=3;
+  for(let i=0;i<=segs;i++){
+   const t=i/segs,wd=w*Math.sin(Math.PI*(.18+t*.82))*(1-t*.35),yy=h*t,off=bend*t*t*h*3;
+   for(const s of [-1,1]){
+    pos.push(dx*off+sx*wd*s,yy,dz*off+sz*wd*s);
+    const nx=dx*.55+sx*s*.6,ny=.55,nz=dz*.55+sz*s*.6,l=Math.hypot(nx,ny,nz);nrm.push(nx/l,ny/l,nz/l);
+    const k=.62+.38*t;col.push(k,k,k);
+   }
+  }
+  for(let i=0;i<segs;i++){const q=base+i*2;idx.push(q,q+1,q+2,q+1,q+3,q+2)}
  }
- _grassGeo=mergeGeometries(parts,false);return _grassGeo;
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);
+ _grassGeo=g;return g;
 }
 export function makeGrass(positions,{palette=['#4d7a35','#86b04c'],height=1,quality=1}={}){
  const n=Math.max(1,Math.round(positions.length*quality));

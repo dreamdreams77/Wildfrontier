@@ -168,3 +168,5 @@ Inspired by Hollow Tide's "lit clay", `src/art/clay.js` turns every solid surfac
 
 `?clay=0` turns it off for comparison. The Low tier samples the clay texture once instead of three times. In software
 rendering the full pass costs about a fifth of the frame; real GPUs should pay less, but this was not measured on a phone.
+
+Diorama pass (closer to Hollow Tide): lumpy clay clouds hung in a storybook sky (periwinkle and peach by day, violet and coral at dusk, indigo at night), a thumb-dented clay moon at night, round "lollipop" clay trees on the horizon, fat rounded clay grass leaves, and banded, saturated clay water (`src/art/claydiorama.js`).
