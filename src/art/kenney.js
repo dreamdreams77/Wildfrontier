@@ -44,7 +44,7 @@ export function buildRidges(){
  return cliffMesh(geos);
 }
 
-export function buildKenneyLandmarks(scene,art,{tier}={}){
+export function buildKenneyLandmarks(scene,art){
  const group=new THREE.Group();group.name='creek-landmarks';scene.add(group);
  const updaters=[];
  art.kenney={group,update:t=>updaters.forEach(f=>f(t)),ready:false,bridges:[]};

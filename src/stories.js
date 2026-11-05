@@ -127,8 +127,11 @@ export function createStories(sanct, { ops, mgmt, social, release, events } = {}
     const obj = v => v && typeof v === 'object' && !Array.isArray(v); if (!obj(d)) return;
     state.chapter = {}; if (obj(d.chapter)) for (const s of STORIES) if (Number.isFinite(d.chapter[s.id])) state.chapter[s.id] = Math.max(0, Math.min(s.chapters.length - 1, d.chapter[s.id]));
     state.done = {}; if (obj(d.done)) for (const s of STORIES) if (d.done[s.id]) state.done[s.id] = true;
-    state.counts = obj(d.counts) ? d.counts : {}; state.global = { waterDays: 0, patrols: 0, ...(obj(d.global) ? d.global : {}) };
-    state.sessions = obj(d.sessions) ? d.sessions : {}; state.log = (Array.isArray(d.log) ? d.log : []).filter(obj).slice(0, 20);
+    // counters are incremented and written to every day, so anything that is not a finite number is dropped
+    const nums = o => Object.fromEntries(Object.entries(obj(o) ? o : {}).filter(([, v]) => Number.isFinite(v)));
+    state.counts = {}; if (obj(d.counts)) for (const [id, c] of Object.entries(d.counts)) if (obj(c)) state.counts[id] = { examined: 0, calmDays: 0, ...nums(c), feed: nums(c.feed), enrich: nums(c.enrich) };
+    state.global = { waterDays: 0, patrols: 0, ...nums(d.global) };
+    state.sessions = nums(d.sessions); state.log = (Array.isArray(d.log) ? d.log : []).filter(obj).slice(0, 20);
   }
   sanct.extend({ key: 'stories', tick, day, summary: () => ({}), serialize, restore });
   return { state, check, summary, STORIES };

@@ -141,7 +141,7 @@ export function createManagement(sanct,ops,options={}){
  }
  function progressCases(){
   for(const c of state.cases.slice()){
-   const a=byId(c.animalId),cd=CONDITIONS[c.cond];if(!a){state.cases.splice(state.cases.indexOf(c),1);continue}
+   const a=byId(c.animalId),cd=CONDITIONS[c.cond];if(!a){state.cases.splice(state.cases.indexOf(c),1);delete state.quarantine[c.animalId];continue}
    if(c.treated>0){
     c.treated--;c.sev=Math.max(0,c.sev-Math.ceil((c.sev0||c.sev||10)/cd.days)-3);a.health=clamp(a.health+2);
     if(c.sev<=0){state.cases.splice(state.cases.indexOf(c),1);delete state.quarantine[a.id];sanct.addHistory(a.id,'Recovered from '+cd.label.toLowerCase()+'.');say(a.name+' has recovered from '+cd.label.toLowerCase()+'.');sanct.state.reputation+=.5;continue}
@@ -167,7 +167,7 @@ export function createManagement(sanct,ops,options={}){
   if(!by&&!has('diagnostics')&&!sanct.spend(15,'veterinary'))return {ok:false,message:'A diagnostic work-up costs 15.'};
   c.noticed=true;c.diagnosed=true;const a=byId(c.animalId);return {ok:true,message:(a?a.name:'Patient')+' diagnosed: '+CONDITIONS[c.cond].label.toLowerCase()+'.'};
  }
- function treatCase(caseId,by){
+ function treatCase(caseId){
   const c=state.cases.find(x=>x.id===caseId);if(!c)return {ok:false,message:'No such case.'};
   const cd=CONDITIONS[c.cond],a=byId(c.animalId);if(c.treated>0)return {ok:false,message:'Already under treatment.'};
   if((sanct.state.stock.medicine||0)<cd.meds)return {ok:false,message:'Needs '+cd.meds+' veterinary supplies; you have '+(sanct.state.stock.medicine||0)+'.'};
@@ -175,7 +175,7 @@ export function createManagement(sanct,ops,options={}){
   if(!c.diagnosed&&!has('diagnostics')&&rng()<.5){if(a)sanct.addHistory(a.id,'Treated without a diagnosis; it did not help.');return {ok:true,message:'Treated without a diagnosis; the treatment missed the cause. Diagnose first.'}}
   c.diagnosed=true;c.noticed=true;c.treated=Math.max(2,cd.days-(state.fac.clinic-1));c.sev0=Math.max(10,c.sev);
   if(a){sanct.addHistory(a.id,'Treated for '+cd.label.toLowerCase()+'.');a.stress=clamp(a.stress+3)}
-  return {ok:true,message:(a?a.name:'Patient')+' is being treated for '+cd.label.toLowerCase()+' ('+cd.days+' days).'};
+  return {ok:true,message:(a?a.name:'Patient')+' is being treated for '+cd.label.toLowerCase()+' ('+c.treated+' days).'};
  }
  function setQuarantine(animalId,on){
   const c=caseOf(animalId);if(on&&!c)return {ok:false,message:'Only sick animals need quarantine.'};
@@ -243,11 +243,11 @@ export function createManagement(sanct,ops,options={}){
   return null;
  });
  ops.finishers.vetDiagnose=(m,t)=>{const r=diagnose(t.caseId,m);if(r.ok)say(m.name+': '+r.message)};
- ops.finishers.vetTreat=(m,t)=>{const r=treatCase(t.caseId,m);say(m.name+': '+r.message)};
+ ops.finishers.vetTreat=(m,t)=>{const r=treatCase(t.caseId);say(m.name+': '+r.message)};
  ops.finishers.checkup=(m,t)=>{state.nextRound[m.id]=sanct.state.minutes+150;const r=examine(t.animalId,m);if(r.case)say(m.name+': '+r.message)};
  ops.finishers.clean=(m,t)=>{cleanHabitat(t.target,false)};
  ops.finishers.repair=(m,t)=>{const it=ops.state.items.find(i=>i.id===t.itemId);if(it&&sanct.spend(repairCost(it),'upkeep'))it.cond=100};
- ops.finishers.study=(m,t)=>{state.nextStudy=sanct.state.minutes+60;addResearch(2+m.skill*1.5)};
+ ops.finishers.study=m=>{state.nextStudy=sanct.state.minutes+60;addResearch(2+m.skill*1.5)};
 
  // ---- Visitors: segments, satisfaction and feedback -----------------------------------------------------------
  const items=type=>ops.state.items.filter(i=>i.type===type&&(i.cond??100)>=50).length;

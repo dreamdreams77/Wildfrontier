@@ -9,7 +9,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const bar=(v,cls='')=>'<i class="sbar '+cls+'"><em style="width:'+Math.max(0,Math.min(100,Math.round(v)))+'%"></em></i>';
 const welfareClass=v=>v>=75?'good':v>=50?'ok':'bad';
 
-export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,social,stories,seasons,rating,world,toast,afterChange,focusAnimal,openRecord,openBuild,portraits}){
+export function mountSanctuaryUI({sanct,ops,mgmt,release,social,stories,seasons,rating,world,toast,afterChange,focusAnimal,openRecord,openBuild,portraits}){
  const face=(kind,fallback)=>portraits?'<img class="p-img" alt="" src="'+portraits.portrait(kind)+'">':fallback;
  let panel=null,pointerDown=false,lastRender=0,tab='overview',pairKind='africanLion',maleId='',femaleId='';
 
@@ -132,7 +132,7 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,social,stories,seas
   return '<p class="s-muted">Every pair in a group has a bond. Close companions calm each other; rivals fight and can get hurt; losing a companion causes grief. Sociable, calm animals bond faster; stress, crowding and two bold same-sex adults push them apart. Group sessions help; separating a rival stops fights for a while but leaves it lonely.</p>'
    +social.groups().map(g=>{const sp=SPECIES[g.kind];return '<article class="s-res"><div class="s-res-head"><span>'+face(g.kind,sp.emoji)+' <b>'+esc(sp.common)+'</b></span><small>'+(g.leader?'led by '+esc(g.leader):'')+'</small><span class="s-w '+(g.harmony===null?'ok':welfareClass(g.harmony))+'">'+(g.harmony===null?'alone':'harmony '+g.harmony+'%')+'</span></div>'
     +'<ul class="s-bonds">'+g.pairs.map(p=>'<li><span>'+chip(p.bond)+'</span>'+esc(p.an)+' &amp; '+esc(p.bn)+' <i class="sbar '+(p.bond<0?'low':'')+'"><em style="width:'+Math.round((p.bond+100)/2)+'%"></em></i><small>'+p.bond+'</small></li>').join('')+'</ul>'
-    +'<div class="s-acts">'+(g.members.length>1?'<button data-act="session" data-kind="'+g.kind+'">GROUP SESSION · 60</button>':'')+g.members.filter(m=>m.rivals||m.separated).map(m=>m.separated?'<button data-act="reunite" data-id="'+m.id+'">REUNITE '+esc(m.name).toUpperCase()+'</button>':'<button data-act="separate" data-id="'+m.id+'">SEPARATE '+esc(m.name).toUpperCase()+'</button>').join('')+'</div></article>'}).join('')
+    +'<div class="s-acts">'+(g.members.length>1?'<button data-act="session" data-kind="'+g.kind+'">GROUP SESSION · 60</button>':'')+g.members.filter(m=>m.rivals||m.separated).map(m=>m.separated?'<button data-act="reunite" data-id="'+m.id+'">REUNITE '+esc(m.name.toUpperCase())+'</button>':'<button data-act="separate" data-id="'+m.id+'">SEPARATE '+esc(m.name.toUpperCase())+'</button>').join('')+'</div></article>'}).join('')
    +(social.state.log.length?'<h3>Social news</h3><ul class="s-events">'+social.state.log.slice(0,6).map(l=>'<li><b>Day '+l.day+'</b> '+esc(l.text)+'</li>').join('')+'</ul>':'');
  }
  function storiesTab(){

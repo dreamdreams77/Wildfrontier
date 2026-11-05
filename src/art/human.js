@@ -105,7 +105,7 @@ function build(look){
  return {group,H};
 }
 
-function controller(root,look){
+function controller(root){
  const B=n=>root.getObjectByName(n);
  const b={hips:B('hips'),spine:B('spine'),chest:B('chest'),neck:B('neck'),head:B('head'),uL:B('uarmL'),uR:B('uarmR'),fL:B('farmL'),fR:B('farmR'),tL:B('thighL'),tR:B('thighR'),sL:B('shinL'),sR:B('shinR'),ftL:B('footL'),ftR:B('footR')};
  const eyes=[B('eyeL'),B('eyeR')];const baseY=b.hips.position.y;

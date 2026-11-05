@@ -178,10 +178,18 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
   function serialize() { return JSON.parse(JSON.stringify(state)); }
   function restore(d) {
     const obj = v => v && typeof v === 'object' && !Array.isArray(v); if (!obj(d)) return;
+    // patrol and escape events resolve against their points, so they always get a usable set (an empty or missing list
+    // would crash the escape outcome or count as a completed patrol)
+    const restorePoints = e => {
+      const pts = Array.isArray(e.points) ? e.points.filter(p => obj(p) && Number.isFinite(p.x) && Number.isFinite(p.z)) : [];
+      if (pts.length || (e.type !== 'poachers' && e.type !== 'escape')) return Array.isArray(e.points) ? pts : undefined;
+      if (e.type === 'poachers') return PATROL_POINTS.map(([x, z], i) => ({ id: e.id + '-p' + i, x, z, done: false }));
+      return [{ id: e.id + '-e', x: ESCAPE_SPOTS[0][0], z: ESCAPE_SPOTS[0][1], done: false }];
+    };
     state.serial = Number.isFinite(d.serial) ? d.serial : 0; state.nextRoll = Number.isFinite(d.nextRoll) ? d.nextRoll : 0; state.nextNight = Number.isFinite(d.nextNight) ? d.nextNight : 0;
     // keep the serial ahead of every restored id, and give id-less events a fresh one, so ids stay unique
     for (const e of Array.isArray(d.active) ? d.active : []) { const n = obj(e) && typeof e.id === 'string' ? Number(/^ev(\d+)$/.exec(e.id)?.[1]) : 0; if (n > state.serial) state.serial = n; }
-    state.active = (Array.isArray(d.active) ? d.active : []).filter(e => obj(e) && EVENTS[e.type] && Number.isFinite(e.endsAt)).map(e => typeof e.id === 'string' ? e : { ...e, id: 'ev' + (++state.serial) }).map(e => ({ ...e, points: Array.isArray(e.points) ? e.points.filter(obj) : e.type === 'poachers' ? PATROL_POINTS.map(([x, z], i) => ({ id: e.id + '-p' + i, x, z, done: false })) : undefined }));
+    state.active = (Array.isArray(d.active) ? d.active : []).filter(e => obj(e) && EVENTS[e.type] && Number.isFinite(e.endsAt)).map(e => typeof e.id === 'string' ? e : { ...e, id: 'ev' + (++state.serial) }).map(e => ({ ...e, points: restorePoints(e) }));
     state.history = (Array.isArray(d.history) ? d.history : []).filter(obj).slice(0, 12);
   }
   sanct.extend({ key: 'events', tick, day: day_, summary: () => ({}), serialize, restore });

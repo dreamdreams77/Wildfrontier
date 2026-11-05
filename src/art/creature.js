@@ -201,7 +201,7 @@ function autoSkinTorso(g,rig,L,yR,yM,yC,base,n1,n2,nose){
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-function buildBird(kind,spec,opts){
+function buildBird(kind,spec){
  const k=spec.k,S=v=>v*k;
  const L=S(spec.body.L),rx=S(spec.body.rx),ry=S(spec.body.ry),legH=S(spec.legH);
  const phi=spec.upright*0.95;const yb=legH+ry*.85+Math.sin(phi)*L*.2;
@@ -237,7 +237,7 @@ function buildBird(kind,spec,opts){
  for(const s of [-1,1]){
   const id=s<0?'wingL':'wingR';const sh=[s*rx*.98,yb+ry*.35,L*.2],el=[s*rx*1.04,yb+ry*.18,-L*.15],tipP=[s*rx*1.02,yb+ry*.05,-L*.15-wl*.55];
   rig.add(id,'root',sh,el);rig.add(id+'2',id,el,tipP);
-  const wg=loft([{p:sh,rx:ch*.07,ry:ch*.55},{p:el,rx:ch*.06,ry:ch*.75},{p:tipP,rx:ch*.03,ry:ch*.25}],{radial:8,rings:14,cap0:1,cap1:3,upRef:V(0,1,0),color:({t,top})=>{const c=lerpC(rgb(spec.coat.back),cw,smooth(.1,.6,t));return spec.wing.tipDark?lerpC(c,[.08,.08,.08],smooth(.72,.95,t)):lerpC(c,c.map(x=>x*.78),smooth(.5,.95,t)*.7)}});
+  const wg=loft([{p:sh,rx:ch*.07,ry:ch*.55},{p:el,rx:ch*.06,ry:ch*.75},{p:tipP,rx:ch*.03,ry:ch*.25}],{radial:8,rings:14,cap0:1,cap1:3,upRef:V(0,1,0),color:({t})=>{const c=lerpC(rgb(spec.coat.back),cw,smooth(.1,.6,t));return spec.wing.tipDark?lerpC(c,[.08,.08,.08],smooth(.72,.95,t)):lerpC(c,c.map(x=>x*.78),smooth(.5,.95,t)*.7)}});
   autoSkin(wg,[rig.seg(id),rig.seg(id+'2'),rig.seg('root')],{pow:3,top:3});limbs.push(wg);
  }
  // tail fan

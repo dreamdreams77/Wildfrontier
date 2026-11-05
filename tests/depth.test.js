@@ -6,7 +6,7 @@ import { createOperations } from '../src/operations.js';
 import { createManagement } from '../src/management.js';
 import { createEvents } from '../src/events.js';
 import { createRelease } from '../src/release.js';
-import { createSocial, FRIEND, RIVAL } from '../src/social.js';
+import { createSocial } from '../src/social.js';
 import { createStories, STORIES } from '../src/stories.js';
 import { createSeasons } from '../src/seasons.js';
 import { createRating, TIERS } from '../src/rating.js';
@@ -94,4 +94,35 @@ test('all the new systems save and restore',()=>{
   const w=world();w.social.setBond('africanLion-jabari','africanLion-nala',70);w.stories.state.chapter.jabari=2;w.mgmt.state.fac.nursery=3;w.rating.state.tier=3;
   const save=JSON.parse(JSON.stringify(w.s.serialize()));const x=world();assert.equal(x.s.restore(save),true);
   assert.equal(x.social.bond('africanLion-jabari','africanLion-nala'),70);assert.equal(x.stories.state.chapter.jabari,2);assert.equal(x.mgmt.state.fac.nursery,3);assert.equal(x.rating.state.tier,3);
+});
+
+test('an escape or patrol restored without usable points still resolves instead of crashing',()=>{
+  const w=world();const save=JSON.parse(JSON.stringify(w.s.serialize()));const end=w.s.state.minutes+10;
+  save.ext.events.active=[{id:'ev1',type:'escape',endsAt:end,choice:'search',animalId:'africanLion-jabari',animalName:'Jabari'},{id:'ev2',type:'poachers',endsAt:end,choice:'patrol',points:[]}];
+  const x=world();assert.equal(x.s.restore(save),true);assert.equal(x.events.markers().length,4,'one search spot and three fence posts');
+  assert.doesNotThrow(()=>x.s.tick(30));assert.equal(x.events.state.active.length,0);
+  assert.ok(x.events.state.history.some(h=>h.type==='escape'&&/frightening/.test(h.outcome)));
+  assert.ok(x.events.state.history.some(h=>h.type==='poachers'&&/not fully patrolled/.test(h.outcome)),'an empty patrol does not count as done');
+});
+
+test('damaged story counters in a save are dropped instead of breaking the daily tick',()=>{
+  const w=world();const save=JSON.parse(JSON.stringify(w.s.serialize()));
+  save.ext.stories={counts:{'giraffe-kamili':5,'africanLion-jabari':{feed:'x',enrich:null,examined:'2'},'plainsZebra-kito':{calmDays:1,feed:{hay:2,bad:'y'}}},global:{waterDays:'a'},sessions:{bengalTiger:'x',africanLion:2}};
+  const x=world();assert.equal(x.s.restore(save),true);for(const a of x.s.residents())a.stress=10;
+  assert.doesNotThrow(()=>nextDay(x.s));const c=x.stories.state.counts;
+  assert.equal(c['plainsZebra-kito'].calmDays,2);assert.deepEqual(c['plainsZebra-kito'].feed,{hay:2});assert.equal(c['africanLion-jabari'].examined,0);assert.equal(c['giraffe-kamili'].calmDays,1);
+  assert.ok(Number.isFinite(x.stories.state.global.waterDays));assert.deepEqual(x.stories.state.sessions,{africanLion:2});
+});
+
+test('residents with damaged traits in a save get fresh ones instead of NaN boredom',()=>{
+  const w=world();const save=JSON.parse(JSON.stringify(w.s.serialize()));save.animals[0].traits={bold:.5};save.animals[1].traits='calm';
+  const x=world();assert.equal(x.s.restore(save),true);x.s.tick(120);nextDay(x.s);
+  for(const a of x.s.residents()){assert.ok(Number.isFinite(a.boredom),a.name+' boredom');for(const k of ['bold','social','curious','calm'])assert.ok(Number.isFinite(a.traits[k]),a.name+' '+k)}
+  assert.ok(x.s.residents().every(a=>Number.isFinite(x.social.rankOf(a))));
+});
+
+test('loading a save without a rating block starts at one star; treatment messages give the real length',()=>{
+  const w=world();const save=JSON.parse(JSON.stringify(w.s.serialize()));delete save.ext.rating;w.rating.state.tier=4;assert.equal(w.s.restore(save),true);assert.equal(w.rating.state.tier,1);
+  w.s.state.funds=5000;w.mgmt.upgrade('clinic');const c=w.mgmt.start(find(w.s,'Kito'),'respiratory');w.s.state.stock.medicine=5;w.mgmt.diagnose(c.id);
+  const r=w.mgmt.treatCase(c.id);assert.equal(c.treated,4);assert.match(r.message,/\(4 days\)/);
 });

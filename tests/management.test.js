@@ -16,7 +16,7 @@ test('a case follows symptoms, diagnosis and a real treatment to recovery',()=>{
   const c=m.start(a,'respiratory');assert.ok(c);assert.equal(m.caseOf(a.id).diagnosed,false);
   s.state.stock.medicine=5;
   const before=a.health;
-  for(let d=0;d<4;d++){s.state.minutes+=DAY;s.state.day++;m.state.cases.forEach(x=>{});}
+  for(let d=0;d<4;d++){s.state.minutes+=DAY;s.state.day++;}
   // untreated: worsens and drains health
   const sev0=c.sev;s.tick(1);const dayTick=()=>{s.state.minutes=(s.state.day-2)*DAY-1;s.tick(2)};
   dayTick();assert.ok(c.sev>sev0,'untreated illness gets worse');assert.ok(a.health<before);
