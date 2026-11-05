@@ -1,6 +1,7 @@
 import { SPECIES, FOODS, stageOf, welfareOf, MEDICINE_PRICE } from './sanctuary.js';
 import { ROLES, BUILD_ITEMS } from './operations.js';
 import { PROJECTS, SEGMENTS, FACILITIES } from './management.js';
+import { PREP_DAYS, MIN_READINESS } from './release.js';
 import { EQUIPMENT } from './equipment.js';
 
 // Safari sanctuary management panel: overview, residents, supplies and the breeding programme.
@@ -154,7 +155,7 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,social,stories,seas
   const meter=(label,v)=>'<label>'+label+bar(v,v<50?'low':'')+'</label>';
   const card=c=>{const r=c.readiness,sp=SPECIES[c.kind];return '<article class="s-res"><div class="s-res-head"><button data-act="open" data-id="'+c.id+'" class="s-link">'+face(c.kind,sp.emoji)+' <b>'+esc(c.name)+'</b></button><small>'+esc(sp.common)+' · '+c.sex+'</small><span class="s-w '+welfareClass(r.score)+'">'+r.score+'%</span></div>'
    +'<div class="s-meters">'+meter('Health',r.health)+meter('Fitness',r.fitness)+meter('Wariness',r.wariness)+meter('Wild skill',r.skill)+'</div>'
-   +(c.prep?'<p class="s-muted">In the soft-release pen: day '+c.prep.days+' of 5.</p><div class="s-acts"><button data-act="relgo" data-id="'+c.id+'" '+(c.prep.days>=5&&r.score>=60?'':'disabled')+'>RELEASE TO THE WILD</button><button data-act="relcancel" data-id="'+c.id+'">RETURN TO HABITAT</button></div>'
+   +(c.prep?'<p class="s-muted">In the soft-release pen: day '+c.prep.days+' of '+PREP_DAYS+'.</p><div class="s-acts"><button data-act="relgo" data-id="'+c.id+'" '+(c.prep.days>=PREP_DAYS&&r.score>=MIN_READINESS?'':'disabled')+'>RELEASE TO THE WILD</button><button data-act="relcancel" data-id="'+c.id+'">RETURN TO HABITAT</button></div>'
     :c.blockers.length?'<p class="s-muted">'+c.blockers.map(esc).join(' ')+'</p>':'<div class="s-acts"><button data-act="relprep" data-id="'+c.id+'" '+(R.hasPen?'':'disabled')+'>PREPARE FOR RELEASE</button></div>')+'</article>'};
   const tracked=R.released.length?R.released.map(r=>'<article class="s-res"><div class="s-res-head"><span>'+(SPECIES[r.kind]?.emoji||'')+' <b>'+esc(r.name)+'</b></span><small>released day '+r.day+' · readiness '+r.readiness+'%</small><span class="s-w '+(r.status==='lost'?'bad':r.status==='established'?'good':'ok')+'">'+(r.status==='tracking'?'tracking · day '+r.daysTracked:r.status)+'</span></div>'+(r.reports.length?'<ul class="s-events">'+r.reports.slice(0,3).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'')+'</article>').join(''):'<p class="s-muted">No releases yet.</p>';
   return '<p class="s-muted">The goal of the sanctuary: animals back in the wild. Prepare an adult in a soft-release pen for 5 days (less human contact, more wild practice; play keeps it sharp), then release it at 60% readiness or more. It is tracked by collar for 10 days. Wary, fit, skilled animals survive best.</p>'
