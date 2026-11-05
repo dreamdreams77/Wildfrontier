@@ -155,3 +155,16 @@ Save loading is now defensive (damaged or older saves are repaired, never crash 
 * `npm test`: all logic tests, including the two-year soak test, save-compatibility tests and a randomised action fuzz test (`FUZZ_SEEDS=50 npm test` for a longer hunt).
 * `node tools/qa.cjs <url> <outdir>`: scripted end-to-end pass on desktop, phone and tablet sizes.
 * `node tools/monkey.cjs <url> [seconds] [phone]`: random taps, drags and key presses against the real UI, failing on any page error.
+
+## Claymation look
+
+Inspired by Hollow Tide's "lit clay", `src/art/clay.js` turns every solid surface into hand-pressed plasticine at runtime:
+
+* a procedural fingerprint texture (whorls, thumb dents, tool drags, grit) projected from three axes, as both bump and colour; painted textures are softened toward their average colour so they read as tinted clay
+* **boil**: surfaces re-roll a tiny lumpy displacement at 12 fps, and animals and people pose on twos (12 fps) while still moving smoothly
+* warm cream key light, violet-tinted shadows, a warm bounce on undersides, a soft rim and slightly wet glints
+* big googly clay eyes on every animal
+* a film finish over the view: stop-motion grain that re-rolls at 12 fps, a dusky split tone and a vignette
+
+`?clay=0` turns it off for comparison. The Low tier samples the clay texture once instead of three times. In software
+rendering the full pass costs about a fifth of the frame; real GPUs should pay less, but this was not measured on a phone.

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { stopMotionRig } from './clay.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { loft, blobGeo, lathe, xform, paintColor, Rig, autoSkin, bindRigid, V } from './meshkit.js';
@@ -13,10 +14,11 @@ const dirOf=(up)=>V(0,up,1).normalize();
 const cache=new Map();
 
 function eyeGeo(r,iris){
- const parts=[];const ball=new THREE.SphereGeometry(r,14,12);paintColor(ball,[.06,.05,.05]);parts.push(ball);
- const ir=new THREE.SphereGeometry(r*.72,14,12);paintColor(ir,iris);parts.push(xform(ir,{pos:[0,0,r*.34]}));
- const pu=new THREE.SphereGeometry(r*.42,10,8);paintColor(pu,[.02,.02,.02]);parts.push(xform(pu,{pos:[0,0,r*.62],scale:[.9,1.2,.7]}));
- const hl=new THREE.SphereGeometry(r*.17,8,6);paintColor(hl,[1,1,1]);parts.push(xform(hl,{pos:[r*.28,r*.3,r*.9]}));
+ // claymation eyes: a big pressed-in white ball, a coloured iris, a dark pupil and a wet glint
+ r*=1.45;const parts=[];const ball=new THREE.SphereGeometry(r,16,12);paintColor(ball,[.93,.91,.86]);parts.push(ball);
+ const ir=new THREE.SphereGeometry(r*.58,14,12);paintColor(ir,iris);parts.push(xform(ir,{pos:[0,0,r*.5],scale:[1,1,.6]}));
+ const pu=new THREE.SphereGeometry(r*.34,12,10);paintColor(pu,[.03,.025,.03]);parts.push(xform(pu,{pos:[0,0,r*.74],scale:[1,1.1,.55]}));
+ const hl=new THREE.SphereGeometry(r*.14,8,6);paintColor(hl,[1,1,1]);parts.push(xform(hl,{pos:[r*.24,r*.26,r*.92]}));
  return mergeGeometries(parts.map(g=>{g.deleteAttribute('uv');return g}),false);
 }
 
@@ -165,7 +167,7 @@ function buildQuad(kind,spec,opts){
  if(spec.horns==='ossicones')for(const s of [-1,1]){const top=hc.y+hR*.95;const g1=loft([{p:[s*hR*.35,top-hR*.1,hc.z-hR*.1],rx:hR*.12},{p:[s*hR*.3,top+hR*.8,hc.z-hR*.15],rx:hR*.1}],{radial:8,rings:6,cap0:1,cap1:1,color:()=>rgb('#dcc08a')});const k=blobGeo(hR*.16,hR*.16,hR*.16,{seg:8,low:[.18,.12,.08],high:[.3,.2,.12]});const g2=xform(k,{pos:[s*hR*.3,top+hR*.9,hc.z-hR*.15]});bindRigid(g1,head0);bindRigid(g2,head0);limbParts.push(g1,g2)}
  // eyes (separate meshes so they can blink)
  const eg=eyeGeo(Math.max(hR*.175,.009*k),rgb(spec.eye));
- const eyeMat=eyeMaterial();
+ const eyeMat=eyeMaterial();eyeMat.userData.noClay=true;
  const eyeBase=hc.clone().addScaledVector(hd,hLen*.3);
  const eyeMeshes=[-1,1].map(s=>{const m=new THREE.Mesh(eg,eyeMat);m.name=s<0?'eyeL':'eyeR';m.position.set(s*hR*.66,eyeBase.y+hR*.28,eyeBase.z+hR*.12).sub(n2);m.rotation.y=s*.6;m.castShadow=false;return m});
 
@@ -247,7 +249,7 @@ function buildBird(kind,spec,opts){
  if(spec.crest){const cc=rgb(spec.crest);const crest=loft([{p:hp[0].clone().add(V(0,hR*.5,-hR*.1)).toArray(),rx:hR*.45,ry:hR*.2},{p:hp[0].clone().add(V(0,hR*1.5,-hR*.7)).toArray(),rx:hR*.3,ry:hR*.12},{p:hp[0].clone().add(V(0,hR*1.9,-hR*1.6)).toArray(),rx:hR*.06,ry:hR*.05}],{radial:6,rings:8,cap0:1,cap1:2,upRef:V(1,0,0),color:()=>cc});bindRigid(crest,rig.idx('head'));limbs.push(crest)}
  if(spec.cap){const cap=blobGeo(hR*.78,hR*.35,hR*.9,{seg:10,low:rgb(spec.cap).map(c=>c*.6),high:rgb(spec.cap)});const cg=xform(cap,{pos:[0,hp[0].y+hR*.55,hp[0].z+hR*.1]});bindRigid(cg,rig.idx('head'));limbs.push(cg)}
  if(spec.coat.face==='disc'){const disc=blobGeo(hR*1.05,hR*1.0,hR*.35,{seg:12,low:[.7,.62,.5],high:[.95,.88,.76]});const dg=xform(disc,{pos:[0,hp[0].y+hR*.05,hp[0].z+hR*.55]});bindRigid(dg,rig.idx('head'));limbs.push(dg)}
- const eg=eyeGeo(Math.max(hR*.2,.008*k),rgb(spec.eye));const eyeMat=eyeMaterial();
+ const eg=eyeGeo(Math.max(hR*.2,.008*k),rgb(spec.eye));const eyeMat=eyeMaterial();eyeMat.userData.noClay=true;
  const eyeMeshes=[-1,1].map(s=>{const m=new THREE.Mesh(eg,eyeMat);m.name=s<0?'eyeL':'eyeR';m.position.set(s*hR*(spec.coat.face==='disc'?.5:.78),hp[0].y+hR*(spec.coat.face==='disc'?.12:.2),hp[0].z+hR*(spec.coat.face==='disc'?.98:.5)).sub(hp[0]);m.rotation.y=s*(spec.coat.face==='disc'?.35:.9);if(spec.coat.face==='disc')m.scale.setScalar(1.5);return m});
  const mat=bodyMaterial({back:spec.coat.back,belly:spec.coat.belly,dark:spec.coat.dark,marks:spec.coat.marks,face:spec.coat.face,muzzle:spec.coat.muzzle,accent:spec.coat.accent,seed:spec.coat.seed});
  autoSkin(torso,[{idx:rig.idx('root'),a:tailB,b:chest},...np.map((p,i)=>({...rig.seg('neck'+(i+1))})),rig.seg('head')],{pow:2.5,top:2});
@@ -275,7 +277,7 @@ function buildTurtle(kind,spec){
  for(const [id,sx,sz] of legs){const base=[sx*w*.85,h*.35,sz*L*.3],foot=[sx*w*1.25,legR*.6,sz*L*.38];rig.add('leg'+id,'root',base,foot);
   const lg=loft([{p:base,rx:legR*1.5},{p:foot,rx:legR*1.1}],{radial:8,rings:6,cap0:1,cap1:3,color:()=>skin});autoSkin(lg,[rig.seg('leg'+id),rig.seg('root')],{top:2});limbs.push(lg)}
  const tail=loft([{p:[0,h*.35,-L*.45],rx:legR*.8},{p:[0,h*.28,-L*.62],rx:legR*.3}],{radial:6,rings:4,cap0:1,cap1:2,color:()=>skin});autoSkin(tail,[rig.seg('root')],{top:1});limbs.push(tail);
- const eg=eyeGeo(Math.max(S(.012),.006),rgb('#15110d'));const eyeMat=eyeMaterial();
+ const eg=eyeGeo(Math.max(S(.012),.006),rgb('#15110d'));const eyeMat=eyeMaterial();eyeMat.userData.noClay=true;
  const eyes=[-1,1].map(s=>{const m=new THREE.Mesh(eg,eyeMat);m.name=s<0?'eyeL':'eyeR';m.position.set(s*legR*1.05,h*.6,L*.74).sub(new THREE.Vector3(0,h*.55,L*.62));return m});
  const shellG=mergeGeometries(parts.map(g=>{autoSkin(g,[rig.seg('root')],{top:1});return g}),false);
  const limbG=mergeGeometries(limbs.map(g=>{g.deleteAttribute('uv');return g}),false);
@@ -403,7 +405,7 @@ export function makeCreature(kind,opts={}){
  const proto=protoFor(kind,opts);if(!proto)return null;
  const group=SkeletonUtils.clone(proto.info.group);
  const controller=makeController(group,proto.spec,proto.info);
- group.userData.kind=kind;group.userData.rig=controller;group.userData.spec=proto.spec;group.userData.speed=proto.spec.speed||.45;
+ group.userData.kind=kind;group.userData.rig=stopMotionRig(controller);group.userData.spec=proto.spec;group.userData.speed=proto.spec.speed||.45;
  group.traverse(o=>{if(o.isSkinnedMesh){o.castShadow=true;o.receiveShadow=true}});
  return group;
 }

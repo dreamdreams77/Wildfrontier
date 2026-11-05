@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { stopMotionRig } from './clay.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { loft, blobGeo, lathe, xform, paintColor, Rig, autoSkin, bindRigid } from './meshkit.js';
@@ -138,7 +139,7 @@ export function makeHuman(look){
  const proto=cache.get(key);
  const group=SkeletonUtils.clone(proto.group);
  group.traverse(o=>{if(!o.isMesh)return;const p=o.geometry?.attributes?.position?.count||0;if(p<180)o.castShadow=false});
- group.userData.rig=controller(group,look);group.userData.height=proto.group.userData.height;group.userData.isHuman=true;
+ group.userData.rig=stopMotionRig(controller(group,look));group.userData.height=proto.group.userData.height;group.userData.isHuman=true;
  return group;
 }
 export const makeRole=role=>makeHuman(LOOKS[role]||LOOKS.keeper);
