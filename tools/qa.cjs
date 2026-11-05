@@ -70,7 +70,7 @@ async function run(label, ctxOpts) {
   await ev(() => { window.__wild.sanct.state.funds = 6000; });
   await ev(() => document.getElementById('sanctBtn').click()); await page.waitForTimeout(500);
   const tabs = await ev(() => [...document.querySelectorAll('.sanctuary-panel [data-tab]')].map(b => b.dataset.tab));
-  t('sanctuary panel has all 10 tabs', tabs.length === 10, tabs.join(','));
+  t('sanctuary panel has all its tabs', tabs.length >= 11, tabs.join(','));
   for (const tab of tabs) {
     await ev(tab => document.querySelector('.sanctuary-panel [data-tab=' + tab + ']').click(), tab); await page.waitForTimeout(150);
     const fit = await ev(() => { const p = document.querySelector('.sanctuary-panel'); const b = p.getBoundingClientRect(); const body = p.querySelector('.s-body'); return { inside: b.right <= innerWidth + 1 && b.left >= -1, text: body.innerText.length, overflowX: body.scrollWidth > body.clientWidth + 2 }; });

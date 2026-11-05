@@ -248,3 +248,5 @@ html,body{overflow-x:hidden}
 #clayFilm .cf-tone{background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(40,18,60,.3) 100%),linear-gradient(180deg,rgba(92,58,150,.07),rgba(0,0,0,0) 45%,rgba(255,150,90,.08))}
 #clayFilm .cf-grain{opacity:.4;background-repeat:repeat;image-rendering:pixelated}
 body.photo #clayFilm .cf-grain{opacity:.3}
+.ev-choices{display:grid;gap:8px;margin:8px 0}.ev-choices button{text-align:left;background:#ffffff0d;border:1px solid var(--line);border-radius:8px;padding:9px 11px;color:#e8ead9}.ev-choices button b{display:block;font-size:12px}.ev-choices button small{display:block;color:#b9bfa6;font-size:11px;margin-top:2px}.ev-choices button.on{background:#c0ce9833;border-color:#c0ce98}.ev-choices button:disabled:not(.on){opacity:.45}
+.event-panel{max-width:520px}

@@ -5,6 +5,7 @@ import { makeHuman, LOOKS } from './art/human.js';
 import { buildWorldArt } from './art/world-art.js';
 import { clayifyTree, updateClay, setClayMood, mountFilmFinish, setClayLite } from './art/clay.js';
 import { skyFor } from './art/claydiorama.js';
+import { createContactShadows, buildLanterns } from './art/claydressing.js';
 import { setWaterActors } from './art/terrain.js';
 import { makeBuildModel, setNight } from './art/structures.js';
 import { TIERS, detectTier, createGovernor } from './art/quality.js';
@@ -43,6 +44,8 @@ export function createWorld(container){
  function refreshEnv(){if(tier.post||tier.pixelRatio>1.2){try{pmrem=pmrem||new THREE.PMREMGenerator(renderer);const rt=pmrem.fromScene(envScene,0,1,300);if(scene.environment&&scene.environment.dispose)scene.environment.dispose();scene.environment=rt.texture;scene.environmentIntensity=.55}catch{}}}
  // ----- people and animals -----
  const staffLayer=createStaffLayer(scene),crowd=createCrowd(scene);
+ const contact=createContactShadows(scene),lanterns=buildLanterns(scene);
+ const shadowCasters=function*(){yield ranger;yield* animals;yield* staffLayer.figures.values();for(const p of crowd.people)yield p.f};
  const ranger=makeHuman(LOOKS.ranger);ranger.position.set(-5,0,11);ranger.userData.isRanger=true;scene.add(ranger);
  const animals=[];
  const clock=new THREE.Clock();
@@ -217,7 +220,7 @@ export function createWorld(container){
   scene.fog.color.set(sky);scene.background.set(sky);scene.fog.density=weather==='Light rain'?.017:night?.012:.011;
   const U=art.sky.uniforms;U.horizon.value.set(P.horizon);U.top.value.set(P.top);U.sunDir.value.set(sun.position.x-14,sun.position.y,sun.position.z).normalize();U.sunColor.value.copy(sun.color);U.night.value=night?1:0;
   art.sky.cmats.forEach(m=>{m.color.set(night?'#3e3866':dusk?'#ffb8a6':dawn?'#ffd8c8':weather==='Light rain'?'#a6a6b8':'#ffffff');m.opacity=night?.35:weather==='Light rain'?.95:.85});
-  art.horizon.ridgeMat.color.set(P.horizon).lerp(new THREE.Color(P.top),.35);art.diorama.setTime({night,dusk,sunDir:U.sunDir.value});setNight(night||dusk);
+  art.horizon.ridgeMat.color.set(P.horizon).lerp(new THREE.Color(P.top),.35);art.diorama.setTime({night,dusk,sunDir:U.sunDir.value});setNight(night||dusk);lanterns.setNight(night||dusk);
   if(phase!==lastPhase){lastPhase=phase;refreshEnv()}
  }
  function renderFrame(){if(post)post.render();else renderer.render(scene,camera)}
@@ -252,7 +255,7 @@ export function createWorld(container){
  function claySweep(){clayifyTree(scene,clayOpts)}
  function animate(){
   const dt=Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;
-  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env,ranger.position);if(clayOn){updateClay(t);if(t-lastClaySweep>2){lastClaySweep=t;claySweep()}}if((wFrame++&1)===0)rippleUpdate();
+  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env,ranger.position);contact.update(shadowCasters());if(clayOn){updateClay(t);if(t-lastClaySweep>2){lastClaySweep=t;claySweep()}}if((wFrame++&1)===0)rippleUpdate();
   const f=governor.tick();if(f)perf.fps=Math.round(f);
   if(cine){cine.t+=dt;const k=Math.min(1,cine.t/cine.duration);const e=k*k*(3-2*k);camera.position.copy(cine.P.getPoint(e));camera.lookAt(cine.Lk.getPoint(e));if(k>=1)stopCinematic()}
   renderFrame();requestAnimationFrame(animate);
