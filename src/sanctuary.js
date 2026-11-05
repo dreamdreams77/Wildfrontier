@@ -358,7 +358,7 @@ function useEnrichment(id,type){
   state.stock={meat:0,hay:0,browse:0,produce:0,aquatic:0,medicine:0,...DEFAULT_EQUIPMENT};   // migrate older saves that predate equipment
   if(isObj(st.stock))for(const [k,v] of Object.entries(st.stock))if(Number.isFinite(v)&&v>=0)state.stock[k]=v;
   state.pregnancies=Array.isArray(st.pregnancies)?st.pregnancies.filter(isObj):[];
-  state.familyTree=Array.isArray(st.familyTree)?st.familyTree.filter(isObj):[];
+  state.familyTree=Array.isArray(st.familyTree)?st.familyTree.filter(isObj).map(f=>({...f,name:typeof f.name==='string'?f.name:'Unnamed',kind:SPECIES[f.kind]?f.kind:null,parents:Array.isArray(f.parents)?f.parents.filter(x=>typeof x==='string'):[]})).filter(f=>f.kind):[];
   for(const h of hooks){
    if(!h.key||!h.restore)continue;
    const block=data.ext&&data.ext[h.key];

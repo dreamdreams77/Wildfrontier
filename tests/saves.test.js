@@ -105,3 +105,10 @@ test('non-numeric values inside saved maps and item condition never spread NaN',
   assert.ok(m.items.every(i=>Number.isFinite(i.cond)&&Number.isFinite(i.cost)),'item condition and repair cost finite');
   assert.ok(Number.isFinite(g.ops.summary().visitors.rating),'visitor rating finite');
 });
+
+test('damaged family-tree entries are repaired so the breeding tab and stories cannot crash',()=>{
+  const s=currentSave();s.state.familyTree=[{name:'Cub',kind:'africanLion',parents:'Nala & Jabari',born:'Day 9'},{kind:'dragon',parents:[]},5,{name:7,kind:'giraffe',parents:['Zawadi',3]}];
+  const g=build();assert.equal(g.sanct.restore(s),true);
+  const ft=g.sanct.summary().familyTree;assert.equal(ft.length,2);assert.ok(ft.every(f=>Array.isArray(f.parents)&&f.parents.every(p=>typeof p==='string')));
+  assert.doesNotThrow(()=>ft.map(f=>f.parents.join(' & ')));
+});

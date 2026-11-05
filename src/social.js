@@ -19,6 +19,8 @@ export function createSocial(sanct, mgmt, { rng = Math.random } = {}) {
   function bond(a, b) {
     const k = keyOf(a, b);
     if (state.bonds[k] === undefined) {
+      // only residents have bonds: asking about an animal that has left must not create a record for it
+      const here = new Set(residents().map(x => x.id)); if (!here.has(a) || !here.has(b)) return 0;
       // founders start on friendly terms; anyone new is a stranger
       const A = residents().find(x => x.id === a), B = residents().find(x => x.id === b);
       const strangers = (A && A.condition && /arrival|settling/i.test(A.condition)) || (B && B.condition && /arrival|settling/i.test(B.condition));

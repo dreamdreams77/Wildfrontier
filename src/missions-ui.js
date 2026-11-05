@@ -1,5 +1,6 @@
 import { PHASES, PHASE_LABEL, APPROACHES } from './rescue.js';
 import { EQUIPMENT } from './equipment.js';
+const escAttr=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));   // ids come from saves: never trust them in markup
 
 // Mission journal: live rescue cases with every step actionable, plus missions the director raised from world state.
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -10,7 +11,7 @@ const hm=m=>{if(m===null||m===undefined)return 'no deadline';const h=Math.floor(
 export function eventCardHtml(e,esc){
  const def=e.def,picked=e.choice;
  return '<article class="m-card ev-card"><header><b>'+def.icon+' '+esc(def.label)+'</b><span class="s-muted">'+(e.hoursLeft>=24?Math.ceil(e.hoursLeft/24)+' days left':e.hoursLeft+' h left')+'</span></header><p>'+esc(def.text)+'</p>'
-  +'<div class="ev-choices">'+def.choices.map(c=>'<button data-m="evchoose" data-id="'+e.id+'" data-c="'+c.id+'" class="'+(picked===c.id?'on':'')+'" '+(picked?'disabled':'')+'><b>'+esc(c.label)+(c.cost?' · '+c.cost:'')+'</b><small>'+esc(c.text)+'</small></button>').join('')+'</div>'
+  +'<div class="ev-choices">'+def.choices.map(c=>'<button data-m="evchoose" data-id="'+escAttr(e.id)+'" data-c="'+escAttr(c.id)+'" class="'+(picked===c.id?'on':'')+'" '+(picked?'disabled':'')+'><b>'+esc(c.label)+(c.cost?' · '+c.cost:'')+'</b><small>'+esc(c.text)+'</small></button>').join('')+'</div>'
   +(picked?'':'<small class="s-muted">If you do nothing, the free option applies.</small>')
   +(e.points&&e.effective==='patrol'?'<small class="s-muted">Fence posts reached: '+e.points.filter(p=>p.done).length+'/'+e.points.length+'. Follow the yellow beams on the safari fence before dawn.</small>':'')+'</article>';
 }
@@ -22,14 +23,14 @@ export function mountMissionsUI({rescue,director,activities,events,sanct,world,t
   const need=c.equipment.map(e=>{const have=(sanct.state.stock[e]||0)>0;return '<span class="m-eq '+(have?'ok':'bad')+'" title="'+esc(EQUIPMENT[e].blurb)+'">'+EQUIPMENT[e].icon+' '+esc(EQUIPMENT[e].label)+(have?'':' <button data-m="shop">BUY</button>')+'</span>'}).join('')||'<span class="s-muted">no special equipment</span>';
   const urgent=c.timeLeft!==null&&c.timeLeft<120;
   let acts='';
-  if(c.phase==='reported')acts='<button data-m="accept" data-id="'+c.id+'">ACCEPT &amp; MARK SEARCH AREA</button>';
-  else if(c.phase==='tracking')acts='<button data-m="go" data-id="'+c.id+'">GO TO SEARCH AREA</button><small class="s-muted">Clues found: '+c.clues.filter(x=>x.found).length+'/'+c.clues.length+'. Follow the orange markers; walk close to each.</small>';
-  else if(c.phase==='found')acts='<button data-m="assess" data-id="'+c.id+'">ASSESS CONDITION</button><small class="s-muted">Stand within about 7 m.</small>';
+  if(c.phase==='reported')acts='<button data-m="accept" data-id="'+escAttr(c.id)+'">ACCEPT &amp; MARK SEARCH AREA</button>';
+  else if(c.phase==='tracking')acts='<button data-m="go" data-id="'+escAttr(c.id)+'">GO TO SEARCH AREA</button><small class="s-muted">Clues found: '+c.clues.filter(x=>x.found).length+'/'+c.clues.length+'. Follow the orange markers; walk close to each.</small>';
+  else if(c.phase==='found')acts='<button data-m="assess" data-id="'+escAttr(c.id)+'">ASSESS CONDITION</button><small class="s-muted">Stand within about 7 m.</small>';
   else if(c.phase==='assessed'||c.phase==='handled'||c.phase==='transport'||c.phase==='rehab'){
    acts=c.animals.map(a=>{
-    if(c.phase==='rehab'||a.stage==='rehabilitating')return '<div class="m-an"><b>'+esc(a.name)+'</b> in recovery <button data-m="record" data-id="'+a.id+'">OPEN RECORD</button></div>';
-    if(!a.handled)return '<div class="m-an"><b>'+esc(a.name)+'</b> · health '+a.health+'% · stress '+a.stress+'%<span class="m-ap">'+Object.entries(APPROACHES).map(([k,ap])=>{const ok=ap.needs.every(n=>(sanct.state.stock[n]||0)>0);return '<button data-m="handle" data-id="'+c.id+'" data-an="'+a.id+'" data-ap="'+k+'" title="'+esc(ap.blurb)+'" '+(ok?'':'disabled')+'>'+esc(ap.label.toUpperCase())+'</button>'}).join('')+'</span></div>';
-    return '<div class="m-an"><b>'+esc(a.name)+'</b> secured <button data-m="transport" data-id="'+c.id+'" data-an="'+a.id+'">LOAD &amp; TRANSPORT</button></div>';
+    if(c.phase==='rehab'||a.stage==='rehabilitating')return '<div class="m-an"><b>'+esc(a.name)+'</b> in recovery <button data-m="record" data-id="'+escAttr(a.id)+'">OPEN RECORD</button></div>';
+    if(!a.handled)return '<div class="m-an"><b>'+esc(a.name)+'</b> · health '+a.health+'% · stress '+a.stress+'%<span class="m-ap">'+Object.entries(APPROACHES).map(([k,ap])=>{const ok=ap.needs.every(n=>(sanct.state.stock[n]||0)>0);return '<button data-m="handle" data-id="'+escAttr(c.id)+'" data-an="'+escAttr(a.id)+'" data-ap="'+k+'" title="'+esc(ap.blurb)+'" '+(ok?'':'disabled')+'>'+esc(ap.label.toUpperCase())+'</button>'}).join('')+'</span></div>';
+    return '<div class="m-an"><b>'+esc(a.name)+'</b> secured <button data-m="transport" data-id="'+escAttr(c.id)+'" data-an="'+escAttr(a.id)+'">LOAD &amp; TRANSPORT</button></div>';
    }).join('');
   }
   return '<article class="m-card'+(urgent?' urgent':'')+'"><header><b>'+esc(c.title)+'</b><span class="m-diff" title="Difficulty">'+stars(c.difficulty)+'</span></header>'
@@ -40,7 +41,7 @@ export function mountMissionsUI({rescue,director,activities,events,sanct,world,t
   if(!panel)return;lastRender=Date.now();
   const R=rescue.summary(),D=director.summary();const open=R.cases.filter(c=>c.phase!=='closed');
   const rescues=open.length?open.map(caseCard).join(''):'<p class="s-muted">No rescue calls right now. Reports arrive by radio as your reputation grows. Higher difficulty cases need more equipment and give more reward.</p>';
-  const ops=D.active.length?D.active.map(m=>'<article class="m-card"><header><b>'+esc(m.title)+'</b><span class="s-muted">'+m.daysLeft+' day'+(m.daysLeft===1?'':'s')+' left</span></header><p class="s-muted">'+esc(m.detail)+'</p><div class="m-acts"><small>Reward: '+(m.reward.funds?m.reward.funds+' funds ':'')+(m.reward.reputation?'· +'+m.reward.reputation+' reputation ':'')+(m.reward.credits?'· +'+m.reward.credits+' credits':'')+'</small>'+(m.focus?'<button data-m="focus" data-id="'+m.focus+'">SHOW</button>':'')+(m.rule==='habitat'?'<button data-m="build">OPEN BUILD MODE</button>':'')+'</div></article>').join(''):'<p class="s-muted">Nothing needs attention. Missions appear when something in the sanctuary needs you.</p>';
+  const ops=D.active.length?D.active.map(m=>'<article class="m-card"><header><b>'+esc(m.title)+'</b><span class="s-muted">'+m.daysLeft+' day'+(m.daysLeft===1?'':'s')+' left</span></header><p class="s-muted">'+esc(m.detail)+'</p><div class="m-acts"><small>Reward: '+(m.reward.funds?m.reward.funds+' funds ':'')+(m.reward.reputation?'· +'+m.reward.reputation+' reputation ':'')+(m.reward.credits?'· +'+m.reward.credits+' credits':'')+'</small>'+(m.focus?'<button data-m="focus" data-id="'+escAttr(m.focus)+'">SHOW</button>':'')+(m.rule==='habitat'?'<button data-m="build">OPEN BUILD MODE</button>':'')+'</div></article>').join(''):'<p class="s-muted">Nothing needs attention. Missions appear when something in the sanctuary needs you.</p>';
   const hist='<div class="s-stats"><div><small>CASES OPENED</small><b>'+R.stats.opened+'</b></div><div><small>RESCUED</small><b>'+R.stats.rescued+'</b></div><div><small>RELEASED</small><b>'+R.stats.released+'</b></div><div><small>LOST</small><b>'+R.stats.lost+'</b></div></div><h3>Radio log</h3><ul class="s-events">'+(R.log.map(l=>'<li><b>Day '+l.day+'</b> '+esc(l.text)+'</li>').join('')||'<li>No calls yet.</li>')+'</ul><h3>Missions</h3><ul class="s-events">'+(D.done.map(d=>'<li><b>Day '+d.day+'</b> '+esc(d.title)+' — '+d.result+'</li>').join('')||'<li>None yet.</li>')+'</ul>';
   const A=activities.summary();
   const prog='<div class="s-stats"><div><small>RESEARCH</small><b>'+A.research+'</b></div><div><small>MILESTONES</small><b>'+A.milestones.filter(m=>m.done).length+'/'+A.milestones.length+'</b></div><div><small>TREES PLANTED</small><b>'+A.counts.planted+'</b></div><div><small>LITTER</small><b>'+A.counts.litter+'</b></div></div>'
