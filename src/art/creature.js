@@ -407,6 +407,8 @@ export function makeCreature(kind,opts={}){
  const controller=makeController(group,proto.spec,proto.info);
  group.userData.kind=kind;group.userData.rig=stopMotionRig(controller);group.userData.spec=proto.spec;group.userData.speed=proto.spec.speed||.45;
  group.traverse(o=>{if(o.isSkinnedMesh){o.castShadow=true;o.receiveShadow=true}});
+ // claymation proportions: a slightly oversized head reads as a hand-made puppet
+ const hb=group.getObjectByName('head');if(hb)hb.scale.setScalar(proto.spec.type==='bird'?1.1:1.2);
  return group;
 }
 export const creatureKinds=()=>Object.keys(SPECS);

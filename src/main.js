@@ -5,6 +5,8 @@ import { createSanctuary, SPECIES, FOODS, stageOf } from './sanctuary.js';
 import { mountSanctuaryUI } from './sanctuary-ui.js';
 import { createOperations } from './operations.js';
 import { createManagement } from './management.js';
+import { createEvents } from './events.js';
+import { createRelease } from './release.js';
 import { createJournal } from './journal.js';
 import { mountBuildUI } from './build-ui.js';
 import { mountExploreUI } from './explore-ui.js';
@@ -14,7 +16,7 @@ import { createAudio } from './audio.js';
 import { createActivities, ACTIVITY_LABEL } from './activities.js';
 import { mountIntro, mountTutorial, shouldPlayIntro } from './intro.js';
 import { createDirector } from './director.js';
-import { mountMissionsUI } from './missions-ui.js';
+import { mountMissionsUI, eventCardHtml } from './missions-ui.js';
 import { ensureProfile, bondLabel, temperamentLabel } from './ai.js';
 import { ENRICH_TYPES } from './enrichment.js';
 
@@ -24,6 +26,8 @@ const SAVE_KEY='wildfrontier.sanctuary.v1';
 const sanct=createSanctuary(sim);
 const ops=createOperations(sanct);
 const mgmt=createManagement(sanct,ops);
+const events=createEvents(sanct,ops,mgmt);
+const release=createRelease(sanct,ops,mgmt);
 const journal=createJournal(SPECIES);
 const rescue=createRescue(sim,sanct);
 const director=createDirector(sim,sanct,ops,journal,rescue);
@@ -38,7 +42,7 @@ const world=createWorld($('world'));
 const audio=createAudio();
 for(const ev of ['pointerdown','keydown'])addEventListener(ev,()=>audio.resume(),{once:true,passive:true});
 document.addEventListener('click',e=>{if(e.target.closest('[data-p=shot]'))audio.sfx('shutter');else if(e.target.closest('button'))audio.sfx('click')},true);
-const portraits=createPortraits(world.renderer);window.__wild={world,sim,sanct,ops,journal,portraits,rescue,director,activities,audio,mgmt};
+const portraits=createPortraits(world.renderer);window.__wild={world,sim,sanct,ops,journal,portraits,rescue,director,activities,audio,mgmt,events,release};
 sim.animals.forEach(a=>ensureProfile(a));
 const simById=id=>sim.animals.find(a=>a.id===id);
 world.setAIHooks({
@@ -96,7 +100,7 @@ function performManaged(action){const a=sim.selected();let r;
  if(action.startsWith('sfeed:'))r=sanct.feed(a.id,action.slice(6));else if(action==='senrich')r=sanct.enrich(a.id);else if(action==='streat')r=sanct.treat(a.id);else{sanctUI.open('residents');return}
  toast(r.message);renderAnimal(a);renderHud();save()}
 const rpos=()=>({x:world.ranger.position.x,z:world.ranger.position.z});
-function syncRescueWorld(){world.setMarkers([...rescue.markers(),...activities.markers()]);world.setPlantings(activities.summary().planted);for(const a of sim.animals){const w=world.animals.find(x=>x.userData.id===a.id);if(!w)continue;if(a.hidden&&!w.userData.hidden)world.hideAnimal(a.id,a.habitatPosition);else if(!a.hidden&&w.userData.hidden)world.revealAnimal(a.id)}for(const w of world.animals.slice())if(!sim.animals.some(a=>a.id===w.userData.id))world.removeAnimal(w.userData.id)}
+function syncRescueWorld(){world.setMarkers([...rescue.markers(),...activities.markers(),...events.markers()]);world.setPlantings(activities.summary().planted);for(const a of sim.animals){const w=world.animals.find(x=>x.userData.id===a.id);if(!w)continue;if(a.hidden&&!w.userData.hidden)world.hideAnimal(a.id,a.habitatPosition);else if(!a.hidden&&w.userData.hidden)world.revealAnimal(a.id)}for(const w of world.animals.slice())if(!sim.animals.some(a=>a.id===w.userData.id))world.removeAnimal(w.userData.id)}
 const rescueActions={
  assess(cid){const r=rescue.assess(cid,rpos());toast(r.message);if(r.ok){const c=rescue.caseOf(cid);sim.select(c.animalIds[0]);sim.act('assess')}syncRescueWorld();renderHud();return r},
  handle(cid,aid,ap){const r=rescue.handle(cid,aid,rpos(),ap);toast(r.message);if(r.ok){sim.select(aid);const x=simById(aid);if(x.stage==='sighted')sim.act('assess');sim.act('stabilize');world.setAnimalStage(aid,simById(aid).stage)}syncRescueWorld();renderHud();save();return r},
@@ -141,6 +145,19 @@ addEventListener('keydown',e=>{if(e.code==='KeyE'&&promptSpot&&!promptEl.hidden)
 function updatePrompt(){const sp=activities.nearest(rpos());promptSpot=sp;if(sp){promptEl.hidden=false;promptEl.textContent=ACT_ICON[sp.type]+' '+ACTIVITY_LABEL[sp.type].toUpperCase()+' (E)'}else promptEl.hidden=true}
 
 
+// ---- sanctuary events: a card pops up the first time each event appears ----
+let eventCard=null;
+function showEventCard(){
+ if(eventCard||document.querySelector('.sanctuary-panel:not(.event-panel)')||document.body.classList.contains('intro'))return;
+ const e=events.summary().active.find(x=>!x.seen);if(!e)return;
+ events.markSeen(e.id);audio.sfx('radio');
+ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ eventCard=document.createElement('section');eventCard.className='sanctuary-panel event-panel';eventCard.setAttribute('role','dialog');
+ eventCard.innerHTML='<header><div><small>SANCTUARY EVENT · DAY '+sanct.state.day+'</small><h2>'+esc(e.def.label)+'</h2></div><button id="closeEvent" aria-label="Close">×</button></header><div class="s-body">'+eventCardHtml(e,esc)+'</div>';
+ eventCard.addEventListener('click',ev=>{const t=ev.target.closest('[data-m=evchoose],#closeEvent');if(!t)return;if(t.dataset.m){const r=events.choose(t.dataset.id,t.dataset.c);toast(r.message);if(!r.ok)return;save()}eventCard.remove();eventCard=null});
+ document.body.appendChild(eventCard);
+}
+
 // ---- opening and guided first steps ----
 const tctx={moved:0,looked:false,selected:false,activity:false,missions:false,fed:0,built:0,photos:0};
 let lastRP={x:world.ranger.position.x,z:world.ranger.position.z};
@@ -157,20 +174,20 @@ const afterBuild=()=>{renderHud();save()};
 const buildUI=mountBuildUI({sanct,ops,world,toast,portraits,afterChange:afterBuild});
 const exploreUI=mountExploreUI({sim,sanct,journal,world,toast,portraits,afterChange:afterBuild,saveJournal});exploreUI.setItemsSource(()=>ops.state.items);
 addEventListener('wildfrontier:ground',e=>buildUI.onGround(e.detail));addEventListener('wildfrontier:builditem',e=>buildUI.onItem(e.detail.id));
-const missionsUI=mountMissionsUI({rescue,director,activities,sanct,world,toast,actions:rescueActions,afterChange:afterBuild,focusAnimal,openRecord,openShop:()=>sanctUI.open('supplies')});
+const missionsUI=mountMissionsUI({rescue,director,activities,events,sanct,world,toast,actions:rescueActions,afterChange:afterBuild,focusAnimal,openRecord,openShop:()=>sanctUI.open('supplies')});
 exploreUI.setMarkersSource(()=>rescue.markers());
 $('missionBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();exploreUI.close();exploreUI.exitPhoto();missionsUI.open()});
 $('buildBtn').addEventListener('click',()=>{sanctUI.close();exploreUI.close();missionsUI.close();exploreUI.exitPhoto();buildUI.open()});
 $('journalBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();exploreUI.exitPhoto();exploreUI.openJournal()});
 $('photoBtn').addEventListener('click',()=>{buildUI.close();sanctUI.close();exploreUI.togglePhoto()});
-const sanctUI=mountSanctuaryUI({sim,sanct,ops,mgmt,world,toast,portraits,focusAnimal,openRecord,openBuild:()=>buildUI.open(),afterChange:()=>{renderHud();const a=sim.selected();if(!panel.classList.contains('hidden'))renderAnimal(a);save()}});
+const sanctUI=mountSanctuaryUI({sim,sanct,ops,mgmt,release,world,toast,portraits,focusAnimal,openRecord,openBuild:()=>buildUI.open(),afterChange:()=>{renderHud();const a=sim.selected();if(!panel.classList.contains('hidden'))renderAnimal(a);save()}});
 $('sanctBtn').addEventListener('click',()=>sanctUI.open('overview'));
 const speedButtons=[...document.querySelectorAll('#speedCtl button')];
 speedButtons.forEach(b=>b.addEventListener('click',()=>{speed=Number(b.dataset.speed);speedButtons.forEach(x=>x.classList.toggle('on',x===b));toast(speed===0?'Time paused':'Time speed '+({4:'×1',15:'×4',45:'×12'}[speed]||speed))}));
 function frame(now){const dt=Math.min(.25,(now-prev)/1000);prev=now;acc+=dt*speed;
  if(speed>0)ops.update(dt*Math.min(3,speed/4));world.syncStaff(ops.state.staff,dt);
  if(now-lastAudio>250){lastAudio=now;updatePrompt();{const rp2=world.ranger.position;tctx.moved+=Math.hypot(rp2.x-lastRP.x,rp2.z-lastRP.z);lastRP={x:rp2.x,z:rp2.z}}const rv=world.ranger.userData.vel;const spd=rv?rv.length():0;let nw=0;const rp=world.ranger.position;for(const w of [{x:7,z:rp.z*.96},{x:31,z:7},{x:38,z:-10},{x:25.5,z:8.2}]){const d=Math.hypot(w.x-rp.x,w.z-rp.z);nw=Math.max(nw,1-d/9)}audio.update({env:{phase:sim.phase,rain:sim.weather.name==='Light rain',wind:sim.weather.name==='Breezy'?1.8:.7,nearWater:Math.max(0,nw),season:sim.season},walking:spd>.5,walkSpeed:spd/4.2});const cc=rescue.summary().cases.length,st=rescue.summary().stats;if(cc>lastCases)audio.sfx('radio');if(st.rescued>lastRescued)audio.sfx('success');if(st.lost>lastLost)audio.sfx('fail');lastCases=cc;lastRescued=st.rescued;lastLost=st.lost}
- if(now-lastExplore>1000){lastExplore=now;tutorial.render();for(const ev of rescue.visit(rpos(),activities.hasPerk('scope')?3.4:2.2)){if(ev.type==='found')toast('🐾 You found the animal. Assess it before approaching.')}syncRescueWorld();const nb=missionsUI.badge();const bd=$('missionBadge');bd.hidden=!nb;bd.textContent=nb;for(const l of journal.exploreAt(world.ranger.position.x,world.ranger.position.z)){toast('📍 Discovered: '+l.label);sanct.say('Discovered '+l.label+'.');if(l.safari)sanct.state.reputation+=1;saveJournal();save()}}
+ if(now-lastExplore>1000){lastExplore=now;tutorial.render();for(const ev of rescue.visit(rpos(),activities.hasPerk('scope')?3.4:2.2)){if(ev.type==='found')toast('🐾 You found the animal. Assess it before approaching.')}for(const ev of events.visit(rpos())){toast(ev.left?'🔦 Fence post checked. '+ev.left+' to go.':'🔦 All fence posts checked. The poachers will think twice.');audio.sfx('success')}showEventCard();syncRescueWorld();const nb=missionsUI.badge();const bd=$('missionBadge');bd.hidden=!nb;bd.textContent=nb;for(const l of journal.exploreAt(world.ranger.position.x,world.ranger.position.z)){toast('📍 Discovered: '+l.label);sanct.say('Discovered '+l.label+'.');if(l.safari)sanct.state.reputation+=1;saveJournal();save()}}
  if(acc>=3&&now-lastHud>=700){const m=Math.floor(acc);acc-=m;lastHud=now;sim.tick(m);sanct.tick(m);rescue.tick();director.scan();for(const m of activities.scan()){toast('🏆 Milestone: '+m.label);audio.sfx('success')}renderHud();world.setVisitors(ops.state.visitors.onSite);if(!panel.classList.contains('hidden'))renderAnimal(sim.selected());sanctUI.refresh();missionsUI.refresh()}
  if(now-lastSave>10000){lastSave=now;save()}
  requestAnimationFrame(frame)}

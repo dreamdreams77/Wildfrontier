@@ -6,7 +6,16 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const stars=n=>'★'.repeat(n)+'☆'.repeat(4-n);
 const hm=m=>{if(m===null||m===undefined)return 'no deadline';const h=Math.floor(m/60),mm=Math.round(m%60);return h+'h '+String(mm).padStart(2,'0')+'m'};
 
-export function mountMissionsUI({rescue,director,activities,sanct,world,toast,actions,afterChange,focusAnimal,openRecord,openShop}){
+// One card per sanctuary event: what is happening, the choices with their costs, and what was decided.
+export function eventCardHtml(e,esc){
+ const def=e.def,picked=e.choice;
+ return '<article class="m-card ev-card"><header><b>'+def.icon+' '+esc(def.label)+'</b><span class="s-muted">'+(e.hoursLeft>=24?Math.ceil(e.hoursLeft/24)+' days left':e.hoursLeft+' h left')+'</span></header><p>'+esc(def.text)+'</p>'
+  +'<div class="ev-choices">'+def.choices.map(c=>'<button data-m="evchoose" data-id="'+e.id+'" data-c="'+c.id+'" class="'+(picked===c.id?'on':'')+'" '+(picked?'disabled':'')+'><b>'+esc(c.label)+(c.cost?' · '+c.cost:'')+'</b><small>'+esc(c.text)+'</small></button>').join('')+'</div>'
+  +(picked?'':'<small class="s-muted">If you do nothing, the free option applies.</small>')
+  +(e.points&&e.effective==='patrol'?'<small class="s-muted">Fence posts reached: '+e.points.filter(p=>p.done).length+'/'+e.points.length+'. Follow the yellow beams on the safari fence before dawn.</small>':'')+'</article>';
+}
+
+export function mountMissionsUI({rescue,director,activities,events,sanct,world,toast,actions,afterChange,focusAnimal,openRecord,openShop}){
  let panel=null,tab='rescues',lastRender=0,pointerDown=false;
  function stepper(c){const idx=PHASES.indexOf(c.phase);return '<div class="m-steps">'+PHASES.filter(p=>p!=='closed').map((p,i)=>'<span class="'+(i<idx?'done':i===idx?'now':'')+'">'+esc(PHASE_LABEL[p])+'</span>').join('')+'</div>'}
  function caseCard(c){
@@ -38,9 +47,11 @@ export function mountMissionsUI({rescue,director,activities,sanct,world,toast,ac
    +'<h3>Regions</h3><div class="s-list">'+A.regions.map(r=>'<article class="s-res"><div class="s-res-head"><b>'+(r.unlocked?'🗺 ':'🔒 ')+esc(r.label)+'</b><small>'+(r.unlocked?'open':'locked')+'</small></div><p class="s-muted">'+esc(r.blurb)+'</p></article>').join('')+'</div>'
    +'<h3>Research perks</h3><ul class="s-goals">'+A.perks.map(p=>'<li class="'+(p.unlocked?'done':'')+'"><span>'+(p.unlocked?'✓':'○')+'</span>'+esc(p.label)+' ('+p.at+' RP): '+esc(p.blurb)+'</li>').join('')+'</ul><p class="s-muted">Earn research by identifying tracks, logging birds from hides, testing water and planting trees. Look for the coloured rings in the world.</p>'
    +'<h3>Conservation milestones</h3><ul class="s-goals">'+A.milestones.map(m=>'<li class="'+(m.done?'done':'')+'"><span>'+(m.done?'✓':'○')+'</span><b>'+esc(m.label)+'</b> · '+esc(m.blurb)+' <small class="s-muted">(+'+(m.reward.funds||0)+' funds'+(m.reward.reputation?', +'+m.reward.reputation+' rep':'')+(m.reward.credits?', +'+m.reward.credits+' credits':'')+')</small></li>').join('')+'</ul>';
-  const tabs=[['rescues','RESCUES ('+open.length+')'],['ops','OPERATIONS ('+D.active.length+')'],['prog','PROGRESS'],['hist','HISTORY']];
+  const E=events?events.summary():{active:[],history:[]};
+  const evBlock=(E.active.length?'<h3>Happening now</h3>'+E.active.map(e=>eventCardHtml(e,esc)).join(''):'')+(E.history.length?'<h3>Recent events</h3><ul class="s-events">'+E.history.slice(0,5).map(h=>'<li><b>Day '+h.day+'</b> '+esc(h.outcome)+'</li>').join('')+'</ul>':'');
+  const tabs=[['rescues','RESCUES ('+open.length+')'],['ops','OPERATIONS ('+(D.active.length+E.active.length)+')'],['prog','PROGRESS'],['hist','HISTORY']];
   const eq='<div class="s-top">'+Object.entries(EQUIPMENT).map(([k,e])=>'<span>'+e.icon+' '+(R.equipment[k]||0)+'</span>').join('')+'<span>🪙 '+Math.round(sanct.state.funds)+'</span></div>';
-  panel.innerHTML='<header><div><small>FIELD OPERATIONS · DAY '+sanct.state.day+'</small><h2>Mission journal</h2></div><button id="closeMissions" aria-label="Close">×</button></header><nav class="s-tabs">'+tabs.map(([k,l])=>'<button data-mt="'+k+'" class="'+(tab===k?'on':'')+'">'+l+'</button>').join('')+'</nav>'+eq+'<div class="s-body">'+(tab==='rescues'?rescues:tab==='ops'?ops:tab==='prog'?prog:hist)+'</div>';
+  panel.innerHTML='<header><div><small>FIELD OPERATIONS · DAY '+sanct.state.day+'</small><h2>Mission journal</h2></div><button id="closeMissions" aria-label="Close">×</button></header><nav class="s-tabs">'+tabs.map(([k,l])=>'<button data-mt="'+k+'" class="'+(tab===k?'on':'')+'">'+l+'</button>').join('')+'</nav>'+eq+'<div class="s-body">'+(tab==='rescues'?rescues:tab==='ops'?evBlock+ops:tab==='prog'?prog:hist)+'</div>';
  }
  function onClick(e){
   const t=e.target.closest('[data-m],[data-mt],#closeMissions');if(!t)return;
@@ -56,10 +67,11 @@ export function mountMissionsUI({rescue,director,activities,sanct,world,toast,ac
   else if(a==='focus'){close();focusAnimal(id)}
   else if(a==='shop'){close();openShop()}
   else if(a==='build'){close();actions.build()}
+  else if(a==='evchoose'){const r=events.choose(id,t.dataset.c);toast(r.message);afterChange();render()}
  }
  function open(startTab){if(panel){close();return}if(startTab)tab=startTab;panel=document.createElement('section');panel.className='sanctuary-panel missions-panel';panel.setAttribute('role','dialog');document.body.appendChild(panel);panel.addEventListener('click',onClick);panel.addEventListener('pointerdown',()=>{pointerDown=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>panel.addEventListener(ev,()=>{pointerDown=false}));render()}
  function close(){if(panel){panel.remove();panel=null}}
  function refresh(){if(!panel||pointerDown||Date.now()-lastRender<2500)return;render()}
- const badge=()=>rescue.summary().cases.filter(c=>c.phase!=='closed').length+director.summary().active.length;
+ const badge=()=>rescue.summary().cases.filter(c=>c.phase!=='closed').length+director.summary().active.length+(events?events.summary().active.filter(e=>!e.choice).length:0);
  return {open,close,render,refresh,badge,isOpen:()=>!!panel};
 }

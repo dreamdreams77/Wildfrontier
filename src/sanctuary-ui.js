@@ -8,7 +8,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const bar=(v,cls='')=>'<i class="sbar '+cls+'"><em style="width:'+Math.max(0,Math.min(100,Math.round(v)))+'%"></em></i>';
 const welfareClass=v=>v>=75?'good':v>=50?'ok':'bad';
 
-export function mountSanctuaryUI({sim,sanct,ops,mgmt,world,toast,afterChange,focusAnimal,openRecord,openBuild,portraits}){
+export function mountSanctuaryUI({sim,sanct,ops,mgmt,release,world,toast,afterChange,focusAnimal,openRecord,openBuild,portraits}){
  const face=(kind,fallback)=>portraits?'<img class="p-img" alt="" src="'+portraits.portrait(kind)+'">':fallback;
  let panel=null,pointerDown=false,lastRender=0,tab='overview',pairKind='africanLion',maleId='',femaleId='';
 
@@ -124,6 +124,23 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,world,toast,afterChange,foc
   const rows=Object.entries(PROJECTS).map(([k,p])=>{const done=r.done[k],active=r.active===k;return '<div class="s-supply"><span>'+(done?'✓':active?'🔬':'○')+'</span><div><b>'+esc(p.label)+'</b><small>'+esc(p.blurb)+' '+(active?'Progress '+r.progress+'/'+p.rp+'.':done?'Complete.':p.rp+' research · '+p.cost+' to start.')+'</small></div>'+(done||active?'':'<button data-act="research" data-id="'+k+'">START</button>')+'</div>'}).join('');
   return '<p class="s-muted">Researchers study at the supply shed and add progress through the day. '+(r.researchers?r.researchers+' researcher'+(r.researchers>1?'s':'')+' on staff.':'<b>Hire a researcher in the Staff tab to begin.</b>')+'</p>'+rows;
  }
+ function releaseTab(){
+  if(!release)return '';
+  const R=release.summary();
+  const preparing=R.candidates.filter(c=>c.prep),ready=R.candidates.filter(c=>!c.prep);
+  const meter=(label,v)=>'<label>'+label+bar(v,v<50?'low':'')+'</label>';
+  const card=c=>{const r=c.readiness,sp=SPECIES[c.kind];return '<article class="s-res"><div class="s-res-head"><button data-act="open" data-id="'+c.id+'" class="s-link">'+face(c.kind,sp.emoji)+' <b>'+esc(c.name)+'</b></button><small>'+esc(sp.common)+' · '+c.sex+'</small><span class="s-w '+welfareClass(r.score)+'">'+r.score+'%</span></div>'
+   +'<div class="s-meters">'+meter('Health',r.health)+meter('Fitness',r.fitness)+meter('Wariness',r.wariness)+meter('Wild skill',r.skill)+'</div>'
+   +(c.prep?'<p class="s-muted">In the soft-release pen: day '+c.prep.days+' of 5.</p><div class="s-acts"><button data-act="relgo" data-id="'+c.id+'" '+(c.prep.days>=5&&r.score>=60?'':'disabled')+'>RELEASE TO THE WILD</button><button data-act="relcancel" data-id="'+c.id+'">RETURN TO HABITAT</button></div>'
+    :c.blockers.length?'<p class="s-muted">'+c.blockers.map(esc).join(' ')+'</p>':'<div class="s-acts"><button data-act="relprep" data-id="'+c.id+'" '+(R.hasPen?'':'disabled')+'>PREPARE FOR RELEASE</button></div>')+'</article>'};
+  const tracked=R.released.length?R.released.map(r=>'<article class="s-res"><div class="s-res-head"><span>'+(SPECIES[r.kind]?.emoji||'')+' <b>'+esc(r.name)+'</b></span><small>released day '+r.day+' · readiness '+r.readiness+'%</small><span class="s-w '+(r.status==='lost'?'bad':r.status==='established'?'good':'ok')+'">'+(r.status==='tracking'?'tracking · day '+r.daysTracked:r.status)+'</span></div>'+(r.reports.length?'<ul class="s-events">'+r.reports.slice(0,3).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'')+'</article>').join(''):'<p class="s-muted">No releases yet.</p>';
+  return '<p class="s-muted">The goal of the sanctuary: animals back in the wild. Prepare an adult in a soft-release pen for 5 days (less human contact, more wild practice; play keeps it sharp), then release it at 60% readiness or more. It is tracked by collar for 10 days. Wary, fit, skilled animals survive best.</p>'
+   +'<div class="s-stats"><div><small>RELEASED</small><b>'+R.stats.released+'</b></div><div><small>ESTABLISHED</small><b>'+R.stats.established+'</b></div><div><small>LOST</small><b>'+R.stats.lost+'</b></div><div><small>RELEASE PEN</small><b>'+(R.hasPen?'✓':'—')+'</b></div></div>'
+   +(R.hasPen?'':'<div class="s-foot"><button data-act="build">BUILD A SOFT-RELEASE PEN</button></div>')
+   +(preparing.length?'<h3>Preparing</h3><div class="s-list">'+preparing.map(card).join('')+'</div>':'')
+   +'<h3>Tracking</h3><div class="s-list">'+tracked+'</div>'
+   +'<h3>Candidates</h3><div class="s-list">'+ready.map(card).join('')+'</div>';
+ }
  function segmentsBlock(sum){
   const g=sum.ext.mgmt;
   return '<h3>Who visits</h3>'+Object.entries(SEGMENTS).map(([k,s])=>'<div class="s-supply"><span>'+s.icon+'</span><div><b>'+s.label+' · '+(g.visitorMix[k]||0)+' today</b><small>'+esc(s.blurb)+'</small></div><span class="s-w '+welfareClass(g.satisfaction[k])+'">'+g.satisfaction[k]+'%</span></div>').join('')
@@ -133,12 +150,12 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,world,toast,afterChange,foc
  function render(){
   if(!panel)return;lastRender=Date.now();
   const sum=sanct.summary();
-  const tabs=[['overview','OVERVIEW'],['residents','RESIDENTS'],['supplies','SUPPLIES'],['breeding','BREEDING'],['staff','STAFF'],['habitat','HABITAT'],['visitors','VISITORS'],['health','HEALTH'],['budget','BUDGET'],['research','RESEARCH']];
+  const tabs=[['overview','OVERVIEW'],['residents','RESIDENTS'],['supplies','SUPPLIES'],['breeding','BREEDING'],['staff','STAFF'],['habitat','HABITAT'],['visitors','VISITORS'],['health','HEALTH'],['budget','BUDGET'],['research','RESEARCH'],['release','RELEASE']];
   const scroll=panel.querySelector('.s-body')?.scrollTop||0;
   panel.innerHTML='<header><div><small>SAFARI SANCTUARY · DAY '+sum.day+'</small><h2>Wildlife care &amp; conservation</h2></div><button id="closeSanct" aria-label="Close">×</button></header>'
    +'<nav class="s-tabs">'+tabs.map(([k,l])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+l+'</button>').join('')+'</nav>'
    +'<div class="s-top"><span>🪙 '+sum.funds+'</span><span>🌍 '+sum.credits+' cr</span><span>⭐ '+sum.reputation+'</span><span>❤ '+sum.avgWelfare+'%</span></div>'
-   +'<div class="s-body">'+(tab==='overview'?overview(sum):tab==='residents'?residents():tab==='supplies'?supplies(sum):tab==='staff'?staffTab(sum):tab==='habitat'?habitatTab(sum):tab==='visitors'?visitorsTab(sum):tab==='health'?healthTab(sum):tab==='budget'?budgetTab(sum):tab==='research'?researchTab(sum):breeding(sum))+'</div>';
+   +'<div class="s-body">'+(tab==='overview'?overview(sum):tab==='residents'?residents():tab==='supplies'?supplies(sum):tab==='staff'?staffTab(sum):tab==='habitat'?habitatTab(sum):tab==='visitors'?visitorsTab(sum):tab==='health'?healthTab(sum):tab==='budget'?budgetTab(sum):tab==='research'?researchTab(sum):tab==='release'?releaseTab():breeding(sum))+'</div>';
   const body=panel.querySelector('.s-body');if(body)body.scrollTop=scroll;
  }
 
@@ -163,6 +180,9 @@ export function mountSanctuaryUI({sim,sanct,ops,mgmt,world,toast,afterChange,foc
   else if(a==='repair')run(mgmt.repair(id));
   else if(a==='research')run(mgmt.startProject(id));
   else if(a==='train')run(mgmt.train(id));
+  else if(a==='relprep')run(release.prepare(id));
+  else if(a==='relgo')run(release.release(id));
+  else if(a==='relcancel')run(release.cancel(id));
   else if(a==='checkAll'){let found=0;for(const r of sanct.residents()){const x=mgmt.examine(r.id);if(x.case)found++}toast(found?found+' case'+(found>1?'s':'')+' found.':'Everyone checks out healthy.');render()}
   else if(a==='hire')run(ops.hire(t.dataset.role));
   else if(a==='dismiss')run(ops.dismiss(id));

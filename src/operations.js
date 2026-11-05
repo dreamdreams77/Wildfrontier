@@ -41,6 +41,7 @@ export const BUILD_ITEMS={
  ...Object.fromEntries(Object.entries(ENRICHMENT).map(([k,e])=>[k,{label:e.label,icon:e.icon,cost:e.cost,r:e.r,tags:['enrich',k],blurb:e.blurb}])),
  cafe:{label:'Visitor café',icon:'☕',cost:220,r:1.8,tags:['service'],appeal:1.5,capacity:6,spend:3,blurb:'Earns extra from every visitor and keeps guests longer.'},
  giftShop:{label:'Gift shop',icon:'🎁',cost:180,r:1.6,tags:['service'],appeal:1,spend:2,blurb:'Souvenirs fund conservation: extra income per visitor.'},
+ releasePen:{label:'Soft-release pen',icon:'🚪',cost:300,r:2.4,tags:['release'],blurb:'A quiet fenced pen where animals relearn wild skills before release.'},
  education:{label:'Education centre',icon:'🏫',cost:500,r:2.5,tags:['education'],appeal:4,capacity:20,blurb:'Exhibits and classes: more visitors, more awareness.'},
 };
 

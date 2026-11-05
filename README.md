@@ -170,3 +170,19 @@ Inspired by Hollow Tide's "lit clay", `src/art/clay.js` turns every solid surfac
 rendering the full pass costs about a fifth of the frame; real GPUs should pay less, but this was not measured on a phone.
 
 Diorama pass (closer to Hollow Tide): lumpy clay clouds hung in a storybook sky (periwinkle and peach by day, violet and coral at dusk, indigo at night), a thumb-dented clay moon at night, round "lollipop" clay trees on the horizon, fat rounded clay grass leaves, and banded, saturated clay water (`src/art/claydiorama.js`).
+
+## Sanctuary events and the reintroduction programme
+
+**Events** (`src/events.js`): every day there is a chance something happens, and each event asks you to decide, with a real cost either way. Undecided events fall back to the free option.
+
+| Event | Choices |
+| --- | --- |
+| ☀️ Drought (3–5 days) | hire a water truck (180) or ration water (the supply drains much faster) |
+| ⛈️ Storm | secure the structures (90) or ride it out (several structures battered, animals frightened) |
+| 🌡️ Heatwave (2–4 days) | misters and shade cloth (140) or rely on your shade (habitats short on shade overheat) |
+| 🎩 Donor visit | spruce up (100: every enclosure cleaned, worn structures repaired) or show it as it is; the donor gives generously only to a clean, healthy sanctuary |
+| 🔦 Poachers sighted (at dusk) | call the wildlife police (120) or patrol the fence yourself: walk to the three marked posts before dawn for credits and reputation; miss one and an animal may be injured |
+
+**Reintroduction** (`src/release.js`, Sanctuary → Release tab): build a soft-release pen, prepare an adult there for five days (wild skill grows, trust in people fades; play keeps it sharp), then release it at 60% readiness or better. Readiness combines health, fitness, wariness of people and wild skill. Released animals are tracked by collar for ten days with field reports; an established animal earns credits and reputation, a lost one costs reputation. You cannot release the young, the pregnant, the sick, or an animal that would leave its species without a breeding pair.
+
+**Set dressing**: soft violet contact shadows under every animal and person (so they sit on the set even without real shadows on Low), slightly oversized clay heads on the animals, and clay lanterns along the trails that glow at dusk and night.
