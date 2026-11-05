@@ -241,3 +241,10 @@ body.photo #tutorial,body.building #tutorial{display:none}
 @media(max-width:1100px) and (min-width:761px){.left-rail{top:auto;bottom:118px;left:12px;width:210px;max-height:calc(100vh - 270px)}.right-panel{top:132px;max-height:calc(100vh - 260px)}}
 @media(max-width:560px){.brand small{display:none}.topbar{padding:0 10px;gap:6px}.top-actions{gap:6px;flex-shrink:0}.day-chip{max-width:118px;padding:6px 8px}.brand{min-width:0}}
 html,body{overflow-x:hidden}
+
+/* Claymation film finish: split tone, vignette and stop-motion grain over the 3D view (under the HUD) */
+#clayFilm{position:absolute;inset:0;pointer-events:none;z-index:1}
+#clayFilm i{position:absolute;inset:0}
+#clayFilm .cf-tone{background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(40,18,60,.3) 100%),linear-gradient(180deg,rgba(92,58,150,.07),rgba(0,0,0,0) 45%,rgba(255,150,90,.08))}
+#clayFilm .cf-grain{opacity:.4;background-repeat:repeat;image-rendering:pixelated}
+body.photo #clayFilm .cf-grain{opacity:.3}

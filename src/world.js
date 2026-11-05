@@ -3,6 +3,7 @@ import { makeCreature } from './art/creature.js';
 import { makeOak } from './art/vegetation.js';
 import { makeHuman, LOOKS } from './art/human.js';
 import { buildWorldArt } from './art/world-art.js';
+import { clayifyTree, updateClay, setClayMood, mountFilmFinish, setClayLite } from './art/clay.js';
 import { setWaterActors } from './art/terrain.js';
 import { makeBuildModel, setNight } from './art/structures.js';
 import { TIERS, detectTier, createGovernor } from './art/quality.js';
@@ -26,11 +27,13 @@ export function createWorld(container){
  const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,260);camera.position.set(10,9,13);
  const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
  renderer.setPixelRatio(Math.min(devicePixelRatio,tier.pixelRatio));renderer.shadowMap.enabled=tier.shadows;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
- renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;container.appendChild(renderer.domElement);
+ renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.22;container.appendChild(renderer.domElement);
+ const clayOn=!/[?&]clay=0/.test(location.search);setClayLite(tierName==='low');   // ?clay=0 turns the claymation pass off (comparison, very weak devices)
+ if(clayOn)mountFilmFinish(container.parentElement||document.body);
  let post=null;
  // lighting: a warm key sun, a cool sky fill and a ground bounce give the painted palette its depth
- const hemi=new THREE.HemisphereLight('#f6f4e2','#7f8f5c',2.0);scene.add(hemi);
- const sun=new THREE.DirectionalLight('#ffe5bd',3.1);sun.position.set(-8,22,12);sun.target.position.set(14,0,0);scene.add(sun.target);sun.castShadow=tier.shadows;
+ const hemi=new THREE.HemisphereLight('#f6f0ff','#6a5a7e',2.0);scene.add(hemi);
+ const sun=new THREE.DirectionalLight('#fff0cf',3.1);sun.position.set(-8,22,12);sun.target.position.set(14,0,0);scene.add(sun.target);sun.castShadow=tier.shadows;
  sun.shadow.mapSize.set(tier.shadowMap,tier.shadowMap);Object.assign(sun.shadow.camera,{left:-42,right:42,top:36,bottom:-36,near:1,far:90});sun.shadow.bias=-.0003;sun.shadow.normalBias=.04;sun.shadow.radius=3;scene.add(sun);
  const fill=new THREE.DirectionalLight('#a8c4ff',.55);fill.position.set(20,10,-14);scene.add(fill);
  const art=buildWorldArt(scene,{tier});
@@ -204,7 +207,7 @@ export function createWorld(container){
   sun.intensity=night?.9:dusk?1.5:dawn?2.2:season==='Winter'?2.5:3.1;
   sun.color.set(night?'#8ea6c8':dusk?'#f0a068':dawn?'#ffc890':season==='Winter'?'#d7e2ed':'#ffe5bd');
   const ang=night?[0,28,6]:dusk?[34,8,10]:dawn?[-34,8,10]:[-8,22,12];sun.position.set(ang[0]+14,ang[1],ang[2]);
-  hemi.intensity=night?1.5:dusk?1.4:2.0;hemi.color.set(night?'#7f93bb':dusk?'#f0c8a0':'#f3f1dc');hemi.groundColor.set(night?'#3a4a60':'#5f6f48');
+  hemi.intensity=night?1.5:dusk?1.4:2.0;hemi.color.set(night?'#7f93bb':dusk?'#f0c8a0':'#f3f1dc');hemi.groundColor.set(night?'#352f5c':dusk?'#6a4a6e':'#6a5a7e');setClayMood({night,dusk});
   fill.intensity=night?1.0:.55;fill.color.set(night?'#6a86c8':'#a8c4ff');
   const sky=night?'#2f3f55':dusk?'#c9a58c':dawn?'#d9b9a0':weather==='Light rain'?'#879a9a':S.sky;
   scene.fog.color.set(sky);scene.background.set(sky);scene.fog.density=weather==='Light rain'?.017:night?.012:.011;
@@ -239,9 +242,13 @@ export function createWorld(container){
   for(const p of crowd.people){if(list.length>=8)break;const q=p.f.position;if(near(q.x,q.z))list.push({x:q.x,z:q.z,speed:.5})}
   setWaterActors(list);
  }
+ // Claymation pass: every solid material in the scene becomes plasticine; a slow sweep catches anything added later.
+ let lastClaySweep=-9;
+ const clayOpts=(o,m)=>o.name==='ground'?{boil:0,scale:.16,strength:1.1,soft:.55,rim:.08}:o.isInstancedMesh?{boil:0,scale:.6,strength:.4,soft:.6,rim:.1}:o.isSkinnedMesh?{boil:.01,scale:.7,strength:.9,soft:.75,rim:.35}:{boil:.014,scale:.34,strength:.8,soft:.45,rim:.25};
+ function claySweep(){clayifyTree(scene,clayOpts)}
  function animate(){
   const dt=Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;
-  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env,ranger.position);if((wFrame++&1)===0)rippleUpdate();
+  update(dt,window.__wildKeys||{});crowd.update(dt);art.update(t,dt,env,ranger.position);if(clayOn){updateClay(t);if(t-lastClaySweep>2){lastClaySweep=t;claySweep()}}if((wFrame++&1)===0)rippleUpdate();
   const f=governor.tick();if(f)perf.fps=Math.round(f);
   if(cine){cine.t+=dt;const k=Math.min(1,cine.t/cine.duration);const e=k*k*(3-2*k);camera.position.copy(cine.P.getPoint(e));camera.lookAt(cine.Lk.getPoint(e));if(k>=1)stopCinematic()}
   renderFrame();requestAnimationFrame(animate);
