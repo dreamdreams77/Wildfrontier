@@ -312,10 +312,12 @@ export function createManagement(sanct,ops,options={}){
   const fresh={serial:0,cases:[],dirt:{},vax:{},vaccines:0,quarantine:{},rp:0,active:null,progress:0,done:{},nextStudy:0,nextRound:{},sat:{family:.6,photographer:.6,student:.6,donor:.6},avgSat:.6,mix:{family:0,photographer:0,student:0,donor:0},feedback:[],lastGift:0,today:{},history:[]};
   for(const k of Object.keys(fresh))state[k]=fresh[k];
   for(const k of ['serial','vaccines','rp','progress','nextStudy','avgSat','lastGift'])if(fin(src[k]))state[k]=src[k];
-  for(const k of ['dirt','vax','quarantine','done','nextRound','today'])if(obj(src[k]))state[k]=src[k];
-  for(const k of ['sat','mix'])if(obj(src[k]))state[k]={...fresh[k],...src[k]};
+  const nums=o=>Object.fromEntries(Object.entries(o).filter(([,v])=>fin(v)));   // a damaged number here would turn dirt, ratings or the ledger into NaN
+  for(const k of ['quarantine','done'])if(obj(src[k]))state[k]=src[k];
+  for(const k of ['dirt','vax','nextRound','today'])if(obj(src[k]))state[k]=nums(src[k]);
+  for(const k of ['sat','mix'])if(obj(src[k]))state[k]={...fresh[k],...nums(src[k])};
   state.cases=(Array.isArray(src.cases)?src.cases:[]).filter(c=>obj(c)&&typeof c.animalId==='string'&&CONDITIONS[c.cond]&&fin(c.sev)).map(c=>({id:String(c.id||'case-'+(++state.serial)),animalId:c.animalId,cond:c.cond,sev:clamp(c.sev),day:fin(c.day)?c.day:0,noticed:!!c.noticed,diagnosed:!!c.diagnosed,treated:fin(c.treated)?c.treated:0,...(fin(c.sev0)?{sev0:c.sev0}:fin(c.treated)&&c.treated>0?{sev0:Math.max(10,clamp(c.sev))}:{}),...(c.why?{why:c.why}:{})}));
-  state.history=(Array.isArray(src.history)?src.history:[]).filter(h=>obj(h)&&obj(h.cats)).slice(-14);
+  state.history=(Array.isArray(src.history)?src.history:[]).filter(h=>obj(h)&&obj(h.cats)&&fin(h.income)&&fin(h.spent)).slice(-14);
   state.feedback=Array.isArray(src.feedback)?src.feedback.filter(x=>typeof x==='string').slice(0,4):[];
   state.active=typeof src.active==='string'&&PROJECTS[src.active]?src.active:null;
   state.fac={clinic:1,nursery:1,lab:1};if(obj(src.fac))for(const k of Object.keys(state.fac))if([1,2,3].includes(src.fac[k]))state.fac[k]=src.fac[k];

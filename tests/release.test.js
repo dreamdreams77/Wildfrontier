@@ -46,3 +46,18 @@ test('the programme saves and restores',()=>{
   const {s,ops,rel}=setup();s.state.funds=5000;ops.place('releasePen',40,-14);s.state.credits=20;s.importFounder('africanLion','male');rel.prepare(lion(s).id);
   const save=JSON.parse(JSON.stringify(s.serialize()));const b=setup();assert.equal(b.s.restore(save),true);assert.ok(b.rel.state.prep['africanLion-jabari']);
 });
+
+test('eligibility is checked again at release time (paired or taken ill in the pen)',()=>{
+  const {s,ops,mgmt,rel}=setup(.99);s.state.funds=5000;ops.place('releasePen',40,-14);s.state.credits=20;s.importFounder('africanLion','male');
+  const a=lion(s);a.health=95;a.energy=85;a.nutrition=75;assert.equal(rel.prepare(a.id).ok,true);for(let d=0;d<PREP_DAYS;d++){a.boredom=20;nextDay(s)}
+  a.pregnant={dueMinute:9e9,sireName:'x'};let r=rel.release(a.id);assert.equal(r.ok,false);assert.match(r.message,/Expecting/);
+  delete a.pregnant;mgmt.start(a,'parasites');r=rel.release(a.id);assert.equal(r.ok,false);assert.match(r.message,/unwell/);
+  mgmt.state.cases.length=0;assert.equal(rel.release(a.id).ok,true);
+});
+
+test('damaged release counters in a save are repaired',()=>{
+  const {s}=setup();const save=JSON.parse(JSON.stringify(s.serialize()));
+  save.ext.release={prep:{},released:[{id:'x',name:'Old',kind:'africanLion',readiness:80,status:'tracking',daysTracked:'two',reports:[]}],stats:{released:'one',established:null,lost:2}};
+  const b=setup();assert.equal(b.s.restore(save),true);assert.deepEqual(b.rel.state.stats,{released:0,established:0,lost:2});
+  nextDay(b.s);assert.equal(b.rel.state.released[0].daysTracked,1);
+});

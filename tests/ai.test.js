@@ -108,7 +108,7 @@ test('enrichment: species-appropriate objects work best; swimmers use water; eve
 });
 
 test('boredom is a real welfare stat: it builds, hurts, and is relieved by the right object',()=>{
-  const sim=createSimulation();const s=createSanctuary(sim);const ops=createOperations(s);
+  const sim=createSimulation();const s=createSanctuary(sim);createOperations(s);
   const lion=sim.animals.find(a=>a.name==='Jabari'),zebra=sim.animals.find(a=>a.name==='Kito');
   for(const a of [lion,zebra]){a.nutrition=95;a.hydration=95;a.stress=10;a.health=95}
   const w0=welfareOf(lion);lion.boredom=30;s.state.waterLevel=100;

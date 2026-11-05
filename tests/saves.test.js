@@ -92,3 +92,16 @@ test('a treated case restored without its starting severity still heals and neve
   const g=build();assert.equal(g.sanct.restore(s),true);play(g,6);
   const c=g.mgmt.summary().mgmt.cases;assert.ok(c.every(x=>Number.isFinite(x.sev)),'severity stays finite');assert.ok(!c.some(x=>x.id==='case-1'),'the restored case heals');
 });
+
+test('non-numeric values inside saved maps and item condition never spread NaN',()=>{
+  const s=currentSave();const M=s.ext.mgmt;
+  M.dirt={africanLion:'x',giraffe:null,plainsZebra:30};M.sat={family:'high'};M.mix={donor:'x'};M.today={upkeep:'x'};M.history=[{day:1,income:'x',spent:0,cats:{}}];
+  s.ext.ops.items[0].cond='worn';
+  const g=build();assert.equal(g.sanct.restore(s),true);
+  assert.equal(g.mgmt.dirtOf('plainsZebra'),30,'valid numbers are kept');assert.ok(!('cond' in g.ops.state.items[0]),'a damaged condition counts as new');
+  play(g,3);assertHealthy(g,'damaged numbers');
+  const m=g.mgmt.summary().mgmt;
+  assert.ok(Object.values(m.dirt).every(Number.isFinite),'dirt finite');assert.ok(Number.isFinite(m.avgSat),'satisfaction finite');assert.ok(Number.isFinite(m.budget.net),'ledger finite');
+  assert.ok(m.items.every(i=>Number.isFinite(i.cond)&&Number.isFinite(i.cost)),'item condition and repair cost finite');
+  assert.ok(Number.isFinite(g.ops.summary().visitors.rating),'visitor rating finite');
+});

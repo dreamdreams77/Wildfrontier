@@ -62,12 +62,11 @@ export function buildClayDiorama(scene, art) {
   const moonMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9, emissive: '#fff1c8', emissiveIntensity: .55, fog: false });
   const moon = new THREE.Mesh(moonGeo(), moonMat); moon.scale.setScalar(7); moon.visible = false; moon.renderOrder = -8;
   group.add(moon);
-  const state = { night: false };
   return {
     group, clouds, moon,
     update(dt) { clouds.rotation.y += dt * .004; },
     setTime({ night, dusk, sunDir }) {
-      state.night = night; moon.visible = night || dusk;
+      moon.visible = night || dusk;
       // the moon rises opposite the sun, high enough to sit above the hills
       const d = sunDir ? sunDir.clone().multiplyScalar(-1) : new THREE.Vector3(.3, .6, -.7);
       d.y = Math.max(.35, Math.abs(d.y)); d.normalize();

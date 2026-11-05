@@ -86,7 +86,8 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
     if (c.cost && !sanct.spend(c.cost, 'events')) return { ok: false, message: c.label + ' costs ' + c.cost + '.' };
     ev.choice = choiceId; ev.seen = true;
     if (ev.type === 'vip' && choiceId === 'spruce') {
-      if (mgmt) { for (const k of Object.keys(sanct.SPECIES)) mgmt.state.dirt[k] = 0; for (const it of ops.state.items) it.cond = Math.max(it.cond ?? 100, 85); }
+      if (mgmt) for (const k of Object.keys(sanct.SPECIES)) mgmt.state.dirt[k] = 0;
+      for (const it of ops.state.items) it.cond = Math.max(it.cond ?? 100, 85);
     }
     if (ev.type === 'drought' && choiceId === 'truck') sanct.state.waterLevel = 100;
     return { ok: true, message: EVENTS[ev.type].label + ': ' + c.label + '.' };
@@ -178,7 +179,9 @@ export function createEvents(sanct, ops, mgmt, { rng = Math.random } = {}) {
   function restore(d) {
     const obj = v => v && typeof v === 'object' && !Array.isArray(v); if (!obj(d)) return;
     state.serial = Number.isFinite(d.serial) ? d.serial : 0; state.nextRoll = Number.isFinite(d.nextRoll) ? d.nextRoll : 0; state.nextNight = Number.isFinite(d.nextNight) ? d.nextNight : 0;
-    state.active = (Array.isArray(d.active) ? d.active : []).filter(e => obj(e) && EVENTS[e.type] && Number.isFinite(e.endsAt)).map(e => ({ ...e, points: Array.isArray(e.points) ? e.points.filter(obj) : e.type === 'poachers' ? PATROL_POINTS.map(([x, z], i) => ({ id: e.id + '-p' + i, x, z, done: false })) : undefined }));
+    // keep the serial ahead of every restored id, and give id-less events a fresh one, so ids stay unique
+    for (const e of Array.isArray(d.active) ? d.active : []) { const n = obj(e) && typeof e.id === 'string' ? Number(/^ev(\d+)$/.exec(e.id)?.[1]) : 0; if (n > state.serial) state.serial = n; }
+    state.active = (Array.isArray(d.active) ? d.active : []).filter(e => obj(e) && EVENTS[e.type] && Number.isFinite(e.endsAt)).map(e => typeof e.id === 'string' ? e : { ...e, id: 'ev' + (++state.serial) }).map(e => ({ ...e, points: Array.isArray(e.points) ? e.points.filter(obj) : e.type === 'poachers' ? PATROL_POINTS.map(([x, z], i) => ({ id: e.id + '-p' + i, x, z, done: false })) : undefined }));
     state.history = (Array.isArray(d.history) ? d.history : []).filter(obj).slice(0, 12);
   }
   sanct.extend({ key: 'events', tick, day: day_, summary: () => ({}), serialize, restore });

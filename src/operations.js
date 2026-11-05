@@ -248,7 +248,7 @@ export function createOperations(sanct,options={}){
   const obj=v=>v&&typeof v==='object'&&!Array.isArray(v),fin=Number.isFinite;
   state.staff=(Array.isArray(d.staff)?d.staff:[]).filter(m=>obj(m)&&ROLES[m.role]&&typeof m.id==='string').map(m=>({...m,x:fin(m.x)?m.x:HUB.x,z:fin(m.z)?m.z:HUB.z,heading:fin(m.heading)?m.heading:0,skill:[1,2,3].includes(m.skill)?m.skill:1,xp:fin(m.xp)?m.xp:0,tasksDone:fin(m.tasksDone)?m.tasksDone:0,task:null,state:'idle',timer:0}));
   state.staffSerial=fin(d.staffSerial)?d.staffSerial:state.staff.length;
-  state.items=(Array.isArray(d.items)?d.items:[]).filter(i=>obj(i)&&BUILD_ITEMS[i.type]&&typeof i.id==='string'&&fin(i.x)&&fin(i.z)).map(i=>({...i,rot:fin(i.rot)?i.rot:0}));
+  state.items=(Array.isArray(d.items)?d.items:[]).filter(i=>obj(i)&&BUILD_ITEMS[i.type]&&typeof i.id==='string'&&fin(i.x)&&fin(i.z)).map(i=>{const o={...i,rot:fin(i.rot)?i.rot:0};if(fin(o.cond))o.cond=Math.max(0,Math.min(100,o.cond));else delete o.cond;return o});
   state.itemSerial=fin(d.itemSerial)?d.itemSerial:state.items.length;state.unpaid=!!d.unpaid;state.nextTalk=fin(d.nextTalk)?d.nextTalk:0;
   if(obj(d.visitors)){for(const [k,v] of Object.entries(d.visitors))if(k!=='restricted'&&typeof v==='number'&&fin(v)&&k in V)V[k]=v;if(typeof d.visitors.open==='boolean')V.open=d.visitors.open}
   V.restricted={};if(obj(d.visitors?.restricted))for(const [k,v] of Object.entries(d.visitors.restricted))if(v&&SPECIES[k])V.restricted[k]=true;
