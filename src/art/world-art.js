@@ -11,7 +11,7 @@ import { buildKenneyLandmarks } from './kenney.js';
 import { buildClayDiorama } from './claydiorama.js';
 
 // Lays out the whole reserve: woodland, creek, savanna and every building, using the coordinates the game logic expects.
-export function buildWorldArt(scene,{tier,onHandle}={}){
+export function buildWorldArt(scene,{tier}={}){
  const art={};const F=tier.foliage,G=tier.grass;
  art.ground=buildGround(scene,{tier});
  art.sky=buildSky(scene);
@@ -22,7 +22,7 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
  const creek=makeWaterPlane(5,40);creek.rotation.z=.28;creek.position.set(7,.06,0);scene.add(creek);art.creek=creek;
  const mud=new THREE.Mesh(new THREE.PlaneGeometry(7.2,41),new THREE.MeshStandardMaterial({color:'#6e5c42',roughness:1}));mud.rotation.x=-Math.PI/2;mud.rotation.z=.28;mud.position.set(7,.035,0);mud.receiveShadow=true;scene.add(mud);
  const bankRocks=[];const rr=rng(8);for(let i=0;i<36;i++){const z=-18+i*1.05;const side=i%2?1:-1;bankRocks.push([7+Math.sin(.28)*z*.0+side*(2.9+rr()*.6)+z*.28*-0+0,0,z,rr()*6,.45+rr()*.5])}
- const stones=scatterMerged(i=>makeRock(i+100,{size:.5+(i%3)*.12,mossy:true}),bankRocks.map(([x,y,z,rot,s])=>[x-(z*0.28*0.0)+(-z*0.27*0.2),0,z,rot,s]));scene.add(stones);
+ const stones=scatterMerged(i=>makeRock(i+100,{size:.5+(i%3)*.12,mossy:true}),bankRocks.map(([x,,z,rot,s])=>[x+(-z*0.27*0.2),0,z,rot,s]));scene.add(stones);
  for(let i=0;i<9;i++){const ring=new THREE.Mesh(new THREE.RingGeometry(.16,.2,28),new THREE.MeshBasicMaterial({color:'#e8f4ea',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.set(5.9+(i%3)*.82,.09,-13+Math.floor(i/3)*8.5);ring.userData.phase=i*.71;ring.userData.base=.65+(i%3)*.12;scene.add(ring);(art.ripples||(art.ripples=[])).push(ring)}
 
  // ----- woodland trees -----
@@ -79,7 +79,7 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
  art.meadow=makeMeadowPatch();art.meadow.position.set(-12,0,-2);art.meadow.visible=false;scene.add(art.meadow);
 
  // ----- savanna -----
- buildSavannaArt(scene,art,{F,G});
+ buildSavannaArt(scene);
  buildSavannaDetail(scene,art,{F,G});
 
  // ----- ambient life: butterflies, fireflies, rain -----
@@ -98,7 +98,7 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
 
  art.atmosphere=createAtmosphere(scene,{tier});
  art.diorama=buildClayDiorama(scene,art);
- buildKenneyLandmarks(scene,art,{tier}).catch(e=>console.warn('landmarks',e&&e.message));
+ buildKenneyLandmarks(scene,art).catch(e=>console.warn('landmarks',e&&e.message));
  art.update=(t,dt,env,focus={x:24,z:0})=>{art.atmosphere.update(t,dt,env,focus);art.diorama.update(dt);if(art.kenney)art.kenney.update(t);
   wind.uTime.value=t;wind.uStrength.value=env.wind;updateWater(t);art.sky.update(dt);
   art.butterflies.forEach(({group,wings},i)=>{group.visible=(env.season==='Spring'||env.season==='Summer')&&!env.rain&&!env.night;const ph=t*.72+group.userData.phase;group.position.set(group.userData.home.x+Math.sin(ph)*.72,.65+Math.sin(ph*1.7)*.2+(i%4)*.22,group.userData.home.z+Math.cos(ph*.83)*.58);group.rotation.y=Math.sin(ph)*.65+Math.PI/2*0;wings.forEach(({mesh,side})=>{mesh.rotation.z=side*(.2+Math.abs(Math.sin(t*13+i))*1.05)})});
@@ -109,7 +109,7 @@ export function buildWorldArt(scene,{tier,onHandle}={}){
  return art;
 }
 
-function buildSavannaArt(scene,art,{F,G}){
+function buildSavannaArt(scene){
  // kopje
  const kop=[[0,0,0,1.5],[1.8,0,.8,1.1],[-1.6,0,.6,1.15],[.4,1.1,-.2,1.0],[-.3,0,-1.7,.9],[1.4,0,-1.2,.85]];
  for(const [x,y,z,s] of kop){const r=makeRock(Math.round(x*10+z),{size:s*1.2,mossy:false});r.position.set(24+x,y,-9.5+z);r.scale.y=1.25;scene.add(r)}

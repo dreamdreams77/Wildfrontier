@@ -226,7 +226,7 @@ function useEnrichment(id,type){
   say(m.name+' and '+f.name+' ('+sp.common+') have been paired under the breeding programme. Birth expected in about '+sp.gestationDays+' days.');
   return {ok:true,message:m.name+' and '+f.name+' paired. Keep '+f.name+' well fed and calm.'};
  }
- function giveBirth(dam,sim_){
+ function giveBirth(dam){
   const sp=SPECIES[dam.kind],preg=dam.pregnant;dam.pregnant=null;dam.condition='Managed sanctuary resident';dam.mood='Protective';
   state.pregnancies=state.pregnancies.filter(p=>p.damId!==dam.id);
   if(dam.health<35||dam.nutrition<20){say(dam.name+' lost her pregnancy; the pregnancy was not supported by her condition. Review diet and welfare before pairing again.');dam.stress=clamp(dam.stress+20);return []}
@@ -347,6 +347,7 @@ function useEnrichment(id,type){
   if(!Array.isArray(out.habitatPosition)||out.habitatPosition.length<2||!out.habitatPosition.every(Number.isFinite))out.habitatPosition=[sp.spawn[0],sp.spawn[1]];
   if(out.ageDays!==undefined)out.ageDays=Math.max(0,num(out.ageDays,sp.matureDays+10));
   if(!Array.isArray(out.history))delete out.history;
+  if(out.traits!==undefined&&!(isObj(out.traits)&&['bold','social','curious','calm'].every(k=>Number.isFinite(out.traits[k]))))delete out.traits;   // damaged traits are re-derived by ensureProfile instead of turning boredom into NaN
   if(typeof out.name!=='string')out.name=a.id;
   return out;
  }
@@ -375,7 +376,7 @@ function useEnrichment(id,type){
    applySave(data);
    if(!residents().length)throw new Error('save has no resident animals');
    return true;
-  }catch(e){
+  }catch{
    if(snapshot){try{applySave(snapshot)}catch{}}
    return false;
   }

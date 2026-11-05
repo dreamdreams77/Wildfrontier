@@ -70,7 +70,7 @@ export const SENSITIVITY={cheetah:.9,bengalTiger:.7,indianRhino:.6,flamingo:.5,a
 const NEED_LABEL={shade:'shade tree',trees:'tree',water:'water source',mud:'mud wallow',shelter:'shelter den',rock:'rock outcrop',cover:'cover (bamboo)',feeder:'feeding station'};
 const REACH=9;
 
-export function createOperations(sanct,options={}){
+export function createOperations(sanct){
  const state={
   staff:[],staffSerial:0,items:[],itemSerial:0,unpaid:false,nextTalk:0,
   visitors:{open:true,price:8,restricted:{},awareness:0,today:0,total:0,onSite:0,rating:3,lastIncome:0,lastDonation:0,talks:0},

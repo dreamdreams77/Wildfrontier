@@ -123,7 +123,7 @@ export function createWorld(container){
  function hideAnimal(id,pos){const a=animals.find(x=>x.userData.id===id);if(!a)return false;a.userData.hidden=true;a.visible=false;if(pos){a.position.set(pos[0],0,pos[1]);a.userData.home.set(pos[0],0,pos[1])}return true}
  // search areas and clues for rescue cases
  const markerGroup=new THREE.Group();scene.add(markerGroup);let markerKey='';
- function setMarkers(list){const key=JSON.stringify(list.map(m=>[m.id,m.type,Math.round(m.x),Math.round(m.z),m.found?1:0]));if(key===markerKey)return;markerKey=key;while(markerGroup.children.length){const c=markerGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+ function setMarkers(list){const key=JSON.stringify(list.map(m=>[m.id,m.type,Math.round(m.x),Math.round(m.z),m.found?1:0]));if(key===markerKey)return;markerKey=key;while(markerGroup.children.length){const c=markerGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()})}
   for(const m of list){const g=new THREE.Group();g.position.set(m.x,0,m.z);
    if(m.type==='search'){const ring=new THREE.Mesh(new THREE.RingGeometry(m.radius-.18,m.radius,48),new THREE.MeshBasicMaterial({color:'#ffd35a',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.1;g.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,16,10,1,true),new THREE.MeshBasicMaterial({color:'#ffd35a',transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));beam.position.y=8;g.add(beam)}
    else if(m.type==='spot'){const col={footprints:'#8ac0ff',hide:'#b8e08a',water:'#6ad0e0',plant:'#9ae06a',litter:'#e0a0ff'}[m.spot]||'#fff';const ring=new THREE.Mesh(new THREE.RingGeometry(.85,1.05,28),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.11;g.add(ring);const pip=new THREE.Mesh(new THREE.OctahedronGeometry(.22),new THREE.MeshBasicMaterial({color:col}));pip.position.y=1.25;g.add(pip)}
@@ -247,7 +247,7 @@ export function createWorld(container){
   try{localStorage.setItem('wildfrontier.quality.auto',name)}catch{}
  }
  const perf={fps:0,tier:tierName};
- const governor=createGovernor((t,fps)=>{perf.tier=t;applyTier(t)},tierName);
+ const governor=createGovernor(t=>{perf.tier=t;applyTier(t)},tierName);
  if(tier.post){try{post=createPost(renderer,scene,camera,{ao:tier.ao});renderer.toneMapping=THREE.NoToneMapping;post.setSize(innerWidth,innerHeight,renderer.getPixelRatio())}catch{post=null}}
  refreshEnv();
  const WATER=[[31,7,4.4],[25.5,8.2,2.3],[38,-10,5.2]];let wFrame=0;
@@ -262,7 +262,7 @@ export function createWorld(container){
  }
  // Claymation pass: every solid material in the scene becomes plasticine; a slow sweep catches anything added later.
  let lastClaySweep=-9;
- const clayOpts=(o,m)=>o.name==='ground'?{boil:0,scale:.16,strength:1.1,soft:.55,rim:.08}:o.isInstancedMesh?{boil:0,scale:.6,strength:.4,soft:.6,rim:.1}:o.isSkinnedMesh?{boil:.01,scale:.7,strength:.9,soft:.75,rim:.35}:{boil:.014,scale:.34,strength:.8,soft:.45,rim:.25};
+ const clayOpts=o=>o.name==='ground'?{boil:0,scale:.16,strength:1.1,soft:.55,rim:.08}:o.isInstancedMesh?{boil:0,scale:.6,strength:.4,soft:.6,rim:.1}:o.isSkinnedMesh?{boil:.01,scale:.7,strength:.9,soft:.75,rim:.35}:{boil:.014,scale:.34,strength:.8,soft:.45,rim:.25};
  function claySweep(){clayifyTree(scene,clayOpts)}
  function animate(){
   const dt=Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;

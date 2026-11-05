@@ -36,7 +36,7 @@ export function makeOak(seed=1,{season='Spring',scale=1,detail=1}={}){
   for(let k=0;k<PER;k++){const bl=blobGeo(cr*(.55+r()*.3),cr*(.45+r()*.25),cr*(.55+r()*.3),{seg:SEG,noise:.28,freq:2.2,seed:seed*31+i*7+k,low:mixc(lo,[0,0,0],.3),high:mixc(hi,lo,.25)});leaves.push(xform(bl,{pos:[cx+(r()-.5)*cr*.9,cy+(r()-.3)*cr*.6,cz+(r()-.5)*cr*.9]}))}
  }
  for(let k=0;k<(hiD?5:3);k++){const cr=1.1+r()*.4;const bl=blobGeo(cr,cr*.7,cr,{seg:SEG,noise:.25,seed:seed+k,low:mixc(lo,[0,0,0],.3),high:hi});leaves.push(xform(bl,{pos:[crownC[0]+(r()-.5)*1.4,h+.6+r()*.8,(r()-.5)*1.4]}))}
- const T=mesh(mergeAll(trunk),mats.bark());const Lf=mesh(mergeAll(leaves),mats.leaf());g.add(T,Lf);g.scale.setScalar(scale);g.userData.leaves=Lf;g.userData.tintLeaves=(s)=>{};
+ const T=mesh(mergeAll(trunk),mats.bark());const Lf=mesh(mergeAll(leaves),mats.leaf());g.add(T,Lf);g.scale.setScalar(scale);g.userData.leaves=Lf;g.userData.tintLeaves=()=>{};
  return g;
 }
 export function makePine(seed=1,scale=1){
@@ -155,7 +155,7 @@ export function makeReeds(seed=1,count=8){
   if(i%3===0)parts.push(xform(blobGeo(.025,.12,.025,{seg:6,low:C('#6a4a2a'),high:C('#9a7040')}),{pos:[x+lean,h+.05,z+lean*.3]}))}
  const m=mesh(mergeAll(parts),addWind(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85}),{amp:.12,freq:1.4,heightRef:1.6}),false);return m;
 }
-export function makeWillow(seed=1,scale=1){
+export function makeWillow(_seed=1,scale=1){   // every willow is the same shape; the seed is accepted for symmetry with the other plant makers
  const g=new THREE.Group();
  const trunk=loft([{p:[0,0,0],rx:.07},{p:[.05,.5,0],rx:.05},{p:[.12,1.1,0],rx:.03}],{radial:6,rings:8,cap0:1,cap1:1,color:barkColor});
  const lv=[];for(let i=0;i<5;i++){const a=i*1.3;lv.push(xform(blobGeo(.28,.45,.28,{seg:8,noise:.2,seed:i,low:C('#4f7a3c'),high:C('#9acb5a')}),{pos:[Math.cos(a)*.22+.1,.95-i*.04,Math.sin(a)*.22]}))}

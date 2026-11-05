@@ -4,7 +4,7 @@ import { SPECIES } from './sanctuary.js';
 // low supplies, a newborn, an unrepaired habitat, visitors disturbing sensitive wildlife, a rare species spotted.
 // Each mission has a real completion condition checked against live state; none are random busywork.
 const DAY=1440;
-export function createDirector(sim,sanct,ops,journal,rescue,{rng=Math.random}={}){
+export function createDirector(sim,sanct,ops,journal){
  const state={active:[],done:[],seen:{},births:sanct.state.births,serial:0,failed:0};
  const nowM=()=>sanct.state.minutes;
  const residents=()=>sanct.residents();

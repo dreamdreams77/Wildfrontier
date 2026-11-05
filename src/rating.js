@@ -38,6 +38,6 @@ export function createRating(sanct, { ops, stories, release, social } = {}) {
     const m = metrics(), cur = TIERS[state.tier - 1], next = TIERS[state.tier] || null;
     return { tier: state.tier, label: cur.label, stars: cur.stars, next: next && { label: next.label, stars: next.stars, reward: next.reward, needs: next.needs.map(([k, v]) => ({ key: k, label: LABEL[k], need: v, have: m[k], ok: m[k] >= v })) }, grantBonus: Math.round((state.tier - 1) * 12) };
   }
-  sanct.extend({ key: 'rating', day, summary: () => ({}), serialize: () => ({ tier: state.tier }), restore: d => { if (d && Number.isFinite(d.tier)) state.tier = Math.max(1, Math.min(TIERS.length, Math.round(d.tier))); } });
+  sanct.extend({ key: 'rating', day, summary: () => ({}), serialize: () => ({ tier: state.tier }), restore: d => { state.tier = d && Number.isFinite(d.tier) ? Math.max(1, Math.min(TIERS.length, Math.round(d.tier))) : 1; } });
   return { state, metrics, summary, check: day };
 }

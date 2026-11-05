@@ -99,7 +99,7 @@ export function createAudio(){
   if(!ctx||muted)return;voice({wave:'sine',f0:0,f1:0,dur:.07,gain:.22*Math.min(1,speed),at:0,cutoff:700,vib:0,noise:1},0,0,1);
  }
  // called a few times a second with the current state
- function update(s,dt){
+ function update(s){
   if(!ctx||muted||!started)return;const m=ambienceMix(s.env||{});const t=ctx.currentTime;
   ambient.wind.g.gain.setTargetAtTime(m.wind*.35,t,.8);ambient.rain.g.gain.setTargetAtTime(m.rain*.25,t,.8);ambient.water.g.gain.setTargetAtTime(m.water*.3,t,.6);ambient.cricket.g.gain.setTargetAtTime(m.crickets*.025,t,1.2);
   const now=ctx.currentTime;
