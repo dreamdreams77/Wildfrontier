@@ -254,3 +254,8 @@ body.photo #clayFilm .cf-grain{opacity:.3}
 @media(max-width:560px){.s-rating{grid-template-columns:1fr}}
 .s-bonds{list-style:none;padding:0;margin:8px 0;display:grid;gap:4px}.s-bonds li{display:grid;grid-template-columns:18px 1fr 90px 30px;gap:6px;align-items:center;font-size:12px}.s-bonds small{text-align:right;color:#b9bfa6}
 .s-chapters{margin:6px 0 2px;padding-left:18px;font-size:12px;line-height:1.5}.s-chapters li.done{color:#9fbf7a}.s-chapters li.done b::after{content:' ✓'}.s-chapters li.locked{color:#ffffff55}.s-chapters li.active b{color:#f2d17a}
+
+/* keep the animal record's close button reachable however far the record is scrolled */
+.right-panel .panel-top{position:sticky;top:0;z-index:3;background:linear-gradient(180deg,rgba(24,36,28,.98) 70%,rgba(24,36,28,0));padding-bottom:10px;margin-bottom:-4px}
+.close-panel{min-width:44px;min-height:44px;font-size:26px;border-radius:50%}
+.close-panel:active{background:#ffffff14}

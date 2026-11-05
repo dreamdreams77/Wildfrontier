@@ -124,6 +124,9 @@ addEventListener('wildfrontier:select',e=>{const id=e.detail.id|| (e.detail.kind
 function selectTool(name){tool=name;document.querySelectorAll('.tool').forEach(el=>el.classList.toggle('active',el.dataset.tool===name));toast(name==='observe'?'Observation lens ready':name==='track'?'Tracking scope ready':'Care kit equipped')}
 document.querySelectorAll('.tool').forEach(el=>el.addEventListener('click',()=>selectTool(el.dataset.tool)));
 $('closeInspect').addEventListener('click',()=>panel.classList.add('hidden'));
+// on phones and tablets the record covers much of the view: a tap on empty ground closes it, and so does Escape
+addEventListener('wildfrontier:tapempty',()=>{if(innerWidth<=1100)panel.classList.add('hidden')});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('.sanctuary-panel'))panel.classList.add('hidden')});
 $('helpBtn').addEventListener('click',()=>toast('Field protocol: observe first, assess with a ranger, stabilize only when trained, and release only when every welfare measure passes.'));
 $('taskRescue').addEventListener('click',()=>{sim.startMission('fawn');world.focus(-1,1);renderAnimal(sim.select('fawn-01'));toast('Awi is near the old oak. Approach slowly.')});
 $('taskWater').addEventListener('click',()=>{const r=sim.serviceWater();toast(r.message);renderHud();$('taskWater').classList.add('complete');$('taskWater').querySelector('.task-check').textContent='✓'});
