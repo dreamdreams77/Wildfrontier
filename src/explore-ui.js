@@ -1,5 +1,6 @@
 import { LANDMARKS, MAP_BOUNDS, WOODLAND, scorePhoto } from './journal.js';
 import { SPECIES } from './sanctuary.js';
+const escAttr=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));   // ids come from saves: never trust them in markup
 
 // Wildlife journal, world map and photo camera.
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -65,7 +66,7 @@ export function mountExploreUI({sim,sanct,journal,world,toast,afterChange,saveJo
  let markerSrc=()=>[];
  function mapHtml(){
   const known=LANDMARKS.filter(l=>journal.state.landmarks[l.id]);
-  return '<canvas id="mapCanvas" width="'+W+'" height="'+H+'" class="map-canvas"></canvas><p class="s-muted">Walk to new places to uncover the map. '+known.length+'/'+LANDMARKS.length+' places discovered. Discovered animals appear where you can currently see them.</p><h3>Fast travel</h3><div class="s-species">'+known.map(l=>'<button data-m="go" data-id="'+l.id+'"><span>'+l.emoji+'</span><b>'+esc(l.label)+'</b><small>'+(l.safari?'Safari':'Woodland')+'</small></button>').join('')+'</div>';
+  return '<canvas id="mapCanvas" width="'+W+'" height="'+H+'" class="map-canvas"></canvas><p class="s-muted">Walk to new places to uncover the map. '+known.length+'/'+LANDMARKS.length+' places discovered. Discovered animals appear where you can currently see them.</p><h3>Fast travel</h3><div class="s-species">'+known.map(l=>'<button data-m="go" data-id="'+escAttr(l.id)+'"><span>'+l.emoji+'</span><b>'+esc(l.label)+'</b><small>'+(l.safari?'Safari':'Woodland')+'</small></button>').join('')+'</div>';
  }
  function openMap(){mount('map');render()}
 

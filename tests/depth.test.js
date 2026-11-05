@@ -126,3 +126,8 @@ test('loading a save without a rating block starts at one star; treatment messag
   w.s.state.funds=5000;w.mgmt.upgrade('clinic');const c=w.mgmt.start(find(w.s,'Kito'),'respiratory');w.s.state.stock.medicine=5;w.mgmt.diagnose(c.id);
   const r=w.mgmt.treatCase(c.id);assert.equal(c.treated,4);assert.match(r.message,/\(4 days\)/);
 });
+
+test('asking about an animal that has left does not create a bond record',()=>{
+  const w=world();const n=Object.keys(w.social.state.bonds).length;
+  assert.equal(w.social.bond('plainsZebra-kito','plainsZebra-nobody'),0);assert.equal(Object.keys(w.social.state.bonds).length,n);
+});
